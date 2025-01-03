@@ -1,6 +1,6 @@
 
-### ComplyTime Structure with Plugin
-.
+## ComplyTime Structure with Plugin
+
 ├── cmd
 │   ├── complytime
 │   │   ├── cli
