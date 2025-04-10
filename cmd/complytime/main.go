@@ -19,4 +19,5 @@ func main() {
 		cli.Error(fmt.Sprintf("error running complytime: %v", err))
 		os.Exit(1)
 	}
+	cli.Write()
 }
