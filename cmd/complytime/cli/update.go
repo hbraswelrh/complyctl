@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
 )
 
 // Structure for marshalling a go struct into json data
@@ -14,6 +13,7 @@ type Config struct {
 	IncludeControls []string `json:"include_controls"`
 	ControlIds      []string `json:"control_ids"`
 }
+
 // Function called in main that will populate config.json defaults
 func Write() {
 	c := Config{
@@ -43,8 +43,8 @@ func Write() {
 	}
 	// Printing to stdout, WIP
 	fmt.Printf("\nThe encoded file was successfully written to: %v", filepath.Name())
-	fmt.Println("\nframework_id:",c.FrameworkID)
-	fmt.Println("\ncomponents:",c.Components)
+	fmt.Println("\nframework_id:", c.FrameworkID)
+	fmt.Println("\ncomponents:", c.Components)
 	fmt.Println("\ncontrol_ids:", c.ControlIds)
 	fmt.Println("\ninclude_controls:", c.IncludeControls)
 	fmt.Println("\nconfig.json successfully written with updates")
