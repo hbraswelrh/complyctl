@@ -5,6 +5,8 @@ package cli
 import (
 	"errors"
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"os"
 	"path/filepath"
 
@@ -74,6 +76,7 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		return fmt.Errorf("error writing assessment plan to %s: %w", cleanedPath, err)
 	}
 	logger.Info(fmt.Sprintf("Assessment plan written to %s\n", cleanedPath))
+	EditPlan()
 	return nil
 }
 
@@ -103,4 +106,13 @@ func getPlanSettings(opts *option.ComplyTime, assessmentPlan *oscalTypes.Assessm
 		return settings.Settings{}, err
 	}
 	return planSettings, nil
+}
+
+func EditPlan() {
+	huh.NewForm()
+	_, err := tea.NewProgram(NewModel()).Run()
+	if err != nil {
+		fmt.Println("Error happening", err)
+		os.Exit(1)
+	}
 }

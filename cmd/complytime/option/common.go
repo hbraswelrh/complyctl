@@ -40,12 +40,26 @@ type ComplyTime struct {
 	// FrameworkID representing the compliance framework identifier associated with the artifacts in the workspace.
 	// It is set by workspace state or command positional arguments.
 	FrameworkID string
+
+	Config string
 }
 
 // BindFlags populate ComplyTime options from user-specified flags.
 func (o *ComplyTime) BindFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.UserWorkspace, "workspace", "w", "./complytime", "workspace to use for artifact generation")
+	fs.StringVarP(&o.Config, "config", "c", "./complytime/config.yml", "config for updating the assessment plan fields.")
 }
+
+// Added this on 04/07/2025 for Option 2 in editing configuration file
+//type Configuration struct {
+//	// Set config fields using viper and then update for the flags
+//	Config string
+//}
+
+// Added this flag option 04/07/2025 to populate flags for the Config editing option
+//func (o *ComplyTime) BindFlags(fs *pflag.FlagSet) {
+//	fs.StringVarP(&o.Configuration, "config", "c", "config.yaml", "The config file to be leveraged for updating assessment plans")
+//}
 
 // ToPluginOptions returns global PluginOptions based on complytime Options.
 func (o *ComplyTime) ToPluginOptions() complytime.PluginOptions {
