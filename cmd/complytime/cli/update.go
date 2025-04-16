@@ -3,10 +3,11 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 )
 
-// Structure for marshalling a go struct into json data
+// Config is used for marshalling a go struct into json data.
 type Config struct {
 	FrameworkID     string   `json:"assessment_plan"`
 	Components      string   `json:"components"`
@@ -14,8 +15,46 @@ type Config struct {
 	ControlIds      []string `json:"control_ids"`
 }
 
-// Function called in main that will populate config.json defaults
-func Write() {
+// Configuration formats assessment-plan data as go struct.
+type Configuration struct {
+	FrameworkID     string   `yaml:"assessment_plan"`
+	Components      string   `yaml:"components"`
+	IncludeControls []string `yaml:"include_controls"`
+	ControlIds      []string `yaml:"control_ids"`
+}
+
+// PlanConfigYAML populates the config.yaml from defaults.
+func PlanConfigYAML() {
+	y := Configuration{
+		FrameworkID:     "complytime",
+		Components:      "controls",
+		IncludeControls: []string{"R1", "R2", "R3", "R4", "R5"},
+		ControlIds:      []string{"R1", "R2", "R3", "R4", "R5"},
+	}
+	yamlfile, err := os.Create("config.yaml")
+	if err != nil {
+		fmt.Println(err)
+	}
+	encodeFile := yaml.NewEncoder(yamlfile)
+	err = encodeFile.Encode(y)
+	if err != nil {
+		fmt.Println("There was an error encoding the plan_config.", err)
+	}
+	err = yamlfile.Close()
+	if err != nil {
+		return
+	}
+	fmt.Println("\nConfiguration successfully written to: ", yamlfile.Name())
+	fmt.Println("\nframework_id: ", y.FrameworkID)
+	fmt.Println("\ncomponents: ", y.Components)
+	fmt.Println("\nincluded_controls: ", y.IncludeControls)
+	fmt.Println("\ncontrol_ids: ", y.ControlIds)
+
+}
+
+// PlanConfigJSON populates config.json defaults from data.
+func PlanConfigJSON() {
+
 	c := Config{
 		FrameworkID:     "anssi_bp28_minimal",
 		Components:      "controls",
