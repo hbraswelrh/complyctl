@@ -22,4 +22,5 @@ func main() {
 	// Included for the example printing to stdOut
 	cli.PlanConfigJSON()
 	cli.PlanConfigYAML()
+	cli.RelayContent()
 }

@@ -23,6 +23,45 @@ type Configuration struct {
 	ControlIds      []string `yaml:"control_ids"`
 }
 
+// PlanData sets up the yaml mapping type for writing to config file.
+// Formats testdata as go struct.
+type PlanData struct {
+	FrameworkID     string   `yaml:"assessment_plan"`
+	Components      []string `yaml:"components"`
+	IncludeControls []string `yaml:"include_controls"`
+	ControlIds      []string `yaml:"control_ids"`
+}
+
+// RelayContent leverages the PlanData structure to populate testdata
+// test data is written to the config.yaml.
+func RelayContent() {
+	ycfg := PlanData{
+		FrameworkID:     "anssi_bp28_minimal",
+		Components:      []string{"rules", "controls", "parameters"},
+		IncludeControls: []string{"R1", "R2"},
+		ControlIds:      []string{"R1", "R2", "R3", "R4", "R5"},
+	}
+	out, err := yaml.Marshal(&ycfg)
+	if err != nil {
+		fmt.Println("error marshalling yaml content: ", err)
+	}
+	fmt.Println(string(out))
+
+	file, err := os.Create("config.yaml")
+	if err != nil {
+		fmt.Println("error, the plan updates couldn't be written: ", err)
+	}
+	defer file.Close()
+
+	// Writing the YAML Data to config.yaml
+	_, err = file.Write(out)
+	if err != nil {
+		fmt.Println("error writing to config: ", err)
+
+	}
+	fmt.Println("The updated plan content was written to config.yaml")
+}
+
 // PlanConfigYAML populates the config.yaml from defaults.
 func PlanConfigYAML() {
 	y := Configuration{
