@@ -19,8 +19,6 @@ func main() {
 		cli.Error(fmt.Sprintf("error running complytime: %v", err))
 		os.Exit(1)
 	}
-	// Included for the example printing to stdOut
-	cli.PlanConfigJSON()
-	cli.PlanConfigYAML()
+	// RelayContent will print assessment-plan data to StdOut.
 	cli.RelayContent()
 }
