@@ -82,3 +82,43 @@ func TestMapResultStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestParseCheck(t *testing.T) {
+	tests := []struct {
+		name           string
+		xmlContent     string
+		expectedResult string
+		expectedError  error
+	}{
+		{
+			name:           "Valid/ExpectedFormat",
+			xmlContent:     `<check-content-ref name="oval:ssg-audit_perm_change_success:def:1"/>`,
+			expectedResult: "audit_perm_change_success",
+		},
+		{
+			name:           "Invalid/UnexpectedFormat",
+			xmlContent:     `<check-content-ref name="ovalssg-audit_perm_change_success:def:1"/>`,
+			expectedResult: "",
+			expectedError:  errors.New("check id \"ovalssg-audit_perm_change_success:def:1\" is in unexpected format"),
+		},
+		{
+			name:           "Invalid/NoNameAttribute",
+			xmlContent:     `<check-content-ref/>`,
+			expectedResult: "",
+			expectedError:  errors.New("check-content-ref node has no 'name' attribute"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := xmlquery.Parse(strings.NewReader(tt.xmlContent))
+			assert.NoError(t, err)
+			check, err := parseCheck(node.SelectElement("check-content-ref"))
+			assert.Equal(t, tt.expectedResult, check)
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

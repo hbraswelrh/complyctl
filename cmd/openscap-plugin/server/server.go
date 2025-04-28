@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ComplianceAsCode/compliance-operator/pkg/utils"
 	"github.com/antchfx/xmlquery"
+	"github.com/hashicorp/go-hclog"
 	"github.com/oscal-compass/compliance-to-policy-go/v2/policy"
 
 	"github.com/complytime/complytime/cmd/openscap-plugin/config"
@@ -21,7 +23,12 @@ import (
 	"github.com/complytime/complytime/cmd/openscap-plugin/xccdf"
 )
 
-var _ policy.Provider = (*PluginServer)(nil)
+var (
+	_ policy.Provider = (*PluginServer)(nil)
+	// ovalRegex is a regular expression for capturing the check short name
+	// in an OVAL check definition identifier.
+	ovalRegex = regexp.MustCompile(`^[^:]*?:[^-]*?-(.*?):.*?$`)
+)
 
 const ovalCheckType = "http://oval.mitre.org/XMLSchema/oval-definitions-5"
 
@@ -29,12 +36,18 @@ type PluginServer struct {
 	Config *config.Config
 }
 
-func New(cfg *config.Config) PluginServer {
-	return PluginServer{Config: cfg}
+func New() PluginServer {
+	return PluginServer{
+		Config: config.NewConfig(),
+	}
+}
+
+func (s PluginServer) Configure(configMap map[string]string) error {
+	return s.Config.LoadSettings(configMap)
 }
 
 func (s PluginServer) Generate(policy policy.Policy) error {
-	fmt.Println("Generating a tailoring file")
+	hclog.Default().Info("Generating a tailoring file")
 	tailoringXML, err := xccdf.PolicyToXML(policy, s.Config)
 	if err != nil {
 		return err
@@ -52,13 +65,16 @@ func (s PluginServer) Generate(policy policy.Policy) error {
 	return nil
 }
 
-func (s PluginServer) GetResults(_ policy.Policy) (policy.PVPResult, error) {
-	fmt.Println("I am being scanned by OpenSCAP")
+func (s PluginServer) GetResults(oscalPolicy policy.Policy) (policy.PVPResult, error) {
 	pvpResults := policy.PVPResult{}
+	policyChecks := newChecks()
+
 	_, err := scan.ScanSystem(s.Config, s.Config.Parameters.Profile)
 	if err != nil {
 		return policy.PVPResult{}, err
 	}
+
+	policyChecks.LoadPolicy(oscalPolicy)
 
 	// get some results here
 	file, err := os.Open(filepath.Clean(s.Config.Files.ARF))
@@ -93,32 +109,80 @@ func (s PluginServer) GetResults(_ policy.Policy) (policy.PVPResult, error) {
 		if ovalRefEl == nil {
 			continue
 		}
-		ovalCheckName := strings.TrimSpace(ovalRefEl.SelectAttr("name"))
-
-		mappedResult, err := mapResultStatus(result)
+		ovalCheck, err := parseCheck(ovalRefEl)
 		if err != nil {
 			return policy.PVPResult{}, err
 		}
-		observation := policy.ObservationByCheck{
-			Title:     ruleIDRef,
-			Methods:   []string{"AUTOMATED"},
-			Collected: time.Now(),
-			CheckID:   ovalCheckName,
-			Subjects: []policy.Subject{
-				{
-					Title:       "My Comp",
-					Type:        "component",
-					ResourceID:  ruleIDRef,
-					EvaluatedOn: time.Now(),
-					Result:      mappedResult,
-					Reason:      "my reason",
+		if policyChecks.Has(ovalCheck) {
+			mappedResult, err := mapResultStatus(result)
+			if err != nil {
+				return policy.PVPResult{}, err
+			}
+			observation := policy.ObservationByCheck{
+				Title:     ruleIDRef,
+				Methods:   []string{"AUTOMATED"},
+				Collected: time.Now(),
+				CheckID:   ovalCheck,
+				Subjects: []policy.Subject{
+					{
+						Title:       "My Comp",
+						Type:        "component",
+						ResourceID:  ruleIDRef,
+						EvaluatedOn: time.Now(),
+						Result:      mappedResult,
+						Reason:      "my reason",
+					},
 				},
-			},
+				RelevantEvidences: []policy.Link{
+					{
+						Href:        fmt.Sprintf("file://%s", s.Config.Files.ARF),
+						Description: "ARF_FILE",
+					},
+				},
+			}
+			pvpResults.ObservationsByCheck = append(pvpResults.ObservationsByCheck, observation)
 		}
-		pvpResults.ObservationsByCheck = append(pvpResults.ObservationsByCheck, observation)
 	}
-
 	return pvpResults, nil
+}
+
+// checks is a Set implementation for comparing OSCAL
+// and OVAL checks ids.
+type checks map[string]struct{}
+
+func newChecks() checks {
+	policyChecks := make(checks)
+	return policyChecks
+}
+
+func (c checks) LoadPolicy(oscalPolicy policy.Policy) {
+	for _, rule := range oscalPolicy {
+		for _, check := range rule.Checks {
+			c[check.ID] = struct{}{}
+		}
+	}
+}
+
+func (c checks) Has(check string) bool {
+	_, ok := c[check]
+	return ok
+}
+
+// parseCheck returns the check short name without the OVAL-specific naming from a
+// rule in results.
+func parseCheck(check *xmlquery.Node) (string, error) {
+	ovalCheckName := strings.TrimSpace(check.SelectAttr("name"))
+	if ovalCheckName == "" {
+		return "", errors.New("check-content-ref node has no 'name' attribute")
+	}
+	matches := ovalRegex.FindStringSubmatch(ovalCheckName)
+
+	minimumPart, shortNameLoc := 2, 1
+	if len(matches) < minimumPart {
+		return "", fmt.Errorf("check id %q is in unexpected format", ovalCheckName)
+	}
+	trimmedCheckName := matches[shortNameLoc]
+	return trimmedCheckName, nil
 }
 
 func mapResultStatus(result *xmlquery.Node) (policy.Result, error) {

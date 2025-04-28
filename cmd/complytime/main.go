@@ -4,10 +4,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
-
-	"github.com/spf13/cobra"
 
 	"github.com/complytime/complytime/cmd/complytime/cli"
 )
@@ -16,5 +15,8 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	complytime := cli.New()
-	cobra.CheckErr(complytime.ExecuteContext(ctx))
+	if err := complytime.ExecuteContext(ctx); err != nil {
+		cli.Error(fmt.Sprintf("error running complytime: %v", err))
+		os.Exit(1)
+	}
 }

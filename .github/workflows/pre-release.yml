@@ -12,7 +12,8 @@ jobs:
     name: Create Pre-release
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # for github releases
+      id-token: write # for keyless signing
 
     steps:
 
@@ -55,6 +56,12 @@ jobs:
           echo >>/tmp/.goreleaser.yaml '  prerelease: true'
           echo
           cat /tmp/.goreleaser.yaml
+
+      - name: Install cosign for signatures
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a #v3.8.1
+
+      - name: Install syft for sboms
+        uses: anchore/sbom-action/download-syft@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 #v0.18.0
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf #v6

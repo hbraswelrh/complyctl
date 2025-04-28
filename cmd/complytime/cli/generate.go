@@ -6,75 +6,91 @@ import (
 	"fmt"
 
 	"github.com/oscal-compass/compliance-to-policy-go/v2/framework"
+	"github.com/oscal-compass/oscal-sdk-go/extensions"
+	"github.com/oscal-compass/oscal-sdk-go/validation"
 	"github.com/spf13/cobra"
-
-	"path/filepath"
 
 	"github.com/complytime/complytime/cmd/complytime/option"
 	"github.com/complytime/complytime/internal/complytime"
 )
 
-// generateOptions defines options for the generate subcommand
+// generateOptions defines options for the "generate" subcommand
 type generateOptions struct {
 	*option.Common
-	assessmentPlanPath string
+	complyTimeOpts *option.ComplyTime
 }
 
-func setOptsFromArgs(args []string, opts *generateOptions) {
-	if len(args) == 1 {
-		opts.assessmentPlanPath = filepath.Clean(args[0])
-	}
-}
-
-// generateCmd creates a new cobra.Command for the generate subcommand
+// generateCmd creates a new cobra.Command for the "generate" subcommand
 func generateCmd(common *option.Common) *cobra.Command {
-	generateOpts := &generateOptions{Common: common}
-	return &cobra.Command{
-		Use:     "generate",
+	generateOpts := &generateOptions{
+		Common:         common,
+		complyTimeOpts: &option.ComplyTime{},
+	}
+	cmd := &cobra.Command{
+		Use:     "generate [flags]",
 		Short:   "Generate PVP policy from an assessment plan",
-		Example: "complytime generate assessment-plan.json",
-		Args:    cobra.RangeArgs(0, 1),
-		PreRun: func(cmd *cobra.Command, args []string) {
-			setOptsFromArgs(args, generateOpts)
-		},
+		Example: "complytime generate",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runGenerate(cmd, generateOpts)
 		},
 	}
+	generateOpts.complyTimeOpts.BindFlags(cmd.Flags())
+	return cmd
 }
 
 func runGenerate(cmd *cobra.Command, opts *generateOptions) error {
-
-	// Adding this message to the user for now because assessment Plans are unused
-	if opts.assessmentPlanPath != "" {
-		_, _ = fmt.Fprintf(opts.Out, "OSCAL Assessment Plans are not supported yet...\nThe file %s will not be used.\n", opts.assessmentPlanPath)
+	validator := validation.NewSchemaValidator()
+	ap, _, err := loadPlan(opts.complyTimeOpts, validator)
+	if err != nil {
+		return err
 	}
+
+	planSettings, err := getPlanSettings(opts.complyTimeOpts, ap)
+	if err != nil {
+		return err
+	}
+
+	// Set the framework ID from state (assessment plan)
+	frameworkProp, valid := extensions.GetTrestleProp(extensions.FrameworkProp, *ap.Metadata.Props)
+	if !valid {
+		return fmt.Errorf("error reading framework property from assessment plan")
+	}
+	opts.complyTimeOpts.FrameworkID = frameworkProp.Value
 
 	// Create the application directory if it does not exist
 	appDir, err := complytime.NewApplicationDirectory(true)
 	if err != nil {
 		return err
 	}
-	cfg, err := complytime.Config(appDir)
+	logger.Debug(fmt.Sprintf("Using application directory: %s", appDir.AppDir()))
+	cfg, err := complytime.Config(appDir, validator)
 	if err != nil {
 		return err
 	}
+	logger.Debug("The configuration from the C2PConfig was successfully loaded.")
+
+	// set config logger to CLI charm logger
+	cfg.Logger = logger
+
 	manager, err := framework.NewPluginManager(cfg)
 	if err != nil {
 		return fmt.Errorf("error initializing plugin manager: %w", err)
 	}
-	plugins, err := manager.LaunchPolicyPlugins()
+
+	pluginOptions := opts.complyTimeOpts.ToPluginOptions()
+	plugins, cleanup, err := complytime.Plugins(manager, pluginOptions)
+	if cleanup != nil {
+		defer cleanup()
+	}
+	if err != nil {
+		return fmt.Errorf("errors launching plugins: %w", err)
+	}
+
+	err = manager.GeneratePolicy(cmd.Context(), plugins, planSettings)
 	if err != nil {
 		return err
 	}
-
-	// Ensure all the plugins launch above are cleaned up
-	defer manager.Clean()
-
-	err = manager.GeneratePolicy(cmd.Context(), plugins)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(opts.Out, "Policy generation completed successfully.")
+	logger.Info("Policy generation process completed for available plugins.")
 	return nil
 }

@@ -2,87 +2,55 @@
 
 [![OpenSSF Best Practices status](https://www.bestpractices.dev/projects/9761/badge)](https://www.bestpractices.dev/projects/9761)
 [![GoDoc](https://img.shields.io/static/v1?label=godoc&message=reference&color=blue)](https://pkg.go.dev/github.com/complytime/complytime)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/helm/helm/badge)](https://scorecard.dev/viewer/?uri=github.com/complytime/complytime)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/complytime/complytime/badge)](https://scorecard.dev/viewer/?uri=github.com/complytime/complytime)
 
 ComplyTime leverages [OSCAL](https://github.com/usnistgov/OSCAL/) to perform compliance assessment activities, using plugins for each stage of the lifecycle.
 
-## Install
+## Documentation
 
-### Prerequisites
+:paperclip: [Installation](./docs/INSTALLATION.md)\
+:paperclip: [Quick Start](./docs/QUICK_START.md)\
+:paperclip: [Sample Component Definition](./docs/samples/sample-component-definition.json)
 
-- **Go** version 1.20 or higher
-- **Make** (optional, for using the `Makefile` if included)
+### Basic Usage
 
-#### Using with the openscap-plugin
-- **openscap-scanner** package installed
-- **scap-security-guide** package installed
-
-### Clone the repository
+Determine the baseline you want to run a scan for and create an OSCAL [Assessment Plan](https://pages.nist.gov/OSCAL/resources/concepts/layer/assessment/assessment-plan/). The Assessment
+Plan will act as configuration to guide the ComplyTime generation and scanning operations.
 
 ```bash
-git clone https://github.com/complytime/complytime.git
-cd complytime
+complytime list
+...
+# Table appears with options. Look at the Framework ID column.
 ```
-
-### Build Instructions
-To compile complytime and openscap-plugin:
 
 ```bash
-make build
+complytime plan <framework-id>
+...
+# The file will be written out to assessment-plan.json in the specified workspace.
+# Defaults to current working directory.
+cat assessment-plan.json
 ```
 
-The binaries can be found in the `bin/` directory in the local repo. Add it to your PATH and you are all set!
+Run the generate command to `generate` policy artifacts in the workspace and run the `scan` command to execute the generated artifacts and get results.
 
-## Usage
-
-### Install a plugin
-
-_Note: This is currently a manual process_
-
-```markdown
-After running complytime for the first time, the complytime
-directory should be created under $HOME/.config
-
-complytime
-├── bundles
-└── plugins
-```
-
-
-```bash
-cp myplugin ~/.config/complytime/plugins
-checksum=$(sha256sum ~/.config/complytime/plugins/myplugin | cut -d ' ' -f 1 )
-cat > ~/.config/complytime/plugins/c2p-myplugin-manifest.json << EOF
-{
-  "metadata": {
-    "id": "myplugin",
-    "description": "My complytime plugin",
-    "version": "0.0.1",
-    "types": ["pvp"]
-  },
-  "executablePath": "myplugin",
-  "sha256": "$checksum"
-}
-EOF
-```
-
-### Create configuration
-
-Plugin selection and input is configured through [OSCAL Component Definitions](https://pages.nist.gov/OSCAL-Reference/models/v1.1.3/component-definition/json-outline/).
-See `docs/samples/` for example configuration for the `myplugin` plugin.
-
-```bash
-cp docs/samples/sample-component-definition.json ~/.config/complytime/bundles
-```
-
-### Run ComplyTime
 ```bash
 complytime generate
+...
 complytime scan
+
+# The results will be written to assessment-results.json in the specified workspace.
+# Defaults to current working directory under folder "complytime".
+
+complytime scan --with-md
+
+# Both assessment-results.md and assessment-results.json will be written in the specified workspace.
+# Defaults to current working directory under folder "complytime".
 ```
 
-## Community and Contribution
+## Contributing
 
-- [Contributing](./docs/CONTRIBUTING.md)
-- [Style Guide](./docs/STYLE_GUIDE.md)
-- [Code of Conduct](./docs/CODE_OF_CONDUCT.md)
+:paperclip: Read the [contributing guidelines](./docs/CONTRIBUTING.md)\
+:paperclip: Read the [style guide](./docs/STYLE_GUIDE.md)\
+:paperclip: Read and agree to the [Code of Conduct](./docs/CODE_OF_CONDUCT.md)
+
+*Interested in writing a plugin?* See the [plugin guide](./docs/PLUGIN_GUIDE.md).

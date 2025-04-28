@@ -1,0 +1,8 @@
+FROM registry.access.redhat.com/ubi9/ubi:9.5
+ARG RHEL_APPS_REPO
+COPY quick_start.sh /quick_start.sh
+ENV RHEL_APPS_REPO=${RHEL_APPS_REPO}
+RUN chmod +x /quick_start.sh && /quick_start.sh && rm -rf /var/cache/dnf
+
+# Optionally, set the container to continue running after execution
+CMD ["bash"]

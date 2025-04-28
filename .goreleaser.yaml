@@ -13,7 +13,8 @@ before:
 
 builds:
   - #
-    id: linux
+    id: complytime
+    binary: complytime
     env:
       - CGO_ENABLED=0
     goos:
@@ -24,6 +25,12 @@ builds:
       - "-X github.com/complytime/complytime/internal/version.commit={{ .Commit }}"
       - "-X github.com/complytime/complytime/internal/version.buildDate={{ .Date }}"
     main: ./cmd/complytime/
+  - #
+    id: openscap-plugin
+    binary: openscap-plugin
+    goos:
+      - linux
+    main: ./cmd/openscap-plugin/
 
 archives:
   - format: tar.gz
@@ -42,3 +49,21 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: source
+    artifacts: source
+
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - "sign-blob"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes" # needed on cosign 2.0.0+
+    artifacts: checksum # only need to sign checksums
+    output: true

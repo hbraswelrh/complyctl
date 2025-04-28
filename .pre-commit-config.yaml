@@ -18,3 +18,12 @@ repos:
       #- id: no-go-testing
       #- id: golangci-lint
       - id: go-unit-tests
+
+-   repo: local
+    hooks:
+        - id: check-spdx
+          name: Check and fix SPDX line in source files
+          entry: python ./scripts/check-and-fix-spdx.py
+          language: system
+          stages: [pre-commit]
+          files: \.(py|go|sh)$

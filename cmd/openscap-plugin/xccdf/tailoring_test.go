@@ -4,6 +4,7 @@ package xccdf
 
 import (
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 
@@ -13,9 +14,24 @@ import (
 	"github.com/oscal-compass/oscal-sdk-go/extensions"
 )
 
+// This is a supporting function to get the profile element from the testing Datastream.
+// It is used by TestGetTailoringSelections and TestGetTailoringValues.
+func getProfileElementTest(t *testing.T, profileID string) (*xccdf.ProfileElement, error) {
+	doc, _ := LoadDsTest(t, "ssg-rhel-ds.xml")
+	dsProfile, err := getDsProfile(doc, profileID)
+	if err != nil {
+		t.Fatalf("failed to get profile: %v", err)
+	}
+	parsedProfile, err := initProfile(dsProfile, profileID)
+	if err != nil {
+		t.Fatalf("failed to init parsed profile: %v", err)
+	}
+	return parsedProfile, nil
+}
+
 // TestGetTailoringID tests the getTailoringID function.
 func TestGetTailoringID(t *testing.T) {
-	expected := "xccdf_complytime.openscapplugin_tailoring_complytime-tailoring-profile"
+	expected := "xccdf_complytime.openscapplugin_tailoring_complytime"
 	result := getTailoringID()
 
 	if result != expected {
@@ -25,8 +41,8 @@ func TestGetTailoringID(t *testing.T) {
 
 // TestGetTailoringProfileID tests the getTailoringProfileID function.
 func TestGetTailoringProfileID(t *testing.T) {
-	profileId := "test-profile"
-	expected := "xccdf_complytime.openscapplugin_profile_test-profile_complytime-tailoring-profile"
+	profileId := "test_profile"
+	expected := "xccdf_complytime.openscapplugin_profile_test_profile_complytime"
 	result := getTailoringProfileID(profileId)
 
 	if result != expected {
@@ -36,22 +52,18 @@ func TestGetTailoringProfileID(t *testing.T) {
 
 // TestGetTailoringProfileTitle tests the getTailoringProfileTitle function.
 func TestGetTailoringProfileTitle(t *testing.T) {
-	dsPath := filepath.Join("..", "..", "..", "internal", "complytime", "testdata", "openscap", "ssg-rhel-ds.xml")
-
 	tests := []struct {
-		profileId string
-		dsPath    string
-		expected  string
+		profileTitle string
+		expected     string
 	}{
-		{"test_profile", dsPath, "ComplyTime Tailoring Profile - Test Profile"},
-		{"no-ds-profile", dsPath, "ComplyTime Tailoring Profile - no-ds-profile"},
-		{"test_profile_no_title", dsPath, "ComplyTime Tailoring Profile - test_profile_no_title"},
+		{"Test Profile", "ComplyTime Tailoring Profile - Test Profile"},
+		{"test_profile_id", "ComplyTime Tailoring Profile - test_profile_id"},
 	}
 
 	for _, tt := range tests {
-		result := getTailoringProfileTitle(tt.profileId, tt.dsPath)
+		result := getTailoringProfileTitle(tt.profileTitle)
 		if result != tt.expected {
-			t.Errorf("getTailoringProfileTitle(%v, %v) = %v; want %v", tt.profileId, tt.dsPath, result, tt.expected)
+			t.Errorf("getTailoringProfileTitle(%v) = %v; want %v", tt.profileTitle, result, tt.expected)
 		}
 	}
 }
@@ -72,7 +84,7 @@ func TestGetTailoringVersion(t *testing.T) {
 
 // TestGetTailoringBenchmarkHref tests the getTailoringBenchmarkHref function.
 func TestGetTailoringBenchmarkHref(t *testing.T) {
-	dsPath := filepath.Join("..", "..", "..", "internal", "complytime", "testdata", "openscap", "ssg-rhel-ds.xml")
+	dsPath := filepath.Join(testDataDir, "ssg-rhel-ds.xml")
 	expected := xccdf.BenchmarkElement{
 		Href: dsPath,
 	}
@@ -83,19 +95,543 @@ func TestGetTailoringBenchmarkHref(t *testing.T) {
 	}
 }
 
+// TestValidateRuleExistence tests the validateRuleExistence function.
+func TestValidateRuleExistence(t *testing.T) {
+	tests := []struct {
+		name          string
+		policyRuleID  string
+		dsRules       []DsRules
+		expectedExist bool
+	}{
+		{
+			name:         "Rule exists",
+			policyRuleID: "rule1",
+			dsRules: []DsRules{
+				{ID: "xccdf_org.ssgproject.content_rule_rule1"},
+				{ID: "xccdf_org.ssgproject.content_rule_rule2"},
+			},
+			expectedExist: true,
+		},
+		{
+			name:         "Rule does not exist",
+			policyRuleID: "rule3",
+			dsRules: []DsRules{
+				{ID: "xccdf_org.ssgproject.content_rule_rule1"},
+				{ID: "xccdf_org.ssgproject.content_rule_rule2"},
+			},
+			expectedExist: false,
+		},
+		{
+			name:          "Empty dsRules",
+			policyRuleID:  "rule1",
+			dsRules:       []DsRules{},
+			expectedExist: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := validateRuleExistence(tt.policyRuleID, tt.dsRules)
+			if result != tt.expectedExist {
+				t.Errorf("validateRuleExistence(%v, %v) = %v; want %v", tt.policyRuleID, tt.dsRules, result, tt.expectedExist)
+			}
+		})
+	}
+}
+
+// TestValidateVariableExistence tests the validateVariableExistence function.
+func TestValidateVariableExistence(t *testing.T) {
+	tests := []struct {
+		name              string
+		policyVariableID  string
+		dsVariables       []DsVariables
+		expectedExistence bool
+	}{
+		{
+			name:             "Variable exists",
+			policyVariableID: "var1",
+			dsVariables: []DsVariables{
+				{ID: "xccdf_org.ssgproject.content_value_var1"},
+				{ID: "xccdf_org.ssgproject.content_value_var2"},
+			},
+			expectedExistence: true,
+		},
+		{
+			name:             "Variable does not exist",
+			policyVariableID: "var3",
+			dsVariables: []DsVariables{
+				{ID: "xccdf_org.ssgproject.content_value_var1"},
+				{ID: "xccdf_org.ssgproject.content_value_var2"},
+			},
+			expectedExistence: false,
+		},
+		{
+			name:              "Empty dsVariables",
+			policyVariableID:  "var1",
+			dsVariables:       []DsVariables{},
+			expectedExistence: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := validateVariableExistence(tt.policyVariableID, tt.dsVariables)
+			if result != tt.expectedExistence {
+				t.Errorf("validateVariableExistence(%v, %v) = %v; want %v", tt.policyVariableID, tt.dsVariables, result, tt.expectedExistence)
+			}
+		})
+	}
+}
+
+// TestUnselectAbsentRules tests the unselectAbsentRules function.
+func TestUnselectAbsentRules(t *testing.T) {
+	tests := []struct {
+		name                string
+		tailoringSelections []xccdf.SelectElement
+		dsProfileSelections []xccdf.SelectElement
+		oscalPolicy         policy.Policy
+		expectedSelections  []xccdf.SelectElement
+	}{
+		{
+			name:                "No absent rules",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+				{Rule: extensions.Rule{ID: "rule2"}},
+			},
+			expectedSelections: []xccdf.SelectElement{},
+		},
+		{
+			name:                "One absent rule",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+			},
+			expectedSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: false},
+			},
+		},
+		{
+			name:                "All absent rules",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+			oscalPolicy: policy.Policy{},
+			expectedSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: false},
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: false},
+			},
+		},
+		{
+			name:                "No dsProfileSelections",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+			},
+			expectedSelections: []xccdf.SelectElement{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := unselectAbsentRules(tt.tailoringSelections, tt.dsProfileSelections, tt.oscalPolicy)
+			if len(result) != len(tt.expectedSelections) {
+				t.Errorf("unselectAbsentRules() length = %v; want %v", len(result), len(tt.expectedSelections))
+			}
+			for i, selection := range result {
+				if selection.IDRef != tt.expectedSelections[i].IDRef || selection.Selected != tt.expectedSelections[i].Selected {
+					t.Errorf("unselectAbsentRules()[%d] = %v; want %v", i, selection, tt.expectedSelections[i])
+				}
+			}
+		})
+	}
+}
+
+// TestSelectAdditionalRules tests the selectAdditionalRules function.
+func TestSelectAdditionalRules(t *testing.T) {
+	tests := []struct {
+		name                string
+		tailoringSelections []xccdf.SelectElement
+		dsProfileSelections []xccdf.SelectElement
+		oscalPolicy         policy.Policy
+		expectedSelections  []xccdf.SelectElement
+	}{
+		{
+			name:                "No additional rules",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+				{Rule: extensions.Rule{ID: "rule2"}},
+			},
+			expectedSelections: []xccdf.SelectElement{},
+		},
+		{
+			name:                "One additional rule",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+				{Rule: extensions.Rule{ID: "rule2"}},
+			},
+			expectedSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+		},
+		{
+			name:                "All additional rules",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+				{Rule: extensions.Rule{ID: "rule2"}},
+			},
+			expectedSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+		},
+		{
+			name:                "Rule already in dsProfile but unselected",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: false},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+			},
+			expectedSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+			},
+		},
+		{
+			name:                "One additional rule informed twice",
+			tailoringSelections: []xccdf.SelectElement{},
+			dsProfileSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule1", Selected: true},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "rule1"}},
+				{Rule: extensions.Rule{ID: "rule2"}},
+				{Rule: extensions.Rule{ID: "rule2"}},
+			},
+			expectedSelections: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_rule2", Selected: true},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := selectAdditionalRules(tt.tailoringSelections, tt.dsProfileSelections, tt.oscalPolicy)
+			if len(result) != len(tt.expectedSelections) {
+				t.Errorf("selectAdditionalRules() length = %v; want %v", len(result), len(tt.expectedSelections))
+			}
+			for i, selection := range result {
+				if selection.IDRef != tt.expectedSelections[i].IDRef || selection.Selected != tt.expectedSelections[i].Selected {
+					t.Errorf("selectAdditionalRules()[%d] = %v; want %v", i, selection, tt.expectedSelections[i])
+				}
+			}
+		})
+	}
+}
+
+// TestGetTailoringSelections tests the getTailoringSelections function.
+func TestGetTailoringSelections(t *testing.T) {
+	dsPath := filepath.Join(testDataDir, "ssg-rhel-ds.xml")
+	parsedProfile, _ := getProfileElementTest(t, "xccdf_org.ssgproject.content_profile_test_profile")
+
+	tests := []struct {
+		name           string
+		oscalPolicy    policy.Policy
+		expectedError  bool
+		expectedResult []xccdf.SelectElement
+	}{
+		{
+			name: "All rules present",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "package_telnet-server_removed"}},
+				{Rule: extensions.Rule{ID: "package_telnet_removed"}},
+				{Rule: extensions.Rule{ID: "set_password_hashing_algorithm_logindefs"}},
+				{Rule: extensions.Rule{ID: "set_password_hashing_algorithm_systemauth"}},
+			},
+			expectedError:  false,
+			expectedResult: []xccdf.SelectElement{},
+		},
+		{
+			name: "One rule missing in datastream",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "package_telnet-server_removed"}},
+				{Rule: extensions.Rule{ID: "package_telnet_removed"}},
+				{Rule: extensions.Rule{ID: "set_password_hashing_algorithm_logindefs"}},
+				{Rule: extensions.Rule{ID: "set_password_hashing_algorithm_systemauth"}},
+				{Rule: extensions.Rule{ID: "this_rule_is_not_in_datastream"}},
+			},
+			expectedError:  true,
+			expectedResult: nil,
+		},
+		{
+			name:        "No rules in OSCAL policy",
+			oscalPolicy: policy.Policy{},
+			expectedResult: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_package_telnet-server_removed", Selected: false},
+				{IDRef: "xccdf_org.ssgproject.content_rule_package_telnet_removed", Selected: false},
+				{IDRef: "xccdf_org.ssgproject.content_rule_set_password_hashing_algorithm_logindefs", Selected: false},
+				{IDRef: "xccdf_org.ssgproject.content_rule_set_password_hashing_algorithm_systemauth", Selected: false},
+			},
+		},
+		{
+			name: "Additional rule in OSCAL policy",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{ID: "package_telnet-server_removed"}},
+				{Rule: extensions.Rule{ID: "package_telnet_removed"}},
+				{Rule: extensions.Rule{ID: "set_password_hashing_algorithm_logindefs"}},
+				{Rule: extensions.Rule{ID: "set_password_hashing_algorithm_systemauth"}},
+				{Rule: extensions.Rule{ID: "account_unique_id"}},
+			},
+			expectedError: false,
+			expectedResult: []xccdf.SelectElement{
+				{IDRef: "xccdf_org.ssgproject.content_rule_account_unique_id", Selected: true},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getTailoringSelections(tt.oscalPolicy, parsedProfile, dsPath)
+			if (err != nil) != tt.expectedError {
+				t.Errorf("getTailoringSelections() error = %v; want %v", err, tt.expectedError)
+			}
+			if len(result) != len(tt.expectedResult) {
+				t.Errorf("getTailoringSelections() length = %v; want %v", len(result), len(tt.expectedResult))
+			}
+			for i, selection := range result {
+				if selection.IDRef != tt.expectedResult[i].IDRef || selection.Selected != tt.expectedResult[i].Selected {
+					t.Errorf("getTailoringSelections()[%d] = %v; want %v", i, selection, tt.expectedResult[i])
+				}
+			}
+		})
+	}
+}
+
+// TestUpdateTailoringValues tests the updateTailoringValues function.
+func TestUpdateTailoringValues(t *testing.T) {
+	tests := []struct {
+		name            string
+		tailoringValues []xccdf.SetValueElement
+		dsProfileValues []xccdf.SetValueElement
+		oscalPolicy     policy.Policy
+		expectedValues  []xccdf.SetValueElement
+	}{
+		{
+			name:            "No additional values",
+			tailoringValues: []xccdf.SetValueElement{},
+			dsProfileValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "value1"},
+				{IDRef: "xccdf_org.ssgproject.content_value_var2", Value: "value2"},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var1", Value: "value1"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var2", Value: "value2"}}},
+			},
+			expectedValues: []xccdf.SetValueElement{},
+		},
+		{
+			name:            "One additional value",
+			tailoringValues: []xccdf.SetValueElement{},
+			dsProfileValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "value1"},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var1", Value: "value1"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var2", Value: "value2"}}},
+			},
+			expectedValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var2", Value: "value2"},
+			},
+		},
+		{
+			name:            "All additional values",
+			tailoringValues: []xccdf.SetValueElement{},
+			dsProfileValues: []xccdf.SetValueElement{},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var1", Value: "value1"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var2", Value: "value2"}}},
+			},
+			expectedValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "value1"},
+				{IDRef: "xccdf_org.ssgproject.content_value_var2", Value: "value2"},
+			},
+		},
+		{
+			name:            "Variable already in dsProfile but different value",
+			tailoringValues: []xccdf.SetValueElement{},
+			dsProfileValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "old_value"},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var1", Value: "new_value"}}},
+			},
+			expectedValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "new_value"},
+			},
+		},
+		{
+			name:            "Rule without parameter",
+			tailoringValues: []xccdf.SetValueElement{},
+			dsProfileValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "value1"},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: nil}},
+			},
+			expectedValues: []xccdf.SetValueElement{},
+		},
+		{
+			name:            "One additional value informed twice",
+			tailoringValues: []xccdf.SetValueElement{},
+			dsProfileValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var1", Value: "value1"},
+			},
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var1", Value: "value1"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var2", Value: "value2"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var2", Value: "value2"}}},
+			},
+			expectedValues: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var2", Value: "value2"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := updateTailoringValues(tt.tailoringValues, tt.dsProfileValues, tt.oscalPolicy)
+			if len(result) != len(tt.expectedValues) {
+				t.Errorf("updateTailoringValues() length = %v; want %v", len(result), len(tt.expectedValues))
+			}
+			for i, value := range result {
+				if value.IDRef != tt.expectedValues[i].IDRef || value.Value != tt.expectedValues[i].Value {
+					t.Errorf("updateTailoringValues()[%d] = %v; want %v", i, value, tt.expectedValues[i])
+				}
+			}
+		})
+	}
+}
+
+// TestGetTailoringValues tests the getTailoringValues function.
+func TestGetTailoringValues(t *testing.T) {
+	dsPath := filepath.Join(testDataDir, "ssg-rhel-ds.xml")
+
+	tests := []struct {
+		name           string
+		oscalPolicy    policy.Policy
+		expectedError  bool
+		expectedResult []xccdf.SetValueElement
+	}{
+		{
+			name: "All variables present",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_hashing_algorithm", Value: "SHA512"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_hashing_algorithm_pam", Value: "sha512"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_accounts_tmout", Value: "900"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_pam_remember_control_flag", Value: "requisite,required"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_pam_remember", Value: "5"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_system_crypto_policy", Value: "DEFAULT"}}},
+			},
+			expectedError:  false,
+			expectedResult: []xccdf.SetValueElement{},
+		},
+		{
+			name: "One variable missing in datastream",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_hashing_algorithm", Value: "SHA512"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_hashing_algorithm_pam", Value: "sha512"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_accounts_tmout", Value: "900"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_pam_remember_control_flag", Value: "requisite,required"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_pam_remember", Value: "5"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "this_variable_is_not_in_datastream", Value: "value"}}},
+			},
+			expectedError:  true,
+			expectedResult: nil,
+		},
+		{
+			name: "Additional variable in OSCAL policy",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_hashing_algorithm", Value: "SHA512"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_hashing_algorithm_pam", Value: "sha512"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_accounts_tmout", Value: "900"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_pam_remember_control_flag", Value: "requisite,required"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_password_pam_remember", Value: "5"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_system_crypto_policy", Value: "DEFAULT"}}},
+				{Rule: extensions.Rule{Parameter: &extensions.Parameter{ID: "var_selinux_policy_name", Value: "mls"}}},
+			},
+			expectedError: false,
+			expectedResult: []xccdf.SetValueElement{
+				{IDRef: "xccdf_org.ssgproject.content_value_var_selinux_policy_name", Value: "mls"},
+			},
+		},
+		{
+			name: "OSCAL policy without variables",
+			oscalPolicy: policy.Policy{
+				{Rule: extensions.Rule{Parameter: nil}},
+			},
+			expectedError:  false,
+			expectedResult: []xccdf.SetValueElement{},
+		},
+	}
+
+	for _, tt := range tests {
+		// Variables options are resolved during the process, so we need to get the profile element again.
+		parsedProfile, _ := getProfileElementTest(t, "xccdf_org.ssgproject.content_profile_test_profile")
+
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getTailoringValues(tt.oscalPolicy, parsedProfile, dsPath)
+			if (err != nil) != tt.expectedError {
+				t.Errorf("getTailoringValues() error = %v; want %v", err, tt.expectedError)
+			}
+			if len(result) != len(tt.expectedResult) {
+				t.Errorf("getTailoringValues() length = %v; want %v", len(result), len(tt.expectedResult))
+			}
+			for i, value := range result {
+				if value.IDRef != tt.expectedResult[i].IDRef || value.Value != tt.expectedResult[i].Value {
+					t.Errorf("getTailoringValues()[%d] = %v; want %v", i, value, tt.expectedResult[i])
+				}
+			}
+		})
+	}
+}
+
 // TestGetTailoringProfile tests the getTailoringProfile function.
 func TestGetTailoringProfile(t *testing.T) {
-	profileId := "test-profile"
-	dsPath := filepath.Join("..", "..", "..", "internal", "complytime", "testdata", "openscap", "ssg-rhel-ds.xml")
+	dsPath := filepath.Join(testDataDir, "ssg-rhel-ds.xml")
+	profileId := "test_profile"
+
 	tailoringPolicy := policy.Policy{
 		{
 			Rule: extensions.Rule{
-				ID:          "rule1",
-				Description: "rule1_description",
+				ID:          "set_password_hashing_algorithm_logindefs",
+				Description: "Set Password Hashing Algorithm in /etc/login.defs",
 				Parameter: &extensions.Parameter{
-					ID:          "param1",
-					Description: "param1_description",
-					Value:       "value1",
+					ID:          "var_password_hashing_algorithm",
+					Description: "Password Hashing algorithm",
+					Value:       "YESCRYPT",
 				},
 			},
 		},
@@ -104,17 +640,22 @@ func TestGetTailoringProfile(t *testing.T) {
 	expected := xccdf.ProfileElement{
 		ID: getTailoringProfileID(profileId),
 		Title: &xccdf.TitleOrDescriptionElement{
-			Value: getTailoringProfileTitle(profileId, dsPath),
+			Value: "ComplyTime Tailoring Profile - Test Profile",
 		},
 		Selections: []xccdf.SelectElement{
-			{IDRef: "rule1", Selected: true},
+			{IDRef: "xccdf_org.ssgproject.content_rule_package_telnet-server_removed", Selected: false},
+			{IDRef: "xccdf_org.ssgproject.content_rule_package_telnet_removed", Selected: false},
+			{IDRef: "xccdf_org.ssgproject.content_rule_set_password_hashing_algorithm_systemauth", Selected: false},
 		},
 		Values: []xccdf.SetValueElement{
-			{IDRef: "param1", Value: "value1"},
+			{IDRef: "xccdf_org.ssgproject.content_value_var_password_hashing_algorithm", Value: "YESCRYPT"},
 		},
 	}
 
-	result := getTailoringProfile(profileId, tailoringPolicy, dsPath)
+	result, err := getTailoringProfile(profileId, dsPath, tailoringPolicy)
+	if err != nil {
+		t.Fatalf("getTailoringProfile() error = %v", err)
+	}
 
 	if result.ID != expected.ID {
 		t.Errorf("getTailoringProfile().ID = %v; want %v", result.ID, expected.ID)
@@ -130,146 +671,28 @@ func TestGetTailoringProfile(t *testing.T) {
 	}
 }
 
-// TestGetPolicySelections tests the getPolicySelections function.
-func TestGetPolicySelections(t *testing.T) {
-	tailoringPolicy := policy.Policy{
-		{
-			Rule: extensions.Rule{
-				ID:          "rule1",
-				Description: "rule1_description",
-			},
-		},
-		{
-			Rule: extensions.Rule{
-				ID:          "rule2",
-				Description: "rule2_description",
-			},
-		},
-	}
-
-	expected := []xccdf.SelectElement{
-		{IDRef: "rule1", Selected: true},
-		{IDRef: "rule2", Selected: true},
-	}
-
-	result := getPolicySelections(tailoringPolicy)
-
-	if len(result) != len(expected) {
-		t.Errorf("getPolicySelections() length = %v; want %v", len(result), len(expected))
-	}
-
-	for i, selection := range result {
-		if selection.IDRef != expected[i].IDRef || selection.Selected != expected[i].Selected {
-			t.Errorf("getPolicySelections()[%d] = %v; want %v", i, selection, expected[i])
-		}
-	}
-}
-
-// TestGetValuesFromPolicyVariables tests the getValuesFromPolicyVariables function.
-func TestGetValuesFromPolicyVariables(t *testing.T) {
-	tests := []struct {
-		name            string
-		tailoringPolicy policy.Policy
-		expected        []xccdf.SetValueElement
-	}{
-		{
-			name: "Single rule with parameter",
-			tailoringPolicy: policy.Policy{
-				{
-					Rule: extensions.Rule{
-						ID:          "rule1",
-						Description: "rule1_description",
-						Parameter: &extensions.Parameter{
-							ID:          "param1",
-							Description: "param1_description",
-							Value:       "value1",
-						},
-					},
-				},
-			},
-			expected: []xccdf.SetValueElement{
-				{IDRef: "param1", Value: "value1"},
-			},
-		},
-		{
-			name: "Multiple rules with parameters",
-			tailoringPolicy: policy.Policy{
-				{
-					Rule: extensions.Rule{
-						ID:          "rule1",
-						Description: "rule1_description",
-						Parameter: &extensions.Parameter{
-							ID:          "param1",
-							Description: "param1_description",
-							Value:       "value1",
-						},
-					},
-				},
-				{
-					Rule: extensions.Rule{
-						ID:          "rule2",
-						Description: "rule2_description",
-						Parameter: &extensions.Parameter{
-							ID:          "param2",
-							Description: "param2_description",
-							Value:       "value2",
-						},
-					},
-				},
-			},
-			expected: []xccdf.SetValueElement{
-				{IDRef: "param1", Value: "value1"},
-				{IDRef: "param2", Value: "value2"},
-			},
-		},
-		{
-			name: "Rule without parameter",
-			tailoringPolicy: policy.Policy{
-				{
-					Rule: extensions.Rule{
-						ID:          "rule1",
-						Description: "rule1_description",
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name:            "Empty policy",
-			tailoringPolicy: policy.Policy{},
-			expected:        nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := getValuesFromPolicyVariables(tt.tailoringPolicy)
-			if len(result) != len(tt.expected) {
-				t.Errorf("getValuesFromPolicyVariables() length = %v; want %v", len(result), len(tt.expected))
-			}
-			for i, value := range result {
-				if value.IDRef != tt.expected[i].IDRef || value.Value != tt.expected[i].Value {
-					t.Errorf("getValuesFromPolicyVariables()[%d] = %v; want %v", i, value, tt.expected[i])
-				}
-			}
-		})
-	}
+// This is a supporting function used by TestPolicyToXML.
+// It removes the time attribute from the XML because it is generated
+// dynamically and may differ in some seconds during the tests.
+func removeVersionTimeTest(xml string) string {
+	re := regexp.MustCompile(`time="[^"]*"`)
+	return re.ReplaceAllString(xml, `time=""`)
 }
 
 // TestPolicyToXML tests the PolicyToXML function.
 func TestPolicyToXML(t *testing.T) {
-	dsPath := filepath.Join("..", "..", "..", "internal", "complytime", "testdata", "openscap", "ssg-rhel-ds.xml")
+	dsPath := filepath.Join(testDataDir, "ssg-rhel-ds.xml")
 	profileId := "test_profile"
 
 	tailoringPolicy := policy.Policy{
 		{
 			Rule: extensions.Rule{
-				ID:          "rule1",
-				Description: "rule1_description",
+				ID:          "account_unique_id",
+				Description: "Ensure All Accounts on the System Have Unique User IDs",
 				Parameter: &extensions.Parameter{
-					ID:          "param1",
-					Description: "param1_description",
-					Value:       "value1",
+					ID:          "var_password_hashing_algorithm",
+					Description: "Password Hashing algorithm",
+					Value:       "YESCRYPT",
 				},
 			},
 		},
@@ -280,13 +703,17 @@ func TestPolicyToXML(t *testing.T) {
 	cfg.Parameters.Profile = profileId
 
 	expectedXML := `<?xml version="1.0" encoding="UTF-8"?>
-<xccdf-1.2:Tailoring xmlns:xccdf-1.2="http://checklists.nist.gov/xccdf/1.2" id="xccdf_complytime.openscapplugin_tailoring_complytime-tailoring-profile">
+<xccdf-1.2:Tailoring xmlns:xccdf-1.2="http://checklists.nist.gov/xccdf/1.2" id="xccdf_complytime.openscapplugin_tailoring_complytime">
   <xccdf-1.2:benchmark href="` + dsPath + `"></xccdf-1.2:benchmark>
   <xccdf-1.2:version time="` + getTailoringVersion().Time + `">1</xccdf-1.2:version>
-  <xccdf-1.2:Profile id="xccdf_complytime.openscapplugin_profile_test_profile_complytime-tailoring-profile">
-    <xccdf-1.2:title override="false">ComplyTime Tailoring Profile - Test Profile</xccdf-1.2:title>
-    <xccdf-1.2:select idref="rule1" selected="true"></xccdf-1.2:select>
-    <xccdf-1.2:set-value idref="param1">value1</xccdf-1.2:set-value>
+  <xccdf-1.2:Profile id="xccdf_complytime.openscapplugin_profile_test_profile_complytime" extends="xccdf_org.ssgproject.content_profile_test_profile">
+    <xccdf-1.2:title override="true">ComplyTime Tailoring Profile - Test Profile</xccdf-1.2:title>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_package_telnet-server_removed" selected="false"></xccdf-1.2:select>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_package_telnet_removed" selected="false"></xccdf-1.2:select>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_set_password_hashing_algorithm_logindefs" selected="false"></xccdf-1.2:select>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_set_password_hashing_algorithm_systemauth" selected="false"></xccdf-1.2:select>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_account_unique_id" selected="true"></xccdf-1.2:select>
+    <xccdf-1.2:set-value idref="xccdf_org.ssgproject.content_value_var_password_hashing_algorithm">YESCRYPT</xccdf-1.2:set-value>
   </xccdf-1.2:Profile>
 </xccdf-1.2:Tailoring>`
 
@@ -295,7 +722,12 @@ func TestPolicyToXML(t *testing.T) {
 		t.Fatalf("PolicyToXML() error = %v", err)
 	}
 
-	if result != expectedXML {
-		t.Errorf("PolicyToXML() = %v; want %v", result, expectedXML)
+	// It takes some seconds to generate the tailoring file and the time differs.
+	// So we remove the time attribute to compare the XMLs.
+	expected := removeVersionTimeTest(expectedXML)
+	actual := removeVersionTimeTest(result)
+
+	if actual != expected {
+		t.Errorf("PolicyToXML() = %v; want %v", actual, expected)
 	}
 }

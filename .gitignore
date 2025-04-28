@@ -31,3 +31,13 @@ vendor/
 
 # testing workspace created by openscap-plugin
 user_workspace
+
+# Outputs
+assessment-plan.json
+assessment-results.*
+!**/testdata/assessment-plan.json
+!**/testdata/assessment-results.*
+/docs/man/*.[1-8]
+
+# Go workspaces
+go.work*

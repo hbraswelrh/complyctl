@@ -13,6 +13,7 @@ permissions: read-all
 
 jobs:
   generate-coverage:
+    name: Generate Coverage Report
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -20,12 +21,13 @@ jobs:
       - name: Run test
         run: make test-unit
       - name: Upload artifact
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # pin@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pin@v4
         with:
           name: coverage
           path: coverage.out
   sonarcloud:
     if: ${{ github.event.pull_request.base.repo.url == github.event.pull_request.head.repo.url }}
+    needs: generate-coverage
     name: SonarCloud
     runs-on: ubuntu-latest
     steps:
@@ -33,16 +35,14 @@ jobs:
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
       - name: Get coverage
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # pin@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # pin@v4
         with:
           name: coverage
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@49e6cd3b187936a73b8280d59ffd9da69df63ec9 # pin@49e6cd3b187936a73b8280d59ffd9da69df63ec9
+        uses: SonarSource/sonarqube-scan-action@f932b663acf3c4b8b27c673927b5ac744638b17b # pin@f932b663acf3c4b8b27c673927b5ac744638b17b
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-	with:
+        with:
           args: >
-            -Dsonar.go.coverage.reportPaths=coverage.out
-            -Dsonar.projectKey=rh-psce_complytime
-            -Dsonar.organization=rh-psce
+            -Dsonar.go.coverage.reportPaths=coverage.out -Dsonar.projectKey=rh-psce_complytime -Dsonar.organization=rh-psce

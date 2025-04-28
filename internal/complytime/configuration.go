@@ -12,10 +12,8 @@ import (
 	"github.com/adrg/xdg"
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-2"
 	"github.com/oscal-compass/compliance-to-policy-go/v2/framework/config"
-	"github.com/oscal-compass/oscal-sdk-go/generators"
-	"go.uber.org/zap"
-
-	"github.com/complytime/complytime/pkg/log"
+	"github.com/oscal-compass/oscal-sdk-go/models"
+	"github.com/oscal-compass/oscal-sdk-go/validation"
 )
 
 const (
@@ -23,6 +21,7 @@ const (
 	ApplicationDir = "complytime"
 	PluginDir      = "plugins"
 	BundlesDir     = "bundles"
+	ControlsDir    = "controls"
 )
 
 // ErrNoComponentDefinitionsFound returns an error indicated the supplied directory
@@ -39,6 +38,8 @@ type ApplicationDirectory struct {
 	pluginDir string
 	// bundleDir contains all the detectable component definitions
 	bundleDir string
+	// controlDir contains all OSCAL control layer models.
+	controlDir string
 }
 
 // NewApplicationDirectory returns a new ApplicationDirectory.
@@ -60,6 +61,7 @@ func newApplicationDirectory(rootDir string, create bool) (ApplicationDirectory,
 	}
 	applicationDir.pluginDir = filepath.Join(applicationDir.appDir, PluginDir)
 	applicationDir.bundleDir = filepath.Join(applicationDir.appDir, BundlesDir)
+	applicationDir.controlDir = filepath.Join(applicationDir.appDir, ControlsDir)
 	if create {
 		return applicationDir, applicationDir.create()
 	}
@@ -92,12 +94,16 @@ func (a ApplicationDirectory) BundleDir() string {
 	return a.bundleDir
 }
 
+// ControlDir returns the directory containing control layer OSCAL artifacts.
+func (a ApplicationDirectory) ControlDir() string { return a.controlDir }
+
 // Dirs returns all directories in the ApplicationDirectory.
 func (a ApplicationDirectory) Dirs() []string {
 	return []string{
 		a.appDir,
 		a.pluginDir,
 		a.bundleDir,
+		a.controlDir,
 	}
 }
 
@@ -105,7 +111,7 @@ func (a ApplicationDirectory) Dirs() []string {
 // given `bundles` directory that meet the defined naming scheme.
 //
 // The defined scheme is $COMPONENT-NAME-component-definition.json.
-func FindComponentDefinitions(bundleDir string) ([]oscalTypes.ComponentDefinition, error) {
+func FindComponentDefinitions(bundleDir string, validator validation.Validator) ([]oscalTypes.ComponentDefinition, error) {
 	items, err := os.ReadDir(bundleDir)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read bundle directory %s: %w", bundleDir, err)
@@ -122,7 +128,7 @@ func FindComponentDefinitions(bundleDir string) ([]oscalTypes.ComponentDefinitio
 		if err != nil {
 			return nil, err
 		}
-		definition, err := generators.NewComponentDefinition(file)
+		definition, err := models.NewComponentDefinition(file, validator)
 		if err != nil {
 			return nil, err
 		}
@@ -139,15 +145,11 @@ func FindComponentDefinitions(bundleDir string) ([]oscalTypes.ComponentDefinitio
 
 // Config creates a new C2P config for the ComplyTime CLI to use to configure
 // the plugin manager.
-func Config(a ApplicationDirectory) (*config.C2PConfig, error) {
+func Config(a ApplicationDirectory, validator validation.Validator) (*config.C2PConfig, error) {
 	cfg := config.DefaultConfig()
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return cfg, fmt.Errorf("unable to create logger: %w", err)
-	}
-	cfg.Logger = log.Wrap(logger.Sugar())
 	cfg.PluginDir = a.PluginDir()
-	compDefBundles, err := FindComponentDefinitions(a.BundleDir())
+
+	compDefBundles, err := FindComponentDefinitions(a.BundleDir(), validator)
 	if err != nil {
 		return cfg, fmt.Errorf("unable to create configuration: %w", err)
 	}

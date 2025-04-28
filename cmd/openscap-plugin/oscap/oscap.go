@@ -4,11 +4,12 @@ package oscap
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
+
+	"github.com/hashicorp/go-hclog"
 )
 
-func constructScanCommand(openscapFiles map[string]string, profile string) ([]string, error) {
+func constructScanCommand(openscapFiles map[string]string, profile string) []string {
 	datastream := openscapFiles["datastream"]
 	tailoringFile := openscapFiles["policy"]
 	resultsFile := openscapFiles["results"]
@@ -18,33 +19,25 @@ func constructScanCommand(openscapFiles map[string]string, profile string) ([]st
 		"oscap",
 		"xccdf",
 		"eval",
-		"--profile",
-		profile,
-		"--results",
-		resultsFile,
-		"--results-arf",
-		arfFile,
+		"--profile", profile,
+		"--results", resultsFile,
+		"--results-arf", arfFile,
+		"--tailoring-file", tailoringFile,
+		datastream,
 	}
 
-	if tailoringFile != "" {
-		cmd = append(cmd, "--tailoring-file", tailoringFile)
-	}
-	cmd = append(cmd, datastream)
-	return cmd, nil
+	return cmd
 }
 
 func OscapScan(openscapFiles map[string]string, profile string) ([]byte, error) {
-	command, err := constructScanCommand(openscapFiles, profile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct command %s: %w", command, err)
-	}
+	command := constructScanCommand(openscapFiles, profile)
 
 	cmdPath, err := exec.LookPath(command[0])
 	if err != nil {
 		return nil, fmt.Errorf("command not found: %s", command[0])
 	}
 
-	log.Printf("Executing the command: '%v'", command)
+	hclog.Default().Info("Executing command", "command", command)
 	cmd := exec.Command(cmdPath, command[1:]...)
 
 	output, err := cmd.CombinedOutput()
@@ -52,10 +45,10 @@ func OscapScan(openscapFiles map[string]string, profile string) ([]byte, error) 
 		if err.Error() == "exit status 1" {
 			return output, fmt.Errorf("%s: oscap error during evaluation", err)
 		} else if err.Error() == "exit status 2" {
-			log.Printf("%s: at least one rule resulted in fail or unknown", err)
+			hclog.Default().Warn("at least one rule resulted in fail or unknown", "err", err)
 			return output, nil
 		} else {
-			log.Printf("%s", err)
+			hclog.Default().Warn("Error", "err", err)
 			return output, nil
 		}
 	}

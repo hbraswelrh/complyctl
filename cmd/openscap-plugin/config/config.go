@@ -3,34 +3,105 @@
 package config
 
 import (
+	"bufio"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"os/user"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"github.com/hashicorp/go-hclog"
+)
+
+const (
+	PluginDir      string = "openscap"
+	DatastreamsDir string = "/usr/share/xml/scap/ssg/content"
+	SystemInfoFile string = "/etc/os-release"
 )
 
 type Config struct {
-	Server struct {
-		Socket string `yaml:"socket"`
-	} `yaml:"server"`
 	Files struct {
-		PluginDir  string `yaml:"plugindir"`
-		Workspace  string `yaml:"workspace"`
-		Datastream string `yaml:"datastream"`
-		Results    string `yaml:"results"`
-		ARF        string `yaml:"arf"`
-		Policy     string `yaml:"policy"`
-	} `yaml:"files"`
+		Workspace  string `config:"workspace"`
+		Datastream string `config:"datastream"`
+		Results    string `config:"results"`
+		ARF        string `config:"arf"`
+		Policy     string `config:"policy"`
+	}
 	Parameters struct {
-		Profile string `yaml:"profile"`
-	} `yaml:"parameters"`
+		Profile string `config:"profile"`
+	}
+}
+
+// NewConfig creates a new, empty Config.
+func NewConfig() *Config {
+	return &Config{}
+}
+
+// LoadSettings sets the values in the Config from a given config map and
+// performs validation.
+func (c *Config) LoadSettings(config map[string]string) error {
+	filesVal := reflect.ValueOf(&c.Files).Elem()
+	if err := setConfigStruct(filesVal, config); err != nil {
+		return err
+	}
+	paramVal := reflect.ValueOf(&c.Parameters).Elem()
+	if err := setConfigStruct(paramVal, config); err != nil {
+		return err
+	}
+	return c.validate()
+}
+
+func (c *Config) validate() error {
+	// String values to sanitize
+	inputValues := []*string{
+		&c.Files.Policy,
+		&c.Files.Results,
+		&c.Files.ARF,
+		&c.Parameters.Profile,
+	}
+
+	for _, inputValue := range inputValues {
+		sanitized, err := SanitizeInput(*inputValue)
+		if err != nil {
+			return err
+		}
+		*inputValue = sanitized
+	}
+
+	cleanDsPath, err := SanitizePath(c.Files.Datastream)
+	if err != nil {
+		return err
+	}
+
+	// if a Datastream path is not defined in plugin manifest, it will be set
+	// to the current directory after SanitizePath.
+	if cleanDsPath == "." {
+		matchingDsFile, err := findMatchingDatastream()
+		if err != nil {
+			return err
+		}
+		c.Files.Datastream = matchingDsFile
+	}
+
+	_, err = validatePath(c.Files.Datastream, false)
+	if err != nil {
+		return fmt.Errorf("invalid datastream path: %s: %w", c.Files.Datastream, err)
+	}
+
+	isXML, err := IsXMLFile(c.Files.Datastream)
+	if err != nil || !isXML {
+		return fmt.Errorf("invalid datastream file: %s: %w", c.Files.Datastream, err)
+	}
+
+	if err := defineFilesPaths(c); err != nil {
+		return err
+	}
+	return nil
 }
 
 func SanitizeInput(input string) (string, error) {
@@ -74,21 +145,28 @@ func SanitizePath(path string) (string, error) {
 	cleanPath := filepath.Clean(path)
 	expandedPath, err := expandPath(cleanPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to expand path: %v", err)
+		return "", fmt.Errorf("failed to expand path: %w", err)
 	}
 	return expandedPath, nil
 }
 
-func SanitizeAndValidatePath(path string, shouldBeDir bool) (string, error) {
-	cleanPath, err := SanitizePath(path)
+func IsXMLFile(filePath string) (bool, error) {
+	file, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return false, fmt.Errorf("error opening file: %w", err)
 	}
-	validPath, err := validatePath(cleanPath, shouldBeDir)
-	if err != nil {
-		return "", err
+	defer file.Close()
+
+	decoder := xml.NewDecoder(file)
+	for {
+		_, err := decoder.Token()
+		if err != nil {
+			if err.Error() == "EOF" {
+				return true, nil
+			}
+			return false, fmt.Errorf("invalid XML file %s: %w", filePath, err)
+		}
 	}
-	return validPath, nil
 }
 
 func ensureDirectory(path string) error {
@@ -98,7 +176,7 @@ func ensureDirectory(path string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create directory: %w", err)
 		}
-		log.Printf("Directory created: %s\n", path)
+		hclog.Default().Info("Directory created", "path", path)
 	} else if err != nil {
 		return fmt.Errorf("error checking directory: %w", err)
 	}
@@ -114,15 +192,15 @@ func ensureWorkspace(cfg *Config) (map[string]string, error) {
 
 	workspace, err := validatePath(workspacePath, true)
 	if err != nil {
-		log.Printf("Informed workspace was not found. It will be created.")
+		hclog.Default().Info("Informed workspace was not found. It will be created.")
 		workspace = workspacePath
 	}
 
 	directories := map[string]string{
 		"workspace":  workspace,
-		"pluginDir":  filepath.Join(workspace, cfg.Files.PluginDir),
-		"policyDir":  filepath.Join(workspace, cfg.Files.PluginDir, "policy"),
-		"resultsDir": filepath.Join(workspace, cfg.Files.PluginDir, "results"),
+		"pluginDir":  filepath.Join(workspace, PluginDir),
+		"policyDir":  filepath.Join(workspace, PluginDir, "policy"),
+		"resultsDir": filepath.Join(workspace, PluginDir, "results"),
 	}
 
 	for key, dir := range directories {
@@ -134,68 +212,128 @@ func ensureWorkspace(cfg *Config) (map[string]string, error) {
 	return directories, nil
 }
 
-func defineFilesPaths(cfg *Config) (*Config, error) {
+func defineFilesPaths(cfg *Config) error {
 	directories, err := ensureWorkspace(cfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cfg.Files.Policy = filepath.Join(directories["policyDir"], cfg.Files.Policy)
 	cfg.Files.Results = filepath.Join(directories["resultsDir"], cfg.Files.Results)
 	cfg.Files.ARF = filepath.Join(directories["resultsDir"], cfg.Files.ARF)
 
-	_, err = validatePath(cfg.Files.Policy, false)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			cfg.Files.Policy = ""
-		} else {
-			return nil, err
-		}
-	}
-
-	return cfg, nil
+	return nil
 }
 
-func ReadConfig(configFile string) (*Config, error) {
-	config := &Config{}
+// setConfigStruct populates struct fields with matching tags to values
+// in a given config map.
+func setConfigStruct(val reflect.Value, config map[string]string) error {
+	t := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		fieldType := t.Field(i)
+		key := fieldType.Tag.Get("config")
+		value, ok := config[key]
+		// if datastream is not set in manifest file, plugin will try to determine
+		// and validate the datastream path later based on system information.
+		if !ok && key != "datastream" {
+			return fmt.Errorf("missing configuration value for option %q (field: %s)", key, fieldType.Name)
+		}
 
-	file, err := os.Open(configFile)
+		fieldVal := val.Field(i)
+		fieldVal.SetString(value)
+	}
+	return nil
+}
+
+// GetDistroIdsAndVersions returns a slice of allowable distribution IDs and allowable versions of the system
+// based on information from SystemInfoFile.
+// Example return values: ["centos", "rhel", "fedora"], ["9", "95"]
+func getDistroIdsAndVersions() ([]string, []string, error) {
+	file, err := os.Open(SystemInfoFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer file.Close()
 
-	d := yaml.NewDecoder(file)
-	if err := d.Decode(&config); err != nil {
-		return nil, err
-	}
+	// Like ["rhel", "fedora", "centos"]
+	var ids []string
+	// Like "9.5"
+	var versionID string
 
-	// String values to sanitize
-	inputValues := []*string{
-		&config.Files.PluginDir,
-		&config.Files.Policy,
-		&config.Files.Results,
-		&config.Files.ARF,
-		&config.Parameters.Profile,
-	}
-
-	for _, inputValue := range inputValues {
-		sanitized, err := SanitizeInput(*inputValue)
-		if err != nil {
-			return nil, err
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "ID=") {
+			id := strings.Trim(strings.Split(line, "=")[1], `"`)
+			ids = append(ids, id)
+		} else if strings.HasPrefix(line, "VERSION_ID=") {
+			versionID = strings.Trim(strings.Split(line, "=")[1], `"`)
+		} else if strings.HasPrefix(line, "ID_LIKE=") {
+			altIdString := strings.Trim(strings.Split(line, "=")[1], `"`)
+			altIds := strings.Split(altIdString, " ")
+			ids = append(ids, altIds...)
 		}
-		*inputValue = sanitized
 	}
 
-	_, err = SanitizeAndValidatePath(config.Files.Datastream, false)
+	if err := scanner.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	if ids != nil && versionID != "" {
+		// Extract major version (e.g., 9 from 9.5)
+		majorVersion := strings.Split(versionID, ".")[0]
+		// Also keep the full version without dots (e.g., "95" from "9.5")
+		fullVersion := strings.ReplaceAll(versionID, ".", "")
+
+		return ids, []string{majorVersion, fullVersion}, nil
+	}
+
+	return nil, nil, fmt.Errorf("could not determine distribution and version based on %s", SystemInfoFile)
+}
+
+func findMatchingDatastream() (string, error) {
+	distroIds, distroVersions, err := getDistroIdsAndVersions()
 	if err != nil {
-		return nil, fmt.Errorf("invalid datastream path: %s: %w", config.Files.Datastream, err)
+		return "", err
 	}
 
-	config, err = defineFilesPaths(config)
+	// The scap-security-guide package uses datastream filenames like "ssg-rhel9-ds.xml"
+	// where rhel is ID and 9 is the VERSION_ID
+
+	var foundFile string
+
+	err = filepath.Walk(DatastreamsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			for id := range distroIds {
+				for version := range distroVersions {
+					pattern := fmt.Sprintf("ssg-%s%s-ds.xml", distroIds[id], distroVersions[version])
+					if info.Name() == pattern {
+						foundFile = path
+						return filepath.SkipDir
+					}
+				}
+				if distroVersions == nil {
+					// In case of non-versioned or rolling release
+					pattern := fmt.Sprintf("ssg-%s-ds.xml", distroIds[id])
+					if info.Name() == pattern {
+						foundFile = path
+						return filepath.SkipDir
+					}
+				}
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
-		return nil, err
+		return "", err
+	}
+	if foundFile != "" {
+		return foundFile, nil
 	}
 
-	return config, nil
+	return "", fmt.Errorf("could not determine a datastream file for a system with ids: %v and versions: %v", distroIds, distroVersions)
 }

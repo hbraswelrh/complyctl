@@ -17,54 +17,55 @@
           {
             "name": "Rule_Id",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "rule-1",
+            "value": "set_password_hashing_algorithm_logindefs",
             "remarks": "rule_set_00"
           },
           {
             "name": "Rule_Description",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "My first rule",
+            "value": "This rule ensures that the password hashing algorithm is set in login.defs",
             "remarks": "rule_set_00"
           },
           {
-            "name": "Parameter_Id",
+            "name": "Rule_Id",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "param-1",
-            "remarks": "rule_set_00"
+            "value": "package_telnet-server_removed",
+            "remarks": "rule_set_01"
           },
           {
-            "name": "Parameter_Description",
+            "name": "Rule_Description",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "A parameter for a file name",
-            "remarks": "rule_set_00"
-          },
-          {
-            "name": "Parameter_Vault_Default",
-            "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "value-1",
-            "remarks": "rule_set_00"
+            "value": "This rule ensures that telnet-server package is removed",
+            "remarks": "rule_set_01"
           }
         ],
         "control-implementations": [
           {
             "uuid": "bb6420f5-146c-44c0-b708-79b96e7a009e",
-            "source": "profiles/example/profile.json",
+            "source": "file://controls/sample-profile.json",
             "description": "My example profile.",
+            "props": [
+              {
+                "name": "Framework_Short_Name",
+                "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
+                "value": "example"
+              }
+            ],
             "implemented-requirements": [
               {
                 "uuid": "ed2ac4e9-d16a-4fc5-bd3a-13484b6d8fef",
-                "control-id": "example-1",
+                "control-id": "most_important_requirement",
                 "description": "My example implemented requirement.",
                 "props": [
                   {
                     "name": "Rule_Id",
                     "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-                    "value": "etcd_cert_file"
+                    "value": "set_password_hashing_algorithm_logindefs"
                   },
                   {
                     "name": "Rule_Id",
                     "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-                    "value": "etcd_key_file"
+                    "value": "package_telnet-server_removed"
                   }
                 ]
               }
@@ -75,31 +76,31 @@
       {
         "uuid": "b1c7a388-e8d4-4ff0-a249-0bb6686764cf",
         "type": "validation",
-        "title": "myplugin",
-        "description": "An example validation component for myplugin",
+        "title": "openscap",
+        "description": "An example validation component for openscap-plugin",
         "props": [
           {
             "name": "Rule_Id",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "rule-1",
+            "value": "package_telnet-server_removed",
             "remarks": "rule_set_00"
           },
           {
             "name": "Rule_Description",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "MY first rule",
-            "remarks": "rule_set_08"
+            "value": "This rule ensures that telnet-server package is removed",
+            "remarks": "rule_set_00"
           },
           {
             "name": "Check_Id",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "check-1",
+            "value": "package_telnet-server_removed",
             "remarks": "rule_set_00"
           },
           {
             "name": "Check_Description",
             "ns": "https://oscal-compass.github.io/compliance-trestle/schemas/oscal/cd",
-            "value": "My first check",
+            "value": "For OpenSCAP, the rule and the check share the same ID",
             "remarks": "rule_set_00"
           }
         ]

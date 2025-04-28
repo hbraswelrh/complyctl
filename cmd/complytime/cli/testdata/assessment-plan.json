@@ -1,0 +1,26 @@
+{
+  "assessment-plan":
+  {
+    "import-ssp": {
+      "href": "REPLACE_ME"
+    },
+    "metadata": {
+      "last-modified": "2025-01-24T19:56:33.948473838-05:00",
+      "oscal-version": "1.1.2",
+      "title": "REPLACE_ME",
+      "version": "0.1.0"
+    },
+    "reviewed-controls": {
+      "control-selections": [
+        {
+          "include-controls": [
+            {
+              "control-id": "example-1"
+            }
+          ]
+        }
+      ]
+    },
+    "uuid": "228ff6d0-0d67-4c15-9c16-ece9a554c4de"
+  }
+}
