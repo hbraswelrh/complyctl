@@ -19,6 +19,4 @@ func main() {
 		cli.Error(fmt.Sprintf("error running complytime: %v", err))
 		os.Exit(1)
 	}
-	// RelayContent will print assessment-plan data to StdOut.
-	cli.RelayContent()
 }

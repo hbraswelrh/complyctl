@@ -1,10 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
+	"path/filepath"
+
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
+
+	"github.com/complytime/complytime/cmd/complytime/option"
+	"github.com/complytime/complytime/internal/complytime"
 )
 
 // Config is used for marshalling a go struct into json data.
@@ -30,6 +36,54 @@ type PlanData struct {
 	Components      []string `yaml:"components"`
 	IncludeControls []string `yaml:"include_controls"`
 	ControlIds      []string `yaml:"control_ids"`
+}
+
+// updateOptions defines options for the "update" subcommand
+type updateOptions struct {
+	*option.Common
+	complyTimeOpts *option.ComplyTime
+}
+
+// updateCmd creates a new cobra.Command for the "update" subcommand
+func updateCmd(common *option.Common) *cobra.Command {
+	updateOpts := &updateOptions{
+		Common:         common,
+		complyTimeOpts: &option.ComplyTime{},
+	}
+	cmd := &cobra.Command{
+		Use:     "update [flags] id",
+		Short:   "Generate a new assessment update for a given compliance framework id.",
+		Example: "complytime update myframework",
+		Args:    cobra.ExactArgs(1),
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if len(args) == 1 {
+				updateOpts.complyTimeOpts.FrameworkID = filepath.Clean(args[0])
+			}
+		},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runUpdate(cmd, updateOpts)
+		},
+	}
+	updateOpts.complyTimeOpts.BindFlags(cmd.Flags())
+	return cmd
+}
+
+func runUpdate(cmd *cobra.Command, opts *updateOptions) error {
+	// Create the application directory if it does not exist
+	appDir, err := complytime.NewApplicationDirectory(true)
+	if err != nil {
+		return err
+	}
+	logger.Debug(fmt.Sprintf("Using application directory: %s", appDir.AppDir()))
+	componentDefs, err := complytime.FindComponentDefinitions(appDir.BundleDir())
+	if err != nil {
+		return err
+	}
+	logger.Info(fmt.Sprintf("componentDefs %v\n", componentDefs))
+
+	RelayContent()
+
+	return nil
 }
 
 // RelayContent leverages the PlanData structure to populate testdata
@@ -60,70 +114,4 @@ func RelayContent() {
 
 	}
 	fmt.Println("The updated plan content was written to config.yaml")
-}
-
-// PlanConfigYAML populates the config.yaml from defaults.
-func PlanConfigYAML() {
-	y := Configuration{
-		FrameworkID:     "complytime",
-		Components:      "controls",
-		IncludeControls: []string{"R1", "R2", "R3", "R4", "R5"},
-		ControlIds:      []string{"R1", "R2", "R3", "R4", "R5"},
-	}
-	yamlfile, err := os.Create("config.yaml")
-	if err != nil {
-		fmt.Println(err)
-	}
-	encodeFile := yaml.NewEncoder(yamlfile)
-	err = encodeFile.Encode(y)
-	if err != nil {
-		fmt.Println("There was an error encoding the plan_config.", err)
-	}
-	err = yamlfile.Close()
-	if err != nil {
-		return
-	}
-	fmt.Println("\nConfiguration successfully written to: ", yamlfile.Name())
-	fmt.Println("\nframework_id: ", y.FrameworkID)
-	fmt.Println("\ncomponents: ", y.Components)
-	fmt.Println("\nincluded_controls: ", y.IncludeControls)
-	fmt.Println("\ncontrol_ids: ", y.ControlIds)
-
-}
-
-// PlanConfigJSON populates config.json defaults from data.
-func PlanConfigJSON() {
-
-	c := Config{
-		FrameworkID:     "anssi_bp28_minimal",
-		Components:      "controls",
-		IncludeControls: []string{"R1", "R2", "R3", "R4", "R5"},
-		ControlIds:      []string{"R1", "R2", "R3", "R4", "R5"},
-	}
-	filepath, err := os.Create("config.json")
-	if err != nil {
-		fmt.Println("error creating the config.json for updating:", err)
-		panic(err)
-	}
-	defer func(filepath *os.File) {
-		err := filepath.Close()
-		if err != nil {
-			fmt.Println("error closing the config.json for updating:", err)
-			panic(err)
-		}
-	}(filepath)
-
-	encoder := json.NewEncoder(filepath)
-	err = encoder.Encode(c)
-	if err != nil {
-		fmt.Println("error with encoding the config: ", err)
-		panic(err)
-	}
-	// Printing to stdout, WIP
-	fmt.Printf("\nThe encoded file was successfully written to: %v", filepath.Name())
-	fmt.Println("\nframework_id:", c.FrameworkID)
-	fmt.Println("\ncomponents:", c.Components)
-	fmt.Println("\ncontrol_ids:", c.ControlIds)
-	fmt.Println("\ninclude_controls:", c.IncludeControls)
-	fmt.Println("\nconfig.json successfully written with updates")
 }
