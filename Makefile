@@ -13,30 +13,36 @@ MAN_COMPLYTIME_OUTPUT = docs/man/complytime.1
 MAN_OPENSCAP_CONF = docs/man/c2p-openscap-manifest.md
 MAN_OPENSCAP_CONF_OUTPUT = docs/man/c2p-openscap-manifest.5
 
-all: clean vendor test-unit build
+##@ Compilation
+
+all: clean vendor test-unit build ## compile from scratch
 .PHONY: all
 
-man:
+build: prep-build-dir ## compile
+	go build -o $(GO_BUILD_BINDIR)/ -ldflags="$(GO_LD_EXTRAFLAGS)" $(GO_BUILD_PACKAGES)
+.PHONY: build
+
+##@ Packaging
+
+man: ## generate man pages
 	mkdir -p $(dir $(MAN_COMPLYTIME_OUTPUT)) $(dir $(MAN_OPENSCAP_CONF_OUTPUT))
 	pandoc -s -t man $(MAN_COMPLYTIME) -o $(MAN_COMPLYTIME_OUTPUT)
 	pandoc -s -t man $(MAN_OPENSCAP_CONF) -o $(MAN_OPENSCAP_CONF_OUTPUT)
 
-dev-setup: dev-setup-commit-hooks
+##@ Environment
+
+dev-setup: dev-setup-commit-hooks ## prepare workspace for contributing
 .PHONY: dev-setup
 
-dev-setup-commit-hooks:
+dev-setup-commit-hooks: ## configure pre-commit
 	pre-commit install --hook-type pre-commit --hook-type pre-push
 .PHONY: dev-setup-commit-hooks
 
-build: prep-build-dir
-	go build -o $(GO_BUILD_BINDIR)/ -ldflags="$(GO_LD_EXTRAFLAGS)" $(GO_BUILD_PACKAGES)
-.PHONY: build
-
-prep-build-dir:
+prep-build-dir: ## create build output directory
 	mkdir -p ${GO_BUILD_BINDIR}
 .PHONY: prep-build-dir
 
-vendor:
+vendor: ## go mod sync
 	go mod tidy
 	go mod verify
 	go mod vendor
@@ -47,11 +53,13 @@ clean:
 	rm -f $(MAN_COMPLYTIME_OUTPUT) $(MAN_OPENSCAP_CONF_OUTPUT)
 .PHONY: clean
 
+##@ Testing
+
 test-unit:
 	go test -race -v -coverprofile=coverage.out ./...
 .PHONY: test-unit
 
-sanity: vendor format vet
+sanity: vendor format vet ## ensure code is ready for commit
 	git diff --exit-code
 .PHONY: sanity
 
@@ -62,3 +70,15 @@ format:
 vet:
 	go vet ./...
 .PHONY: vet
+
+##@ Help
+
+GREEN := \033[0;32m
+TEAL := \033[0;36m
+CLEAR := \033[0m
+
+help: ## Show this help.
+	@printf "Usage: make $(GREEN)<target>$(CLEAR)\n"
+	@awk -v "green=${GREEN}" -v "teal=${TEAL}" -v "clear=${CLEAR}" -F ":.*## *" \
+			'/^[a-zA-Z0-9_-]+:/{sub(/:.*/,"",$$1);printf "  %s%-12s%s %s\n", green, $$1, clear, $$2} /^##@/{printf "%s%s%s\n", teal, substr($$1,5), clear}' $(MAKEFILE_LIST)
+.PHONY: help
