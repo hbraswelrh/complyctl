@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package complytime
+package plan
 
 import (
 	"path/filepath"
@@ -35,7 +35,7 @@ func TestPlan(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, ap)
 
-	_, err = PlanSettings(ap)
+	_, err = Settings(ap)
 	require.ErrorIs(t, err, ErrNoActivities)
 
 	// Test Write -> Read -> Settings on a happy path
@@ -58,7 +58,7 @@ func TestPlan(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, ap)
 
-	_, err = PlanSettings(ap)
+	_, err = Settings(ap)
 	require.NoError(t, err)
 
 	wantProp := oscalTypes.Property{

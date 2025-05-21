@@ -3,20 +3,20 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"github.com/goccy/go-yaml"
 	"github.com/oscal-compass/oscal-sdk-go/transformers"
 	"github.com/oscal-compass/oscal-sdk-go/validation"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 
 	"github.com/complytime/complytime/cmd/complytime/option"
 	"github.com/complytime/complytime/internal/complytime"
+	"github.com/complytime/complytime/internal/complytime/plan"
 )
 
 const assessmentPlanLocation = "assessment-plan.json"
@@ -30,9 +30,21 @@ type planOptions struct {
 	// dryRun loads the defaults and prints the config to stdout
 	dryRun bool
 
-	// loadConfig reads "config.yml" to pre-tailor the generated assessment plan
-	loadConfig bool
+	// WithConfig "config.yml" to customize the generated assessment plan
+	withConfig string
 }
+
+var planExample = `
+	# The default behavior is to prepare a default assessment plan with all defined
+    # controls within the framework in scope
+	complytime plan myframework
+
+	# To customize the assessment plan, run in dry-run mode
+	complytime plan myframework --dry-run > config.yml
+
+	# Alter the configuration and use it as input for plan customization
+	complytime plan myframework --with-config config.yml
+`
 
 // planCmd creates a new cobra.Command for the "plan" subcommand
 func planCmd(common *option.Common) *cobra.Command {
@@ -43,7 +55,7 @@ func planCmd(common *option.Common) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "plan [flags] id",
 		Short:   "Generate a new assessment plan for a given compliance framework id.",
-		Example: "complytime plan myframework",
+		Example: planExample,
 		Args:    cobra.ExactArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 1 {
@@ -54,8 +66,8 @@ func planCmd(common *option.Common) *cobra.Command {
 			return runPlan(cmd, planOpts)
 		},
 	}
-	cmd.Flags().BoolVarP(&planOpts.dryRun, "dry-run", "n", false, "load the defaults and print the config to stdout")
-	cmd.Flags().BoolVarP(&planOpts.loadConfig, "load-config", "l", false, "load assessment-plan-filter.yml to pre-tailor the generated assessment plan")
+	cmd.Flags().BoolVarP(&planOpts.dryRun, "dry-run", "d", false, "load the defaults and print the config to stdout")
+	cmd.Flags().StringVarP(&planOpts.withConfig, "with-config", "c", "", "load config.yml to customize the generated assessment plan")
 	planOpts.complyTimeOpts.BindFlags(cmd.Flags())
 	return cmd
 }
@@ -85,135 +97,39 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		return err
 	}
 
-	if opts.loadConfig {
+	if opts.withConfig != "" {
 		// Read assessment plan filter
-		apfBytes, err := os.ReadFile(filepath.Join(opts.complyTimeOpts.UserWorkspace, assessmentPlanFilterLocation))
+		// FIXME: Is `assessment filter plan` the right location?
+		// Seems more intuitive to write the plan content to a well-known location and load only
+		// if present or allow the user to pass in the path. We could use a mutli-writer to write to the path and
+		// stdout if desired.
+		configBytes, err := os.ReadFile(filepath.Join(opts.complyTimeOpts.UserWorkspace, opts.withConfig))
 		if err != nil {
 			return fmt.Errorf("error reading assessment plan filter: %w", err)
 		}
-		apf := PlanData{}
-		if err := yaml.Unmarshal(apfBytes, &apf); err != nil {
+		assessmentScope := plan.AssessmentScope{}
+		if err := yaml.Unmarshal(configBytes, &assessmentScope); err != nil {
 			return fmt.Errorf("error unmarshaling assessment plan filter: %w", err)
 		}
-		if err := filterAssessmentPlan(cmd.Context(), assessmentPlan, apf); err != nil {
-			return fmt.Errorf("error filtering assessment plan: %w", err)
-		}
+		assessmentScope.Logger = logger
+		assessmentScope.ApplyScope(assessmentPlan)
 	}
 
 	filePath := filepath.Join(opts.complyTimeOpts.UserWorkspace, assessmentPlanLocation)
 	cleanedPath := filepath.Clean(filePath)
 
-	if err := complytime.WritePlan(assessmentPlan, opts.complyTimeOpts.FrameworkID, cleanedPath); err != nil {
+	if err := plan.WritePlan(assessmentPlan, opts.complyTimeOpts.FrameworkID, cleanedPath); err != nil {
 		return fmt.Errorf("error writing assessment plan to %s: %w", cleanedPath, err)
 	}
 	logger.Info(fmt.Sprintf("Assessment plan written to %s\n", cleanedPath))
 	return nil
 }
 
-func filterAssessmentPlan(ctx context.Context, assessmentPlan *oscalTypes.AssessmentPlan, assessmentPlanFilter PlanData) error {
-
-	//    /assessment-plan/local-definitions/activities/steps/reviewed-controls/control-selections/include-controls/control-id - Control Identifier Reference
-	//    /assessment-plan/local-definitions/activities/steps/reviewed-controls/control-selections/exclude-controls/control-id - Control Identifier Reference
-	//    /assessment-plan/local-definitions/activities/related-controls/control-selections/include-controls/control-id - Control Identifier Reference
-	//    /assessment-plan/local-definitions/activities/related-controls/control-selections/exclude-controls/control-id - Control Identifier Reference
-	//    /assessment-plan/reviewed-controls/control-selections/include-controls/control-id - Control Identifier Reference
-	//    /assessment-plan/reviewed-controls/control-selections/exclude-controls/control-id - Control Identifier Reference
-
-	//    /assessment-plan/local-definitions/activities/steps/reviewed-controls/control-selections/include-controls - Select Control
-	//    /assessment-plan/local-definitions/activities/related-controls/control-selections/include-controls - Select Control
-	//    /assessment-plan/reviewed-controls/control-selections/include-controls - Select Control
-
-	//    /assessment-plan/local-definitions/activities/steps/reviewed-controls/control-selections/include-controls/statement-ids - Include Specific Statements
-	//    /assessment-plan/local-definitions/activities/steps/reviewed-controls/control-selections/exclude-controls/statement-ids - Include Specific Statements
-	//    /assessment-plan/local-definitions/activities/related-controls/control-selections/include-controls/statement-ids - Include Specific Statements
-	//    /assessment-plan/local-definitions/activities/related-controls/control-selections/exclude-controls/statement-ids - Include Specific Statements
-	//    /assessment-plan/reviewed-controls/control-selections/include-controls/statement-ids - Include Specific Statements
-	//    /assessment-plan/reviewed-controls/control-selections/exclude-controls/statement-ids - Include Specific Statements
-
-	// "Any control specified within exclude-controls must first be within a range of explicitly included controls, via include-controls or include-all."
-
-	includedControls := map[string]bool{}
-	for _, id := range assessmentPlanFilter.Controls {
-		includedControls[id] = true
-	}
-
-	if assessmentPlan.LocalDefinitions != nil {
-		if assessmentPlan.LocalDefinitions.Activities != nil {
-			for activityI := range *assessmentPlan.LocalDefinitions.Activities {
-				var activity *oscalTypes.Activity
-				activity = &(*assessmentPlan.LocalDefinitions.Activities)[activityI]
-				if activity.RelatedControls != nil && activity.RelatedControls.ControlSelections != nil {
-					for controlSelectionI := range activity.RelatedControls.ControlSelections {
-						var controlSelection *oscalTypes.AssessedControls
-						controlSelection = &activity.RelatedControls.ControlSelections[controlSelectionI]
-						filterControlSelection(controlSelection, includedControls)
-					}
-				}
-
-				if activity.Steps != nil {
-					for stepI := range *activity.Steps {
-						var step *oscalTypes.Step
-						step = &(*activity.Steps)[stepI]
-						if step.ReviewedControls == nil {
-							continue
-						}
-						if step.ReviewedControls.ControlSelections == nil {
-							continue
-						}
-						for controlSelectionI := range step.ReviewedControls.ControlSelections {
-							var controlSelection *oscalTypes.AssessedControls
-							controlSelection = &step.ReviewedControls.ControlSelections[controlSelectionI]
-							filterControlSelection(controlSelection, includedControls)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if assessmentPlan.ReviewedControls.ControlSelections != nil {
-		for controlSelectionI := range assessmentPlan.ReviewedControls.ControlSelections {
-			var controlSelection *oscalTypes.AssessedControls
-			controlSelection = &assessmentPlan.ReviewedControls.ControlSelections[controlSelectionI]
-			filterControlSelection(controlSelection, includedControls)
-		}
-	}
-
-	return nil
-}
-
-// filterControlSelection makes inclusions explicit
-func filterControlSelection(controlSelection *oscalTypes.AssessedControls, includedControls map[string]bool) {
-	// The new included controls should be the intersection of
-	// the originally included controls and the newly included controls.
-	// ExcludedControls are preserved.
-
-	// includedControls specifies everything we allow - do not include all
-	includedAll := controlSelection.IncludeAll != nil
-	controlSelection.IncludeAll = nil
-
-	originalIncludedControls := map[string]bool{}
-	if controlSelection.IncludeControls != nil {
-		for _, controlId := range *controlSelection.IncludeControls {
-			originalIncludedControls[controlId.ControlId] = true
-		}
-	}
-	var newIncludedControls []oscalTypes.AssessedControlsSelectControlById
-	for controlId := range includedControls {
-		if includedAll || originalIncludedControls[controlId] {
-			newIncludedControls = append(newIncludedControls, oscalTypes.AssessedControlsSelectControlById{
-				ControlId: controlId,
-			})
-		}
-	}
-	controlSelection.IncludeControls = &newIncludedControls
-}
-
 // loadPlan returns the loaded assessment plan and path from the workspace.
 func loadPlan(opts *option.ComplyTime, validator validation.Validator) (*oscalTypes.AssessmentPlan, string, error) {
 	apPath := filepath.Join(opts.UserWorkspace, assessmentPlanLocation)
 	apCleanedPath := filepath.Clean(apPath)
-	assessmentPlan, err := complytime.ReadPlan(apCleanedPath, validator)
+	assessmentPlan, err := plan.ReadPlan(apCleanedPath, validator)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, "", fmt.Errorf("error: assessment plan does not exist in workspace %s: %w\n\nDid you run the plan command?",
@@ -223,4 +139,43 @@ func loadPlan(opts *option.ComplyTime, validator validation.Validator) (*oscalTy
 		return nil, "", err
 	}
 	return assessmentPlan, apCleanedPath, nil
+}
+
+// planDryRun leverages the AssessmentScope structure to populate tailoring config.
+// The config is written to stdout.
+func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition) error {
+	baseScope := plan.NewAssessmentScope(frameworkId, nil)
+	if cds == nil {
+		return fmt.Errorf("no component definitions found")
+	}
+	for _, componentDef := range cds {
+		if componentDef.Components == nil {
+			continue
+		}
+		for _, component := range *componentDef.Components {
+			if component.ControlImplementations == nil {
+				continue
+			}
+			// FIXME: Filter the added controls by the framework ID property on the
+			// control implementation. This ensure only the applicable controls end up
+			// in the configuration for review.
+			for _, ci := range *component.ControlImplementations {
+				if ci.ImplementedRequirements == nil {
+					continue
+				}
+				for _, ir := range ci.ImplementedRequirements {
+					if ir.ControlId != "" {
+						baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
+					}
+				}
+			}
+		}
+	}
+
+	out, err := yaml.Marshal(&baseScope)
+	if err != nil {
+		return fmt.Errorf("error marshalling yaml content: %v", err)
+	}
+	fmt.Println(string(out))
+	return nil
 }

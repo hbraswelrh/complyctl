@@ -12,8 +12,12 @@ import (
 	"github.com/adrg/xdg"
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/oscal-compass/compliance-to-policy-go/v2/framework"
+	"github.com/oscal-compass/compliance-to-policy-go/v2/framework/actions"
 	"github.com/oscal-compass/oscal-sdk-go/models"
+	"github.com/oscal-compass/oscal-sdk-go/models/components"
 	"github.com/oscal-compass/oscal-sdk-go/validation"
+
+	"github.com/complytime/complytime/internal/complytime/plan"
 )
 
 const (
@@ -171,4 +175,26 @@ func Config(a ApplicationDirectory) (*framework.C2PConfig, error) {
 	cfg.PluginDir = a.PluginDir()
 	cfg.PluginManifestDir = a.PluginManifestDir()
 	return cfg, nil
+}
+
+// ActionsContextFromPlan returns a new actions.InputContext from a given OSCAL AssessmentPlan.
+func ActionsContextFromPlan(assessmentPlan *oscalTypes.AssessmentPlan) (*actions.InputContext, error) {
+	if assessmentPlan.AssessmentAssets.Components == nil {
+		return nil, errors.New("assessment plan has no assessment components")
+	}
+	var allComponents []components.Component
+	for _, component := range *assessmentPlan.AssessmentAssets.Components {
+		compAdapter := components.NewSystemComponentAdapter(component)
+		allComponents = append(allComponents, compAdapter)
+	}
+	inputContext, err := actions.NewContext(allComponents)
+	if err != nil {
+		return nil, fmt.Errorf("error generating context from plan %s: %w", assessmentPlan.Metadata.Title, err)
+	}
+	apSettings, err := plan.Settings(assessmentPlan)
+	if err != nil {
+		return nil, fmt.Errorf("cannot extract settings from plan %s: %w", assessmentPlan.Metadata.Title, err)
+	}
+	inputContext.Settings = apSettings
+	return inputContext, nil
 }

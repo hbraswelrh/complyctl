@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package complytime
+package plan
 
 import (
 	"encoding/json"
@@ -10,10 +10,8 @@ import (
 	"path/filepath"
 
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
-	"github.com/oscal-compass/compliance-to-policy-go/v2/framework/actions"
 	"github.com/oscal-compass/oscal-sdk-go/extensions"
 	"github.com/oscal-compass/oscal-sdk-go/models"
-	"github.com/oscal-compass/oscal-sdk-go/models/components"
 	"github.com/oscal-compass/oscal-sdk-go/settings"
 	"github.com/oscal-compass/oscal-sdk-go/validation"
 )
@@ -67,33 +65,11 @@ func ReadPlan(assessmentPlanPath string, validator validation.Validator) (*oscal
 
 var ErrNoActivities = errors.New("no local activities detected")
 
-// PlanSettings return a new compliance Settings instance based on the
+// Settings return a new compliance Settings instance based on the
 // given assessment plan path.
-func PlanSettings(plan *oscalTypes.AssessmentPlan) (settings.Settings, error) {
+func Settings(plan *oscalTypes.AssessmentPlan) (settings.Settings, error) {
 	if plan.LocalDefinitions != nil && plan.LocalDefinitions.Activities != nil {
 		return settings.NewAssessmentActivitiesSettings(*plan.LocalDefinitions.Activities), nil
 	}
 	return settings.Settings{}, ErrNoActivities
-}
-
-// ActionsContextFromPlan returns a new actions.InputContext from a given OSCAL AssessmentPlan.
-func ActionsContextFromPlan(plan *oscalTypes.AssessmentPlan) (*actions.InputContext, error) {
-	if plan.AssessmentAssets.Components == nil {
-		return nil, errors.New("assessment plan has no assessment components")
-	}
-	var allComponents []components.Component
-	for _, component := range *plan.AssessmentAssets.Components {
-		compAdapter := components.NewSystemComponentAdapter(component)
-		allComponents = append(allComponents, compAdapter)
-	}
-	inputContext, err := actions.NewContext(allComponents)
-	if err != nil {
-		return nil, fmt.Errorf("error generating context from plan %s: %w", plan.Metadata.Title, err)
-	}
-	apSettings, err := PlanSettings(plan)
-	if err != nil {
-		return nil, fmt.Errorf("cannot extract settings from plan %s: %w", plan.Metadata.Title, err)
-	}
-	inputContext.Settings = apSettings
-	return inputContext, nil
 }
