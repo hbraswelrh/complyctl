@@ -31,15 +31,20 @@ type planOptions struct {
 
 	// WithConfig "config.yml" to customize the generated assessment plan
 	withConfig string
+
+	// Out
+	Output string
 }
 
 var planExample = `
-	# The default behavior is to prepare a default assessment plan with all defined
-    # controls within the framework in scope
+	# The default behavior is to prepare a default assessment plan with all defined controls within the framework in scope
 	complytime plan myframework
 
 	# To customize the assessment plan, run in dry-run mode
-	complytime plan myframework --dry-run > config.yml
+	complytime plan myframework --dry-run
+
+	# To customize the assessment plan and write to a file, run in dry-run mode with out.
+	complytime plan myframework --dry-run --out config.yml
 
 	# Alter the configuration and use it as input for plan customization
 	complytime plan myframework --with-config config.yml
@@ -65,8 +70,10 @@ func planCmd(common *option.Common) *cobra.Command {
 			return runPlan(cmd, planOpts)
 		},
 	}
-	cmd.Flags().BoolVarP(&planOpts.dryRun, "dry-run", "d", false, "load the defaults and print the config to stdout")
+	cmd.Flags().BoolVar(&planOpts.dryRun, "dry-run", false, "load the defaults and print the config to stdout")
 	cmd.Flags().StringVarP(&planOpts.withConfig, "with-config", "c", "", "load config.yml to customize the generated assessment plan")
+	// FIXME: Check that dry-run is set of the user pass this in
+	cmd.Flags().StringVarP(&planOpts.Output, "out", "o", "-", "path to output file. Use '-' for stdout. Default '-'.")
 	planOpts.complyTimeOpts.BindFlags(cmd.Flags())
 	return cmd
 }
@@ -87,7 +94,7 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 
 	if opts.dryRun {
 		// Write the plan configuration to stdout
-		return planDryRun(opts.complyTimeOpts.FrameworkID, componentDefs)
+		return planDryRun(opts.complyTimeOpts.FrameworkID, componentDefs, opts.Output)
 	}
 
 	logger.Debug(fmt.Sprintf("Using bundle directory: %s for component definitions.", appDir.BundleDir()))
@@ -104,7 +111,7 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		// stdout if desired.
 
 		// TODO: HB - updated location for reading file - may need change for variable name
-		configBytes, err := os.ReadFile(filepath.Join(opts.withConfig))
+		configBytes, err := os.ReadFile(filepath.Clean(opts.withConfig))
 		if err != nil {
 			return fmt.Errorf("error reading assessment plan: %w", err)
 		}
@@ -112,8 +119,7 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		if err := yaml.Unmarshal(configBytes, &assessmentScope); err != nil {
 			return fmt.Errorf("error unmarshaling assessment plan: %w", err)
 		}
-		assessmentScope.Logger = logger
-		assessmentScope.ApplyScope(assessmentPlan)
+		assessmentScope.ApplyScope(assessmentPlan, logger)
 	}
 
 	filePath := filepath.Join(opts.complyTimeOpts.UserWorkspace, assessmentPlanLocation)
@@ -144,8 +150,8 @@ func loadPlan(opts *option.ComplyTime, validator validation.Validator) (*oscalTy
 
 // planDryRun leverages the AssessmentScope structure to populate tailoring config.
 // The config is written to stdout.
-func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition) error {
-	baseScope := plan.NewAssessmentScope(frameworkId, nil)
+func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition, output string) error {
+	baseScope := plan.NewAssessmentScope(frameworkId)
 	if cds == nil {
 		return fmt.Errorf("no component definitions found")
 	}
@@ -168,17 +174,11 @@ func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition) error 
 				if ci.Props != nil {
 					for _, frameworkVal := range *ci.Props {
 						if baseScope.FrameworkID == frameworkVal.Value {
-							continue
-						}
-						for _, ir := range ci.ImplementedRequirements {
-							if ir.ControlId != "" {
-								baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
+							for _, ir := range ci.ImplementedRequirements {
+								if ir.ControlId != "" {
+									baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
+								}
 							}
-						}
-					}
-					for _, ir := range ci.ImplementedRequirements {
-						if ir.ControlId != "" {
-							baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
 						}
 					}
 				}
@@ -186,10 +186,16 @@ func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition) error 
 		}
 	}
 
-	out, err := yaml.Marshal(&baseScope)
+	data, err := yaml.Marshal(&baseScope)
 	if err != nil {
 		return fmt.Errorf("error marshalling yaml content: %v", err)
 	}
-	fmt.Println(string(out))
+
+	if output == "-" {
+		//TODO handle error
+		fmt.Fprintln(os.Stdout, string(data))
+	} else {
+		return os.WriteFile(output, data, 0600)
+	}
 	return nil
 }

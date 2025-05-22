@@ -3,12 +3,8 @@
 package plan
 
 import (
-	"os"
-
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/hashicorp/go-hclog"
-
-	"github.com/complytime/complytime/pkg/log"
 )
 
 // AssessmentScope sets up the yaml mapping type for writing to config file.
@@ -20,38 +16,33 @@ type AssessmentScope struct {
 	// IncludeControls defines controls that are in scope
 	// of an assessment.
 	IncludeControls []string `yaml:"IncludeControls"`
-	Logger          hclog.Logger
 }
 
 // NewAssessmentScope create an AssessmentScope struct from a given framework id.
-func NewAssessmentScope(frameworkID string, logger hclog.Logger) AssessmentScope {
+func NewAssessmentScope(frameworkID string) AssessmentScope {
 	return AssessmentScope{
 		FrameworkID: frameworkID,
-		Logger:      logger.Named("plan-scope"),
 	}
 }
 
 // ApplyScope alters the given OSCAL Assessment Plan based on the AssessmentScope.
-func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan) {
-	if a.Logger == nil {
-		a.Logger = log.NewLogger(os.Stdout)
-	}
+func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger) {
 
 	// This is a thin wrapper right now, but the goal to expand to different areas
 	// of customization.
-	a.applyControlScope(assessmentPlan)
+	a.applyControlScope(assessmentPlan, logger)
 }
 
 // applyControlScope alters the AssessedControls of the given OSCAL Assessment Plan by the AssessmentScope
 // IncludeControls.
-func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.AssessmentPlan) {
+func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger) {
 	// "Any control specified within exclude-controls must first be within a range of explicitly
 	// included controls, via include-controls or include-all."
 	includedControls := map[string]bool{}
 	for _, id := range a.IncludeControls {
 		includedControls[id] = true
 	}
-	a.Logger.Debug("Found included controls", "count", len(includedControls))
+	logger.Debug("Found included controls", "count", len(includedControls))
 
 	// FIXME: We should remove activities that have been filtered out (i.e. have no in scope controls)
 	if assessmentPlan.LocalDefinitions != nil {
