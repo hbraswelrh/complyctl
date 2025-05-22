@@ -21,9 +21,6 @@ import (
 
 const assessmentPlanLocation = "assessment-plan.json"
 
-// TODO: convert `assessmentPlanFilterLocation` to config.yml
-const assessmentPlanFilterLocation = "config.yml"
-
 // PlanOptions defines options for the "plan" subcommand
 type planOptions struct {
 	*option.Common
@@ -102,19 +99,18 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 	if opts.withConfig != "" {
 		// Read assessment plan filter
 		// FIXME: Is `assessment filter plan` the right location?
-		// TODO: HB write to `config.yml` to load from there
 		// Seems more intuitive to write the plan content to a well-known location and load only
 		// if present or allow the user to pass in the path. We could use a mutli-writer to write to the path and
 		// stdout if desired.
 
 		// TODO: HB - updated location for reading file - may need change for variable name
-		configBytes, err := os.ReadFile(filepath.Join(opts.complyTimeOpts.UserWorkspace, opts.withConfig, assessmentPlanFilterLocation))
+		configBytes, err := os.ReadFile(filepath.Join(opts.withConfig))
 		if err != nil {
-			return fmt.Errorf("error reading assessment plan filter: %w", err)
+			return fmt.Errorf("error reading assessment plan: %w", err)
 		}
 		assessmentScope := plan.AssessmentScope{}
 		if err := yaml.Unmarshal(configBytes, &assessmentScope); err != nil {
-			return fmt.Errorf("error unmarshaling assessment plan filter: %w", err)
+			return fmt.Errorf("error unmarshaling assessment plan: %w", err)
 		}
 		assessmentScope.Logger = logger
 		assessmentScope.ApplyScope(assessmentPlan)
@@ -164,18 +160,26 @@ func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition) error 
 			// FIXME: Filter the added controls by the framework ID property on the
 			// control implementation. This ensure only the applicable controls end up
 			// in the configuration for review.
+			// FIXME: logger statements should not include the filter location comment
 			for _, ci := range *component.ControlImplementations {
 				if ci.ImplementedRequirements == nil {
 					continue
 				}
-				// TODO HB - Source is the FrameworkID on the ControlImplementationSet
-				// TODO HB - Applicable controls would be organized by FrameworkID
-				if ci.Source != "" {
-					baseScope.FrameworkID = ci.Source
-				}
-				for _, ir := range ci.ImplementedRequirements {
-					if ir.ControlId != "" {
-						baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
+				if ci.Props != nil {
+					for _, frameworkVal := range *ci.Props {
+						if baseScope.FrameworkID == frameworkVal.Value {
+							continue
+						}
+						for _, ir := range ci.ImplementedRequirements {
+							if ir.ControlId != "" {
+								baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
+							}
+						}
+					}
+					for _, ir := range ci.ImplementedRequirements {
+						if ir.ControlId != "" {
+							baseScope.IncludeControls = append(baseScope.IncludeControls, ir.ControlId)
+						}
 					}
 				}
 			}
