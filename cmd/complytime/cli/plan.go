@@ -22,7 +22,7 @@ import (
 const assessmentPlanLocation = "assessment-plan.json"
 
 // TODO: convert `assessmentPlanFilterLocation` to config.yml
-const assessmentPlanFilterLocation = "assessment-plan-filter.yml"
+const assessmentPlanFilterLocation = "config.yml"
 
 // PlanOptions defines options for the "plan" subcommand
 type planOptions struct {
@@ -106,7 +106,9 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		// Seems more intuitive to write the plan content to a well-known location and load only
 		// if present or allow the user to pass in the path. We could use a mutli-writer to write to the path and
 		// stdout if desired.
-		configBytes, err := os.ReadFile(filepath.Join(opts.complyTimeOpts.UserWorkspace, opts.withConfig))
+
+		// TODO: HB - updated location for reading file - may need change for variable name
+		configBytes, err := os.ReadFile(filepath.Join(opts.complyTimeOpts.UserWorkspace, opts.withConfig, assessmentPlanFilterLocation))
 		if err != nil {
 			return fmt.Errorf("error reading assessment plan filter: %w", err)
 		}
