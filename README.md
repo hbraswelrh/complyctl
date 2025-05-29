@@ -32,11 +32,11 @@ complytime plan <framework-id>
 cat assessment-plan.json
 # The default assessment-plan.json contents will be written to standard output.
 
-complytime plan <framework-id> --dry-run > config.yml
-# Updates to the assessment-plan.json controls will be present in the config.yml.
+complytime plan <framework-id> --dry-run config.yml
+# Customize the assessment-plan.json with the "dry-run" flag. Updates can be made in config.yml. 
 
 complytime plan <framework-id> --with-config config.yml
-# The config.yml will be loaded to configure the generated assessment-plan.json. 
+# The config.yml will be loaded and passed as "with-config" to customize the assessment-plan.json. 
 ```
 
 Run the generate command to `generate` policy artifacts in the workspace and run the `scan` command to execute the generated artifacts and get results.
