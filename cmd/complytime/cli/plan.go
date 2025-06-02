@@ -105,12 +105,6 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 
 	if opts.withConfig != "" {
 		// Read assessment plan filter
-		// FIXME: Is `assessment filter plan` the right location?
-		// Seems more intuitive to write the plan content to a well-known location and load only
-		// if present or allow the user to pass in the path. We could use a mutli-writer to write to the path and
-		// stdout if desired.
-
-		// TODO: HB - updated location for reading file - may need change for variable name
 		configBytes, err := os.ReadFile(filepath.Clean(opts.withConfig))
 		if err != nil {
 			return fmt.Errorf("error reading assessment plan: %w", err)
@@ -166,7 +160,6 @@ func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition, output
 			// FIXME: Filter the added controls by the framework ID property on the
 			// control implementation. This ensure only the applicable controls end up
 			// in the configuration for review.
-			// FIXME: logger statements should not include the filter location comment
 			for _, ci := range *component.ControlImplementations {
 				if ci.ImplementedRequirements == nil {
 					continue
