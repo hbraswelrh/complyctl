@@ -49,6 +49,13 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 		if assessmentPlan.LocalDefinitions.Activities != nil {
 			for activityI := range *assessmentPlan.LocalDefinitions.Activities {
 				activity := &(*assessmentPlan.LocalDefinitions.Activities)[activityI]
+				// TODO: testing - if no in-scope controls then remove those activities
+				if activity.RelatedControls != nil && activity.RelatedControls.ControlSelections == nil {
+					assessmentPlan.LocalDefinitions.Activities = nil
+					includedControls = nil
+					//activity = nil
+					continue
+				}
 				if activity.RelatedControls != nil && activity.RelatedControls.ControlSelections != nil {
 					controlSelections := activity.RelatedControls.ControlSelections
 					for controlSelectionI := range controlSelections {
@@ -71,6 +78,12 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 							controlSelection := &controlSelections[controlSelectionI]
 							filterControlSelection(controlSelection, includedControls)
 						}
+					}
+				} else {
+					controlSelections := activity.RelatedControls.ControlSelections
+					for controlSelectionI := range controlSelections {
+						controlSelection := &controlSelections[controlSelectionI]
+						filterControlSelection(controlSelection, includedControls)
 					}
 				}
 			}
