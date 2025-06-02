@@ -37,17 +37,17 @@ type planOptions struct {
 }
 
 var planExample = `
-	# The default behavior is to prepare a default assessment plan with all defined controls within the framework in scope
-	complytime plan myframework
+# The default behavior is to prepare a default assessment plan with all defined controls within the framework in scope.
+complytime plan myframework
 
-	# To customize the assessment plan, run in dry-run mode
-	complytime plan myframework --dry-run
+# To see the default contents of the assessment plan, run in dry-run mode.
+complytime plan myframework --dry-run
 
-	# To customize the assessment plan and write to a file, run in dry-run mode with out.
-	complytime plan myframework --dry-run --out config.yml
+# To customize the assessment plan and write to a file, run in dry-run mode with out.
+complytime plan myframework --dry-run --out config.yml
 
-	# Alter the configuration and use it as input for plan customization
-	complytime plan myframework --with-config config.yml
+# Alter the configuration and use it as input for plan customization.
+complytime plan myframework --with-config config.yml
 `
 
 // planCmd creates a new cobra.Command for the "plan" subcommand
