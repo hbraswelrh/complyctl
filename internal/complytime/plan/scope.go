@@ -54,6 +54,14 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 					for controlSelectionI := range controlSelections {
 						controlSelection := &controlSelections[controlSelectionI]
 						filterControlSelection(controlSelection, includedControls)
+						if controlSelection.IncludeControls == nil {
+							activity.UUID = ""
+							activity.RelatedControls = nil
+							activity.Props = nil
+							activity.Description = ""
+							activity.Title = "skipped"
+							activity.Steps = nil
+						}
 					}
 				}
 
@@ -70,13 +78,17 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 						for controlSelectionI := range controlSelections {
 							controlSelection := &controlSelections[controlSelectionI]
 							filterControlSelection(controlSelection, includedControls)
+							if controlSelection.IncludeControls == nil {
+								activity.RelatedControls.ControlSelections = nil
+								step.ReviewedControls = nil
+								step.Description = "skipped"
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
 	if assessmentPlan.ReviewedControls.ControlSelections != nil {
 		for controlSelectionI := range assessmentPlan.ReviewedControls.ControlSelections {
 			controlSelection := &assessmentPlan.ReviewedControls.ControlSelections[controlSelectionI]
@@ -108,5 +120,9 @@ func filterControlSelection(controlSelection *oscalTypes.AssessedControls, inclu
 			})
 		}
 	}
-	controlSelection.IncludeControls = &newIncludedControls
+	if newIncludedControls != nil {
+		controlSelection.IncludeControls = &newIncludedControls
+	} else {
+		controlSelection.IncludeControls = nil
+	}
 }
