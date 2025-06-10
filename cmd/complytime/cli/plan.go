@@ -29,25 +29,26 @@ type planOptions struct {
 	// dryRun loads the defaults and prints the config to stdout
 	dryRun bool
 
-	// WithConfig "config.yml" to customize the generated assessment plan
-	withConfig string
+	// WithScopeConfig "config.yml" to customize the generated assessment plan
+	withScopeConfig string
 
 	// Out
 	Output string
 }
 
 var planExample = `
-	# The default behavior is to prepare a default assessment plan with all defined controls within the framework in scope
-	complytime plan myframework
 
-	# To customize the assessment plan, run in dry-run mode
-	complytime plan myframework --dry-run
+# The default behavior is to prepare a default assessment plan with all defined controls within the framework in scope.
+complytime plan myframework
 
-	# To customize the assessment plan and write to a file, run in dry-run mode with out.
-	complytime plan myframework --dry-run --out config.yml
+# To see the default contents of the assessment plan, run in dry-run mode.
+complytime plan myframework --dry-run
 
-	# Alter the configuration and use it as input for plan customization
-	complytime plan myframework --with-config config.yml
+# To customize the assessment plan and write to a file, run in dry-run mode with out.
+complytime plan myframework --dry-run --out config.yml
+
+# Alter the configuration and use it as input for plan customization.
+complytime plan myframework --scope-config config.yml
 `
 
 // planCmd creates a new cobra.Command for the "plan" subcommand
@@ -71,7 +72,7 @@ func planCmd(common *option.Common) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&planOpts.dryRun, "dry-run", false, "load the defaults and print the config to stdout")
-	cmd.Flags().StringVarP(&planOpts.withConfig, "with-config", "c", "", "load config.yml to customize the generated assessment plan")
+	cmd.Flags().StringVarP(&planOpts.withScopeConfig, "scope-config", "s", "", "load config.yml to customize the generated assessment plan")
 	// FIXME: Check that dry-run is set of the user pass this in
 	cmd.Flags().StringVarP(&planOpts.Output, "out", "o", "-", "path to output file. Use '-' for stdout. Default '-'.")
 	planOpts.complyTimeOpts.BindFlags(cmd.Flags())
@@ -103,15 +104,8 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		return err
 	}
 
-	if opts.withConfig != "" {
-		// Read assessment plan filter
-		// FIXME: Is `assessment filter plan` the right location?
-		// Seems more intuitive to write the plan content to a well-known location and load only
-		// if present or allow the user to pass in the path. We could use a mutli-writer to write to the path and
-		// stdout if desired.
-
-		// TODO: HB - updated location for reading file - may need change for variable name
-		configBytes, err := os.ReadFile(filepath.Clean(opts.withConfig))
+	if opts.withScopeConfig != "" {
+		configBytes, err := os.ReadFile(filepath.Clean(opts.withScopeConfig))
 		if err != nil {
 			return fmt.Errorf("error reading assessment plan: %w", err)
 		}
@@ -163,10 +157,6 @@ func planDryRun(frameworkId string, cds []oscalTypes.ComponentDefinition, output
 			if component.ControlImplementations == nil {
 				continue
 			}
-			// FIXME: Filter the added controls by the framework ID property on the
-			// control implementation. This ensure only the applicable controls end up
-			// in the configuration for review.
-			// FIXME: logger statements should not include the filter location comment
 			for _, ci := range *component.ControlImplementations {
 				if ci.ImplementedRequirements == nil {
 					continue

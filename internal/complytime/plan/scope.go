@@ -45,7 +45,6 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 	}
 	logger.Debug("Found included controls", "count", len(includedControls))
 
-	// FIXME: We should remove activities that have been filtered out (i.e. have no in scope controls)
 	if assessmentPlan.LocalDefinitions != nil {
 		if assessmentPlan.LocalDefinitions.Activities != nil {
 			for activityI := range *assessmentPlan.LocalDefinitions.Activities {
