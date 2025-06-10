@@ -5,6 +5,7 @@ package plan
 import (
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/hashicorp/go-hclog"
+	"github.com/oscal-compass/oscal-sdk-go/extensions"
 )
 
 // AssessmentScope sets up the yaml mapping type for writing to config file.
@@ -55,12 +56,16 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 						controlSelection := &controlSelections[controlSelectionI]
 						filterControlSelection(controlSelection, includedControls)
 						if controlSelection.IncludeControls == nil {
-							activity.UUID = ""
 							activity.RelatedControls = nil
-							activity.Props = nil
-							activity.Description = ""
-							activity.Title = "skipped"
-							activity.Steps = nil
+							if activity.Props == nil {
+								activity.Props = &[]oscalTypes.Property{}
+							}
+							skippedActivity := oscalTypes.Property{
+								Name:  "skipped",
+								Value: "true",
+								Ns:    extensions.TrestleNameSpace,
+							}
+							*activity.Props = append(*activity.Props, skippedActivity)
 						}
 					}
 				}
@@ -81,7 +86,15 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 							if controlSelection.IncludeControls == nil {
 								activity.RelatedControls.ControlSelections = nil
 								step.ReviewedControls = nil
-								step.Description = "skipped"
+								if step.Props == nil {
+									step.Props = &[]oscalTypes.Property{}
+								}
+								skipped := oscalTypes.Property{
+									Name:  "skipped",
+									Value: "true",
+									Ns:    extensions.TrestleNameSpace,
+								}
+								*step.Props = append(*step.Props, skipped)
 							}
 						}
 					}
