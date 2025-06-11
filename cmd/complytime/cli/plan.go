@@ -37,6 +37,7 @@ type planOptions struct {
 }
 
 var planExample = `
+
 # The default behavior is to prepare a default assessment plan with all defined controls within the framework in scope.
 complytime plan myframework
 

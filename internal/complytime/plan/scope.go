@@ -5,6 +5,7 @@ package plan
 import (
 	oscalTypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/hashicorp/go-hclog"
+	"github.com/oscal-compass/oscal-sdk-go/extensions"
 )
 
 // AssessmentScope sets up the yaml mapping type for writing to config file.
@@ -44,7 +45,6 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 	}
 	logger.Debug("Found included controls", "count", len(includedControls))
 
-	// FIXME: We should remove activities that have been filtered out (i.e. have no in scope controls)
 	if assessmentPlan.LocalDefinitions != nil {
 		if assessmentPlan.LocalDefinitions.Activities != nil {
 			for activityI := range *assessmentPlan.LocalDefinitions.Activities {
@@ -54,6 +54,18 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 					for controlSelectionI := range controlSelections {
 						controlSelection := &controlSelections[controlSelectionI]
 						filterControlSelection(controlSelection, includedControls)
+						if controlSelection.IncludeControls == nil {
+							activity.RelatedControls = nil
+							if activity.Props == nil {
+								activity.Props = &[]oscalTypes.Property{}
+							}
+							skippedActivity := oscalTypes.Property{
+								Name:  "skipped",
+								Value: "true",
+								Ns:    extensions.TrestleNameSpace,
+							}
+							*activity.Props = append(*activity.Props, skippedActivity)
+						}
 					}
 				}
 
@@ -70,13 +82,25 @@ func (a AssessmentScope) applyControlScope(assessmentPlan *oscalTypes.Assessment
 						for controlSelectionI := range controlSelections {
 							controlSelection := &controlSelections[controlSelectionI]
 							filterControlSelection(controlSelection, includedControls)
+							if controlSelection.IncludeControls == nil {
+								activity.RelatedControls.ControlSelections = nil
+								step.ReviewedControls = nil
+								if step.Props == nil {
+									step.Props = &[]oscalTypes.Property{}
+								}
+								skipped := oscalTypes.Property{
+									Name:  "skipped",
+									Value: "true",
+									Ns:    extensions.TrestleNameSpace,
+								}
+								*step.Props = append(*step.Props, skipped)
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
 	if assessmentPlan.ReviewedControls.ControlSelections != nil {
 		for controlSelectionI := range assessmentPlan.ReviewedControls.ControlSelections {
 			controlSelection := &assessmentPlan.ReviewedControls.ControlSelections[controlSelectionI]
@@ -108,5 +132,9 @@ func filterControlSelection(controlSelection *oscalTypes.AssessedControls, inclu
 			})
 		}
 	}
-	controlSelection.IncludeControls = &newIncludedControls
+	if newIncludedControls != nil {
+		controlSelection.IncludeControls = &newIncludedControls
+	} else {
+		controlSelection.IncludeControls = nil
+	}
 }

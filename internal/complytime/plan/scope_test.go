@@ -51,6 +51,63 @@ func TestAssessmentScope_ApplyScope(t *testing.T) {
 				},
 			},
 		},
+		// Testing for out-of-scope controls
+		{
+			name: "All Controls Out-of-Scope",
+			basePlan: &oscalTypes.AssessmentPlan{
+				ReviewedControls: oscalTypes.ReviewedControls{
+					ControlSelections: []oscalTypes.AssessedControls{
+						{
+							IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+								{
+									ControlId: "",
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				FrameworkID:     "test",
+				IncludeControls: nil,
+			},
+			wantSelections: []oscalTypes.AssessedControls{
+				{
+					IncludeControls: nil,
+				},
+			},
+		},
+		{
+			name: "Some Controls Out-of-Scope",
+			basePlan: &oscalTypes.AssessmentPlan{
+				ReviewedControls: oscalTypes.ReviewedControls{
+					ControlSelections: []oscalTypes.AssessedControls{
+						{
+							IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+								{
+									ControlId: "example-1",
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				FrameworkID:     "test",
+				IncludeControls: []string{"example-1", "example-2"},
+			},
+			wantSelections: []oscalTypes.AssessedControls{
+				{
+					IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+						{
+							ControlId: "example-1",
+						},
+					},
+				},
+			},
+		},
+	}
+	{
 	}
 
 	for _, tt := range tests {
