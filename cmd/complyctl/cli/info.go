@@ -62,12 +62,19 @@ var (
 				Width(90) // Fixed width for consistent formatting
 )
 
+// parameter represents details about a parameter for easy mapping of parameters to set values.
+type parameter struct {
+	ID          string // Name of param
+	Description string
+	Values      []string // Current set value(s) - used for rule display
+}
+
 // rule represents details about a rule for easy mapping of rules to plugins.
 type rule struct {
 	ID          string
 	Plugin      string
 	Description string
-	Parameters  []string
+	Parameters  []parameter
 }
 
 // control repsents details about a control across component sources.
@@ -99,6 +106,7 @@ type infoOptions struct {
 	complyTimeOpts *option.ComplyTime
 	controlID      string // show info for a specific control ID
 	ruleID         string // show info for a specific rule ID
+	parameterID    string // show info for a specific parameter ID
 	limit          int    // limit number for table rows shown in terminal
 	plain          bool   // print plain table only
 }
@@ -111,7 +119,7 @@ func infoCmd(common *option.Common) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "info <framework-id> [flags]",
 		Short:   "Show information about a framework's controls and rules",
-		Example: " complyctl info anssi_bp28_minimal\n complyctl info anssi_bp28_minimal --control r31\n complyctl info anssi_bp28_minimal --rule enable_authselect",
+		Example: " complyctl info anssi_bp28_minimal\n complyctl info anssi_bp28_minimal --control r31\n complyctl info anssi_bp28_minimal --rule enable_authselect\n complyctl info anssi_bp28_minimal --parameter param-1",
 		Args:    cobra.ExactArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 1 {
@@ -122,6 +130,7 @@ func infoCmd(common *option.Common) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&infoOpts.controlID, "control", "c", "", "show info for a specific control ID")
 	cmd.Flags().StringVarP(&infoOpts.ruleID, "rule", "r", "", "show info for a specific rule ID")
+	cmd.Flags().StringVarP(&infoOpts.parameterID, "parameter", "P", "", "show info for a specific parameter ID")
 	cmd.Flags().IntVarP(&infoOpts.limit, "limit", "l", 0, "limit the number of table rows")
 	cmd.Flags().BoolVarP(&infoOpts.plain, "plain", "p", false, "print the table with minimal formatting")
 	infoOpts.complyTimeOpts.BindFlags(cmd.Flags())
@@ -160,6 +169,8 @@ func runInfo(opts *infoOptions) error {
 		return displayControlInfo(opts, indexedControls)
 	} else if opts.ruleID != "" {
 		return displayRuleInfo(opts, opts.ruleID, ruleRemarks, remarksProps, indexedSetParameters)
+	} else if opts.parameterID != "" {
+		return displayParameterInfo(opts, opts.parameterID, indexedSetParameters, ruleRemarks, remarksProps, appDir, validator)
 	} else {
 		return displayAllControls(opts, indexedControls)
 	}
@@ -260,6 +271,32 @@ func processComponentProperties(compDefs []oscalTypes.DefinedComponent) (ruleRem
 	return ruleRemarksMap, remarksPropsMap
 }
 
+// findRulesUsingParameter finds all rules that use a specific parameter.
+func findRulesUsingParameter(parameterID string, ruleRemarks ruleRemarksMap, remarksProps remarksPropertiesMap) []string {
+	var rulesUsingParam []string
+
+	for _, props := range remarksProps {
+		hasParameter := false
+		var ruleID string
+
+		for _, prop := range props {
+			// Check for both Parameter_Id and Parameter_Id_0 patterns
+			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+				hasParameter = true
+			}
+			if prop.Name == "Rule_Id" {
+				ruleID = prop.Value
+			}
+		}
+
+		if hasParameter && ruleID != "" {
+			rulesUsingParam = append(rulesUsingParam, ruleID)
+		}
+	}
+
+	return removeDuplicates(rulesUsingParam)
+}
+
 // loadComponents retrieves components from component definitions by framework ID.
 func loadComponents(componentDefinitions []oscalTypes.ComponentDefinition, frameworkID string) ([]oscalTypes.DefinedComponent, []oscalTypes.DefinedComponent) {
 
@@ -299,10 +336,127 @@ func extractRuleDetails(props []oscalTypes.Property) rule {
 		case "Rule_Description":
 			info.Description = prop.Value
 		case "Parameter_Id":
-			info.Parameters = append(info.Parameters, prop.Value)
+			param := parameter{
+				ID: prop.Value,
+			}
+			// Look for description in the same property set
+			for _, otherProp := range props {
+				if otherProp.Name == "Parameter_Description" && otherProp.Remarks == prop.Remarks {
+					param.Description = otherProp.Value
+					break
+				}
+			}
+			info.Parameters = append(info.Parameters, param)
 		}
 	}
 	return info
+}
+
+// getParameterDetailsColumnsAndRows prepares columns and rows for the parameter details table.
+func getParameterDetailsColumnsAndRows(paramDetails parameter, paramValues []string, ruleRemarks ruleRemarksMap, remarksProps remarksPropertiesMap, appDir complytime.ApplicationDirectory, validator *validation.SchemaValidator, frameworkID string) ([]table.Column, []table.Row) {
+	var rows []table.Row
+
+	currentValue := getParameterCurrentValue(paramValues)
+	// Use remarks-based approach to find parameter alternatives
+	availableChoices := findParameterAlternativesFromRemarks(paramDetails.ID, remarksProps)
+
+	if len(availableChoices) > 0 {
+		// Create rows for each choice
+		for _, choice := range availableChoices {
+			status := "Alternative"
+			if choice == currentValue {
+				status = "Current"
+			}
+			rows = append(rows, table.Row{choice, status})
+		}
+	} else {
+		// If no choices available, show current value
+		rows = append(rows, table.Row{currentValue, "Set"})
+	}
+
+	columns := []table.Column{
+		{Title: "Choice Value", Width: 20},
+		{Title: "Status", Width: 15},
+	}
+
+	// Calculate dynamic column width based on content
+	for i := range columns {
+		maxLength := columns[i].Width
+		for _, row := range rows {
+			if i < len(row) {
+				cellLength := lipgloss.Width(row[i])
+				if cellLength > maxLength {
+					maxLength = cellLength
+				}
+			}
+		}
+		columns[i].Width = maxLength
+	}
+
+	return columns, rows
+}
+
+// getParameterRulesColumnsAndRows prepares columns and rows for the parameter rules table.
+func getParameterRulesColumnsAndRows(parameterID string, ruleRemarks ruleRemarksMap, remarksProps remarksPropertiesMap) ([]table.Column, []table.Row) {
+	var rows []table.Row
+
+	usedByRules := findRulesUsingParameter(parameterID, ruleRemarks, remarksProps)
+
+	// Create rows for each rule
+	for _, rule := range usedByRules {
+		rows = append(rows, table.Row{rule})
+	}
+
+	columns := []table.Column{
+		{Title: "Rules Using This Parameter", Width: 50},
+	}
+
+	// Calculate dynamic column width based on content
+	for i := range columns {
+		maxLength := columns[i].Width
+		for _, row := range rows {
+			if i < len(row) {
+				cellLength := lipgloss.Width(row[i])
+				if cellLength > maxLength {
+					maxLength = cellLength
+				}
+			}
+		}
+		columns[i].Width = maxLength
+	}
+
+	return columns, rows
+}
+
+// findParameterAlternativesFromRemarks finds parameter alternatives using the remarks-grouped properties.
+func findParameterAlternativesFromRemarks(parameterID string, remarksProps remarksPropertiesMap) []string {
+	// Find the remarks group that contains our parameter
+	var parameterRemarks string
+	for remarks, props := range remarksProps {
+		for _, prop := range props {
+			// Check for both Parameter_Id and Parameter_Id_0 patterns
+			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+				parameterRemarks = remarks
+				break
+			}
+		}
+		if parameterRemarks != "" {
+			break
+		}
+	}
+
+	// If we found the parameter's remarks group, look for alternatives in the same group
+	if parameterRemarks != "" {
+		if props, ok := remarksProps[parameterRemarks]; ok {
+			for _, prop := range props {
+				if strings.HasPrefix(prop.Name, "Parameter_Value_Alternatives_") {
+					return parseParameterAlternatives(prop.Value)
+				}
+			}
+		}
+	}
+
+	return []string{}
 }
 
 // runBubbleTeaProgram executes the model
@@ -374,19 +528,20 @@ func getRuleParametersColumnsAndRows(ruleDetails rule, setParameters indexedSetP
 
 	// Sort parameters by ID for consistent ordering in the table
 	sort.Slice(ruleDetails.Parameters, func(i, j int) bool {
-		return ruleDetails.Parameters[i] < ruleDetails.Parameters[j]
+		return ruleDetails.Parameters[i].ID < ruleDetails.Parameters[j].ID
 	})
 
-	for _, paramID := range ruleDetails.Parameters {
+	for _, param := range ruleDetails.Parameters {
 		paramValue := "N/A"
-		if values, ok := setParameters[paramID]; ok && len(values) > 0 {
+		if values, ok := setParameters[param.ID]; ok && len(values) > 0 {
 			paramValue = strings.Join(values, ", ")
 		}
-		rows = append(rows, table.Row{paramID, paramValue})
+		rows = append(rows, table.Row{param.ID, param.Description, paramValue})
 	}
 
 	columns := []table.Column{
 		{Title: "Parameter ID", Width: 56},
+		{Title: "Parameter Description", Width: 56},
 		{Title: "Set Value(s)", Width: 30},
 	}
 
@@ -527,6 +682,92 @@ func newRuleInfoModel(ruleDetails rule, setParameters indexedSetParameters, rowL
 	}
 }
 
+// newParameterInfoModel creates a Bubble Tea model for displaying specific parameter details.
+func newParameterInfoModel(parameterID string, paramValues []string, ruleRemarks ruleRemarksMap, remarksProps remarksPropertiesMap, appDir complytime.ApplicationDirectory, validator *validation.SchemaValidator, frameworkID string, rowLimit int) terminal.Model {
+	// Extract parameter description from properties (simplified from rule pattern)
+	var paramDescription string
+
+	// Find description for this parameter across all remarks
+	for _, props := range remarksProps {
+		for _, prop := range props {
+			// Check for both Parameter_Id and Parameter_Id_0 patterns
+			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+				// Found the parameter, look for its description in the same property set
+				for _, descProp := range props {
+					if descProp.Name == "Parameter_Description" || descProp.Name == "Parameter_Description_0" {
+						paramDescription = descProp.Value
+						break
+					}
+				}
+				break
+			}
+		}
+		if paramDescription != "" {
+			break
+		}
+	}
+
+	paramDetails := parameter{
+		ID:          parameterID,
+		Description: paramDescription,
+		Values:      paramValues,
+	}
+
+	usedByRules := findRulesUsingParameter(parameterID, ruleRemarks, remarksProps)
+	availableChoices := findParameterAlternativesFromRemarks(parameterID, remarksProps)
+	currentValue := getParameterCurrentValue(paramValues)
+
+	// Create enhanced header with rule information
+	var rulesSummary string
+	if len(usedByRules) > 0 {
+		if len(usedByRules) <= 3 {
+			rulesSummary = strings.Join(usedByRules, ", ")
+		} else {
+			rulesSummary = fmt.Sprintf("%s, %s, %s... (%d total)", usedByRules[0], usedByRules[1], usedByRules[2], len(usedByRules))
+		}
+	} else {
+		rulesSummary = "None"
+	}
+
+	headerFields := strings.Join([]string{
+		renderKeyValuePair("Parameter ID", paramDetails.ID),
+		renderKeyValuePair("Description", paramDetails.Description),
+		renderKeyValuePair("Current Value", currentValue),
+		renderKeyValuePair("Available Choices", fmt.Sprintf("%d", len(availableChoices))),
+		renderKeyValuePair("Used by Rules", rulesSummary),
+	}, "\n")
+
+	finalHeaderOutput := infoContainerStyle.Render(headerFields)
+
+	// Prepare the parameter choices table
+	columns, rows := getParameterDetailsColumnsAndRows(paramDetails, paramValues, ruleRemarks, remarksProps, appDir, validator, frameworkID)
+
+	tableHeight := calculateRowLimit(rowLimit, len(rows))
+
+	tbl := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	tbl.SetStyles(table.Styles{
+		Header: tableHeaderStyle,
+		Cell:   tableCellStyle,
+	})
+
+	helpMsg := fmt.Sprintf("Parameter choices shown below. Used by %d rule(s). Use --limit to limit table rows.", len(usedByRules))
+	if len(rows) == 0 {
+		helpMsg = "No choices found for this parameter."
+	}
+
+	return terminal.Model{
+		Table:     tbl,
+		HeaderMsg: finalHeaderOutput,
+		HelpMsg:   helpMsg,
+	}
+}
+
 // newControlListModel creates a Bubble Tea model for displaying the list of controls.
 func newControlListModel(controls []control, rowLimit int) terminal.Model {
 	columns, rows := getControlListColumnsAndRows(controls)
@@ -573,6 +814,79 @@ func displayControlInfo(opts *infoOptions, controlMap indexedControls) error {
 		return runBubbleTeaProgram(model, opts.Out)
 	}
 
+}
+
+// displayParameterInfo handles displaying information for a specific parameter.
+func displayParameterInfo(opts *infoOptions, parameterID string, indexedSetParameters indexedSetParameters, ruleRemarks ruleRemarksMap, remarksProps remarksPropertiesMap, appDir complytime.ApplicationDirectory, validator *validation.SchemaValidator) error {
+	paramValues, ok := indexedSetParameters[parameterID]
+	if !ok {
+		return fmt.Errorf("parameter '%s' does not exist in framework '%s'", parameterID, opts.complyTimeOpts.FrameworkID)
+	}
+
+	// Extract parameter description from properties (simplified from rule pattern)
+	var paramDescription string
+
+	// Find description for this parameter across all remarks
+	for _, props := range remarksProps {
+		for _, prop := range props {
+			// Check for both Parameter_Id and Parameter_Id_0 patterns
+			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+				// Found the parameter, look for its description in the same property set
+				for _, descProp := range props {
+					if descProp.Name == "Parameter_Description" || descProp.Name == "Parameter_Description_0" {
+						paramDescription = descProp.Value
+						break
+					}
+				}
+				break
+			}
+		}
+		if paramDescription != "" {
+			break
+		}
+	}
+
+	paramDetails := parameter{
+		ID:          parameterID,
+		Description: paramDescription,
+		Values:      paramValues,
+	}
+
+	if opts.plain {
+		// Print parameter header information
+		_, _ = fmt.Fprintf(opts.Out, "Parameter Information:\n")
+		_, _ = fmt.Fprintf(opts.Out, "  ID: %s\n", paramDetails.ID)
+		if paramDetails.Description != "" {
+			_, _ = fmt.Fprintf(opts.Out, "  Description: %s\n", paramDetails.Description)
+		}
+
+		// Get current value and usage statistics
+		currentValue := getParameterCurrentValue(paramValues)
+		usedByRules := findRulesUsingParameter(paramDetails.ID, ruleRemarks, remarksProps)
+		availableChoices := findParameterAlternativesFromRemarks(paramDetails.ID, remarksProps)
+
+		_, _ = fmt.Fprintf(opts.Out, "  Current Value: %s\n", currentValue)
+		_, _ = fmt.Fprintf(opts.Out, "  Used by %d rule(s)\n", len(usedByRules))
+		_, _ = fmt.Fprintf(opts.Out, "  Available Choices: %d\n", len(availableChoices))
+		_, _ = fmt.Fprintln(opts.Out)
+
+		// Show the choices table
+		_, _ = fmt.Fprintf(opts.Out, "Available Choices:\n")
+		cols, rows := getParameterDetailsColumnsAndRows(paramDetails, paramValues, ruleRemarks, remarksProps, appDir, validator, opts.complyTimeOpts.FrameworkID)
+		terminal.ShowPlainTable(opts.Out, cols, rows)
+		_, _ = fmt.Fprintln(opts.Out)
+
+		// Show the rules table
+		if len(usedByRules) > 0 {
+			_, _ = fmt.Fprintf(opts.Out, "Rules Using This Parameter:\n")
+			cols, rows = getParameterRulesColumnsAndRows(parameterID, ruleRemarks, remarksProps)
+			terminal.ShowPlainTable(opts.Out, cols, rows)
+		}
+		return nil
+	} else {
+		model := newParameterInfoModel(parameterID, paramValues, ruleRemarks, remarksProps, appDir, validator, opts.complyTimeOpts.FrameworkID, opts.limit)
+		return runBubbleTeaProgram(model, opts.Out)
+	}
 }
 
 // displayRuleInfo handles displaying information for a specific rule.
@@ -634,4 +948,224 @@ func calculateRowLimit(rowLimit int, availableRows int) int {
 	} else {
 		return availableRows + 1
 	}
+}
+
+// findParameterInControl searches for a parameter in a control and returns its choices.
+func findParameterInControl(control oscalTypes.Control, parameterID string) []string {
+	if control.Params != nil {
+		for _, param := range *control.Params {
+			if param.ID == parameterID && param.Select != nil && param.Select.Choice != nil {
+				return *param.Select.Choice
+			}
+		}
+	}
+	return []string{}
+}
+
+// findParameterInGroup searches for a parameter in a group and its controls.
+func findParameterInGroup(group oscalTypes.Group, parameterID string) []string {
+	// Check group-level parameters
+	if group.Params != nil {
+		for _, param := range *group.Params {
+			if param.ID == parameterID && param.Select != nil && param.Select.Choice != nil {
+				return *param.Select.Choice
+			}
+		}
+	}
+
+	// Check controls in the group
+	if group.Controls != nil {
+		for _, control := range *group.Controls {
+			if choices := findParameterInControl(control, parameterID); len(choices) > 0 {
+				return choices
+			}
+		}
+	}
+
+	// Check nested groups
+	if group.Groups != nil {
+		for _, subGroup := range *group.Groups {
+			if choices := findParameterInGroup(subGroup, parameterID); len(choices) > 0 {
+				return choices
+			}
+		}
+	}
+
+	return []string{}
+}
+
+// getParameterCurrentValue extracts the current value from parameter values (only one selection allowed).
+func getParameterCurrentValue(paramValues []string) string {
+	if len(paramValues) > 0 {
+		return paramValues[0]
+	}
+	return ""
+}
+
+// loadParameterChoicesFromFramework loads parameter choices by leveraging existing framework loading logic.
+func loadParameterChoicesFromFramework(frameworkID, parameterID string, appDir complytime.ApplicationDirectory, validator *validation.SchemaValidator) []string {
+	// Reuse existing component loading logic
+	compDefs, err := complytime.FindComponentDefinitions(appDir.BundleDir(), validator)
+	if err != nil {
+		return []string{}
+	}
+
+	frameworkComponents, _ := loadComponents(compDefs, frameworkID)
+	if len(frameworkComponents) == 0 {
+		return []string{}
+	}
+
+	// First, try to find alternatives directly in component definition properties
+	if choices := loadParameterAlternativesFromComponents(frameworkComponents, parameterID); len(choices) > 0 {
+		return choices
+	}
+
+	// Extract control source from existing framework components
+	controlSource := getControlSourceFromComponents(frameworkComponents)
+	if controlSource == "" {
+		return []string{}
+	}
+
+	return loadParameterChoicesFromControlSource(controlSource, parameterID, appDir, validator)
+}
+
+// loadParameterAlternativesFromComponents extracts parameter alternatives from component definition properties.
+func loadParameterAlternativesFromComponents(components []oscalTypes.DefinedComponent, parameterID string) []string {
+	for _, component := range components {
+		if component.Props == nil {
+			continue
+		}
+
+		// Look for Parameter_Value_Alternatives properties
+		for _, prop := range *component.Props {
+			if strings.HasPrefix(prop.Name, "Parameter_Value_Alternatives_") {
+				// Check if this alternatives property is for our parameter
+				// by looking for a matching Parameter_Id in the same remarks group
+				if isParameterAlternativeForParameter(component, prop.Remarks, parameterID) {
+					return parseParameterAlternatives(prop.Value)
+				}
+			}
+		}
+	}
+	return []string{}
+}
+
+// isParameterAlternativeForParameter checks if a Parameter_Value_Alternatives property belongs to the specified parameter.
+func isParameterAlternativeForParameter(component oscalTypes.DefinedComponent, remarks, parameterID string) bool {
+	if component.Props == nil {
+		return false
+	}
+
+	for _, prop := range *component.Props {
+		if prop.Name == "Parameter_Id" && prop.Remarks == remarks && prop.Value == parameterID {
+			return true
+		}
+	}
+	return false
+}
+
+// parseParameterAlternatives parses the Parameter_Value_Alternatives value to extract choice options.
+func parseParameterAlternatives(alternativesValue string) []string {
+	var choices []string
+
+	// The value format is like: "{'007': '007', '022': '022', '027': '027', '077': '077', 'default': '027'}"
+	// Parse this JSON-like structure to extract the values
+
+	// Remove outer quotes and braces
+	cleaned := strings.Trim(alternativesValue, "\"'")
+	cleaned = strings.Trim(cleaned, "{}")
+
+	if cleaned == "" {
+		return choices
+	}
+
+	// Split by comma and extract values
+	pairs := strings.Split(cleaned, ",")
+	for _, pair := range pairs {
+		// Split each pair by colon
+		parts := strings.Split(strings.TrimSpace(pair), ":")
+		if len(parts) == 2 {
+			// Extract the value (right side), removing quotes
+			value := strings.Trim(strings.TrimSpace(parts[1]), "\"'")
+			if value != "" {
+				choices = append(choices, value)
+			}
+		}
+	}
+
+	// Remove duplicates while preserving order
+	return removeDuplicates(choices)
+}
+
+// getControlSourceFromComponents extracts the control source from framework components.
+func getControlSourceFromComponents(components []oscalTypes.DefinedComponent) string {
+	for _, component := range components {
+		if component.ControlImplementations != nil {
+			for _, controlImp := range *component.ControlImplementations {
+				if controlImp.Source != "" {
+					return controlImp.Source
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// loadParameterChoicesFromControlSource loads parameter choices from the control source.
+func loadParameterChoicesFromControlSource(controlSource, parameterID string, appDir complytime.ApplicationDirectory, validator *validation.SchemaValidator) []string {
+	profile, err := complytime.LoadProfile(appDir, controlSource, validator)
+	if err != nil {
+		return []string{}
+	}
+
+	// Check profile for parameter choices
+	if choices := findParameterChoicesInProfile(profile, parameterID); len(choices) > 0 {
+		return choices
+	}
+
+	// Check underlying catalog if not found in profile
+	if len(profile.Imports) > 0 {
+		catalog, err := complytime.LoadCatalogSource(appDir, profile.Imports[0].Href, validator)
+		if err != nil {
+			return []string{}
+		}
+		return findParameterChoicesInCatalog(catalog, parameterID)
+	}
+
+	return []string{}
+}
+
+// findParameterChoicesInProfile searches for parameter choices in a profile.
+func findParameterChoicesInProfile(profile *oscalTypes.Profile, parameterID string) []string {
+	if profile.Modify != nil && profile.Modify.SetParameters != nil {
+		for _, param := range *profile.Modify.SetParameters {
+			if param.ParamId == parameterID && param.Select != nil && param.Select.Choice != nil {
+				return *param.Select.Choice
+			}
+		}
+	}
+	return []string{}
+}
+
+// findParameterChoicesInCatalog searches for parameter choices in a catalog.
+func findParameterChoicesInCatalog(catalog *oscalTypes.Catalog, parameterID string) []string {
+	// Search controls
+	if catalog.Controls != nil {
+		for _, control := range *catalog.Controls {
+			if choices := findParameterInControl(control, parameterID); len(choices) > 0 {
+				return choices
+			}
+		}
+	}
+
+	// Search groups
+	if catalog.Groups != nil {
+		for _, group := range *catalog.Groups {
+			if choices := findParameterInGroup(group, parameterID); len(choices) > 0 {
+				return choices
+			}
+		}
+	}
+
+	return []string{}
 }
