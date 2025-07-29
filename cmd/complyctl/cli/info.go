@@ -62,6 +62,12 @@ var (
 				Width(90) // Fixed width for consistent formatting
 )
 
+// parameter represents details about a parameter for easy mapping to remarks.
+type parameter struct {
+	ID          string
+	Description string
+	Values      []string
+}
 // rule represents details about a rule for easy mapping of rules to plugins.
 type rule struct {
 	ID          string
@@ -99,6 +105,7 @@ type infoOptions struct {
 	complyTimeOpts *option.ComplyTime
 	controlID      string // show info for a specific control ID
 	ruleID         string // show info for a specific rule ID
+	parameterID    string // show info for a specific parameter ID
 	limit          int    // limit number for table rows shown in terminal
 	plain          bool   // print plain table only
 }
@@ -122,6 +129,7 @@ func infoCmd(common *option.Common) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&infoOpts.controlID, "control", "c", "", "show info for a specific control ID")
 	cmd.Flags().StringVarP(&infoOpts.ruleID, "rule", "r", "", "show info for a specific rule ID")
+	cmd.Flags().StringVarP(&infoOpts.parameterID, "parameter", "P", "", "show info for a specific parameter ID")
 	cmd.Flags().IntVarP(&infoOpts.limit, "limit", "l", 0, "limit the number of table rows")
 	cmd.Flags().BoolVarP(&infoOpts.plain, "plain", "p", false, "print the table with minimal formatting")
 	infoOpts.complyTimeOpts.BindFlags(cmd.Flags())
@@ -300,6 +308,21 @@ func extractRuleDetails(props []oscalTypes.Property) rule {
 			info.Description = prop.Value
 		case "Parameter_Id":
 			info.Parameters = append(info.Parameters, prop.Value)
+		}
+	}
+	return info
+}
+
+// extractParameterDetails parses properties to fill a ParameterInfo struct.
+func extractParameterDetails(props []oscalTypes.Property) parameter {
+	info := parameter{}
+	for _, prop := range props {
+		switch prop.Name {
+		case "Parameter_Description":
+			info.Description = prop.Value
+		case "Parameter_Id":
+			// info.ID = prop.Value
+			info.Values = append(info.Values, prop.Value)
 		}
 	}
 	return info
@@ -527,6 +550,22 @@ func newRuleInfoModel(ruleDetails rule, setParameters indexedSetParameters, rowL
 	}
 }
 
+func newSetParametersModel(parameterDetails parameter, setParameters indexedSetParameters, rowLimit int) terminal.Model {
+	var rows []table.Row
+	for paramID, values := range setParameters {
+		row := table.Row{paramID, strings.Join(values, ", ")}
+		rows = append(rows, row)
+	}
+	headerFields := strings.Join([]string{
+		renderKeyValuePair("Parameter ID", parameterDetails.ID),
+		renderKeyValuePair("Parameter Description", parameterDetails.Description),
+	}, "\n")
+	finalHeaderOutput := infoContainerStyle.Render(headerFields)
+
+	columns, rows := getRuleParametersColumnsAndRows(parameterDetails, setParameters)
+}
+}
+
 // newControlListModel creates a Bubble Tea model for displaying the list of controls.
 func newControlListModel(controls []control, rowLimit int) terminal.Model {
 	columns, rows := getControlListColumnsAndRows(controls)
@@ -604,6 +643,31 @@ func displayRuleInfo(opts *infoOptions, ruleID string, ruleRemarksMap ruleRemark
 
 }
 
+func displaySetParameters(opts *infoOptions, parameterID string, ruleRemarksMap ruleRemarksMap, remarksPropsMap remarksPropertiesMap, setParameters indexedSetParameters) error {
+	remarksForParam, ok := ruleRemarksMap[parameterID]
+	if !ok || remarksForParam == "" {
+		return fmt.Errorf("parameter '%s' remarks not found", parameterID)
+	}
+
+	propsForParam, ok := remarksPropsMap[remarksForParam]
+	if !ok || len(propsForParam) == 0 {
+		return fmt.Errorf("properties for parameter '%s' (remarks '%s') not found", parameterID, remarksForParam)
+	}
+	parameterDetails := extractParameterDetails(propsForParam)
+	parameterDetails.ID = parameterID
+
+	if opts.plain{
+		_, _ = fmt.Fprintf(opts.Out, "Parameter ID: %s \n", parameterDetails.ID)
+		_, _ = fmt.Fprintf(opts.Out, "Parameter Description: %s \n", parameterDetails.Description)
+		_, _ = fmt.Println(opts.Out)
+		cols, rows := getRuleParametersColumnsAndRows(parameterDetails, setParameters)
+		terminal.ShowPlainTable(opts.Out, cols, rows)
+		return nil
+	} else {
+		model := newParameterInfoModel(parameterDetails, setParameters, opts.limit)
+		return runBubbleTeaProgram(model, opts.Out)
+	}
+}
 // displayAllControls handles displaying a list controls in the framework.
 func displayAllControls(opts *infoOptions, indexedControls indexedControls) error {
 	var controls []control
