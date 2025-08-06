@@ -280,8 +280,8 @@ func findRulesUsingParameter(parameterID string, ruleRemarks ruleRemarksMap, rem
 		var ruleID string
 
 		for _, prop := range props {
-			// Check for both Parameter_Id and Parameter_Id_0 patterns
-			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+			// Check for Parameter_Id patterns
+			if isParameterIdProperty(prop.Name) && prop.Value == parameterID {
 				hasParameter = true
 			}
 			if prop.Name == "Rule_Id" {
@@ -341,7 +341,7 @@ func extractRuleDetails(props []oscalTypes.Property) rule {
 			}
 			// Look for description in the same property set
 			for _, otherProp := range props {
-				if otherProp.Name == "Parameter_Description" && otherProp.Remarks == prop.Remarks {
+				if otherProp.Name == extensions.ParameterDescriptionProp && otherProp.Remarks == prop.Remarks {
 					param.Description = otherProp.Value
 					break
 				}
@@ -414,8 +414,8 @@ func findParameterAlternativesFromRemarks(parameterID string, remarksProps remar
 	var parameterRemarks string
 	for remarks, props := range remarksProps {
 		for _, prop := range props {
-			// Check for both Parameter_Id and Parameter_Id_0 patterns
-			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+			// Check for Parameter_Id patterns
+			if isParameterIdProperty(prop.Name) && prop.Value == parameterID {
 				parameterRemarks = remarks
 				break
 			}
@@ -460,6 +460,26 @@ func removeDuplicates[T comparable](slice []T) []T {
 		}
 	}
 	return result
+}
+
+// isParameterIdProperty checks if a property name matches Parameter_Id pattern using OSCAL SDK extensions.
+func isParameterIdProperty(propName string) bool {
+	// Handles Parameter_Id patterns
+	if propName == extensions.ParameterIdProp {
+		return true
+	}
+	// Check for suffix patterns
+	return strings.HasPrefix(propName, extensions.ParameterIdProp+"_")
+}
+
+// isParameterDescriptionProperty checks if a property name matches Parameter_Description pattern using OSCAL SDK extensions.
+func isParameterDescriptionProperty(propName string) bool {
+	// Handles Parameter_Description patterns
+	if propName == extensions.ParameterDescriptionProp {
+		return true
+	}
+	// Check for suffix patterns
+	return strings.HasPrefix(propName, extensions.ParameterDescriptionProp+"_")
 }
 
 // renderKeyValuePair renders a single key-value pair using predefined lipgloss styles.
@@ -629,11 +649,11 @@ func newParameterInfoModel(parameterID string, paramValues []string, ruleRemarks
 	// Find description for this parameter across all remarks
 	for _, props := range remarksProps {
 		for _, prop := range props {
-			// Check for both Parameter_Id and Parameter_Id_0 patterns
-			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+			// Check for Parameter_Id patterns
+			if isParameterIdProperty(prop.Name) && prop.Value == parameterID {
 				// Found the parameter, look for its description in the same property set
 				for _, descProp := range props {
-					if descProp.Name == "Parameter_Description" || descProp.Name == "Parameter_Description_0" {
+					if isParameterDescriptionProperty(descProp.Name) {
 						paramDescription = descProp.Value
 						break
 					}
@@ -653,8 +673,6 @@ func newParameterInfoModel(parameterID string, paramValues []string, ruleRemarks
 	}
 
 	usedByRules := findRulesUsingParameter(parameterID, ruleRemarks, remarksProps)
-	//availableAlternatives := findParameterAlternativesFromRemarks(parameterID, remarksProps)
-	//currentValue := getParameterCurrentValue(paramValues)
 
 	// Create enhanced header with rule information
 	var rulesSummary string
@@ -772,14 +790,14 @@ func displayParameterInfo(opts *infoOptions, parameterID string, indexedSetParam
 
 	var paramDescription string
 
-	// Find description for this parameter across all remarks
+	// Find description for parameter across all remarks
 	for _, props := range remarksProps {
 		for _, prop := range props {
-			// Check for both Parameter_Id and Parameter_Id_0 patterns
-			if (prop.Name == "Parameter_Id" || prop.Name == "Parameter_Id_0") && prop.Value == parameterID {
+			// Check for Parameter_Id patterns
+			if isParameterIdProperty(prop.Name) && prop.Value == parameterID {
 				// Found the parameter, look for its description in the same property set
 				for _, descProp := range props {
-					if descProp.Name == "Parameter_Description" || descProp.Name == "Parameter_Description_0" {
+					if isParameterDescriptionProperty(descProp.Name) {
 						paramDescription = descProp.Value
 						break
 					}
