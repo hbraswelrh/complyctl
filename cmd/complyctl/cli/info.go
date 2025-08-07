@@ -865,7 +865,7 @@ func displayRuleInfo(opts *infoOptions, ruleID string, ruleRemarksMap ruleRemark
 	}
 
 	ruleDetails := extractRuleDetails(propsForRule)
-	ruleDetails.ID = ruleID // Ensure ID is set for consistency
+	ruleDetails.ID = ruleID // Ensure ID is set for consistency of props
 
 	if opts.plain {
 		_, _ = fmt.Fprintf(opts.Out, "Rule ID: %s \n", ruleDetails.ID)
