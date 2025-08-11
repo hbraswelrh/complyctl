@@ -146,9 +146,9 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 			})
 		}
 
-		// If no specific parameters found, add *
+		// If no specific parameters found, add N/A
 		if len(parameterSelections) == 0 {
-			parameterSelections = []ParameterEntry{{Name: "*", Value: "*"}}
+			parameterSelections = []ParameterEntry{{Name: "N/A", Value: "N/A"}}
 		}
 
 		scope.IncludeControls[i] = ControlEntry{
