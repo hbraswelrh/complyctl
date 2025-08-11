@@ -12,12 +12,19 @@ import (
 	"github.com/oscal-compass/oscal-sdk-go/validation"
 )
 
+// ParameterEntry represents a parameter with its name and value
+type ParameterEntry struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
+
 // ControlEntry represents a control in the assessment scope
 type ControlEntry struct {
-	ControlID    string   `yaml:"controlId"`
-	ControlTitle string   `yaml:"controlTitle"`
-	IncludeRules []string `yaml:"includeRules"`
-	ExcludeRules []string `yaml:"excludeRules,omitempty"`
+	ControlID        string           `yaml:"controlId"`
+	ControlTitle     string           `yaml:"controlTitle"`
+	IncludeRules     []string         `yaml:"includeRules"`
+	ExcludeRules     []string         `yaml:"excludeRules,omitempty"`
+	SelectParameters []ParameterEntry `yaml:"selectParameters,omitempty"`
 }
 
 // AssessmentScope sets up the yaml mapping type for writing to config file.
@@ -44,6 +51,7 @@ func NewAssessmentScope(frameworkID string) AssessmentScope {
 func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, validator validation.Validator, cds ...oscalTypes.ComponentDefinition) (AssessmentScope, error) {
 	includeControls := make(includeControlsSet)
 	controlTitles := make(map[string]string)
+	setParameters := make(map[string][]string)
 	scope := NewAssessmentScope(frameworkId)
 
 	if cds == nil {
@@ -107,6 +115,15 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 							}
 						}
 					}
+
+					// Process set parameters and extract values
+					if ci.SetParameters != nil {
+						for _, sp := range *ci.SetParameters {
+							if sp.ParamId != "" && len(sp.Values) > 0 {
+								setParameters[sp.ParamId] = sp.Values
+							}
+						}
+					}
 				}
 			}
 		}
@@ -115,10 +132,30 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 	controlIDs := includeControls.All()
 	scope.IncludeControls = make([]ControlEntry, len(controlIDs))
 	for i, id := range controlIDs {
+		// Create parameter entries from current set parameter values
+		var parameterSelections []ParameterEntry
+		for paramID, values := range setParameters {
+			// Use single value from set parameter entry to follow info command pattern
+			paramValue := ""
+			if len(values) > 0 {
+				paramValue = values[0]
+			}
+			parameterSelections = append(parameterSelections, ParameterEntry{
+				Name:  paramID, // Use parameter ID as name
+				Value: paramValue,
+			})
+		}
+
+		// If no specific parameters found, add N/A
+		if len(parameterSelections) == 0 {
+			parameterSelections = []ParameterEntry{{Name: "N/A", Value: "N/A"}}
+		}
+
 		scope.IncludeControls[i] = ControlEntry{
-			ControlID:    id,
-			ControlTitle: controlTitles[id],
-			IncludeRules: []string{"*"}, // by default, include all rules
+			ControlID:        id,
+			ControlTitle:     controlTitles[id],
+			IncludeRules:     []string{"*"}, // by default, include all rules
+			SelectParameters: parameterSelections,
 		}
 	}
 	sort.Slice(scope.IncludeControls, func(i, j int) bool {
@@ -289,7 +326,6 @@ func (a AssessmentScope) applyRuleScope(assessmentPlan *oscalTypes.AssessmentPla
 		}
 	}
 }
-
 func filterControlSelection(controlSelection *oscalTypes.AssessedControls, includedControls includeControlsSet) {
 	// The new included controls should be the intersection of
 	// the originally included controls and the newly included controls.

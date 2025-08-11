@@ -132,16 +132,19 @@ func TestGetRuleParametersColumnsAndRows(t *testing.T) {
 			ruleInfo: rule{
 				ID:          "rule-1",
 				Description: "Rule 1",
-				Parameters:  []string{"param-1", "param-2"},
+				Parameters: []parameter{
+					{ID: "param-1", Description: "Parameter 1 description"},
+					{ID: "param-2", Description: "Parameter 2 description"},
+				},
 			},
 			setParameters: map[string][]string{
 				"param-1": []string{"param-1-value"},
 				"param-2": []string{"param-2-value-1", "param-2-value-2"},
 			},
-			expectedColumnTitles: []string{"Parameter ID", "Set  Value(s)"},
+			expectedColumnTitles: []string{"Parameter ID", "Parameter Description", "Set  Value(s)"},
 			expectedRows: []table.Row{
-				{"param-1", "param-1-value"},
-				{"param-2", "param-2-value-1, param-2-value-2"},
+				{"param-1", "Parameter 1 description", "param-1-value"},
+				{"param-2", "Parameter 2 description", "param-2-value-1, param-2-value-2"},
 			},
 		},
 	}
