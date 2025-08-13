@@ -34,6 +34,9 @@ complyctl info <framework-id> --control <control-id>
 
 complyctl info <framework-id> --rule <rule-id>
 # Display details about a specific rule.
+
+complyctl info <framework-id> --parameter <parameter-id>
+# Display details about a specific parameter.
 ```
 
 ### `plan` command
@@ -65,6 +68,11 @@ includeControls:
   controlTitle: Title of Control 01
   includeRules:
   - "*" # all rules included by default
+  selectParameters:
+  - name: param-1-id
+    value: param-1-value
+  - name: param-2-id
+    value: param-2-value  
 - controlId: control-02
   controlTitle: Title of Control 02
   includeRules:
@@ -73,6 +81,11 @@ includeControls:
   controlTitle: Title of Control 03
   includeRules:
   - "*"
+  selectParameters:
+  - name: param-1-id
+    value: param-1-value
+  - name: param-5-id
+    value: param-5-value # update the value with available alternatives
   excludeRules:
   - "rule-03" # exclude rule-03 specific rule from control-03
 
