@@ -124,7 +124,9 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 		if err := yaml.Unmarshal(configBytes, &assessmentScope); err != nil {
 			return fmt.Errorf("error unmarshaling assessment plan: %w", err)
 		}
-		assessmentScope.ApplyScope(assessmentPlan, logger)
+		if err := assessmentScope.ApplyScope(assessmentPlan, logger); err != nil {
+			return fmt.Errorf("error applying assessment scope: %w", err)
+		}
 	}
 
 	filePath := filepath.Join(opts.complyTimeOpts.UserWorkspace, assessmentPlanLocation)
