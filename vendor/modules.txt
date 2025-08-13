@@ -359,8 +359,8 @@ github.com/oscal-compass/compliance-to-policy-go/v2/logging
 github.com/oscal-compass/compliance-to-policy-go/v2/pkg
 github.com/oscal-compass/compliance-to-policy-go/v2/plugin
 github.com/oscal-compass/compliance-to-policy-go/v2/policy
-# github.com/oscal-compass/oscal-sdk-go v0.0.3
-## explicit; go 1.22.7
+# github.com/oscal-compass/oscal-sdk-go v0.0.5
+## explicit; go 1.24
 github.com/oscal-compass/oscal-sdk-go/extensions
 github.com/oscal-compass/oscal-sdk-go/internal/plans
 github.com/oscal-compass/oscal-sdk-go/internal/results
