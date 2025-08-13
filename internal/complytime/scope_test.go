@@ -1816,3 +1816,202 @@ func TestFilterParameterSelection(t *testing.T) {
 		})
 	}
 }
+
+func TestAssessmentScope_applyParameterScope(t *testing.T) {
+	testLogger := hclog.NewNullLogger()
+
+	tests := []struct {
+		name           string
+		assessmentPlan *oscalTypes.AssessmentPlan
+		componentDefs  []oscalTypes.ComponentDefinition
+		scope          AssessmentScope
+		expectError    bool
+		expectedProps  []oscalTypes.Property
+	}{
+		{
+			name: "Success/ParameterUpdate",
+			assessmentPlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "param-1",
+									Value: "old-value",
+									Class: extensions.TestParameterClass,
+								},
+							},
+							RelatedControls: &oscalTypes.ReviewedControls{
+								ControlSelections: []oscalTypes.AssessedControls{
+									{
+										IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+											{ControlId: "control-1"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "param-1", Value: "new-value"},
+						},
+					},
+				},
+			},
+			expectError: false,
+			expectedProps: []oscalTypes.Property{
+				{
+					Name:  "param-1",
+					Value: "new-value",
+					Class: extensions.TestParameterClass,
+				},
+			},
+		},
+		{
+			name: "Success/NoParametersToUpdate",
+			assessmentPlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "param-1",
+									Value: "old-value",
+									Class: extensions.TestParameterClass,
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				IncludeControls: []ControlEntry{},
+			},
+			expectError: false,
+			expectedProps: []oscalTypes.Property{
+				{
+					Name:  "param-1",
+					Value: "old-value",
+					Class: extensions.TestParameterClass,
+				},
+			},
+		},
+		{
+			name: "Success/EmptyParameterName",
+			assessmentPlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "param-1",
+									Value: "old-value",
+									Class: extensions.TestParameterClass,
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "", Value: "new-value"}, // Empty name should be ignored
+						},
+					},
+				},
+			},
+			expectError: false,
+			expectedProps: []oscalTypes.Property{
+				{
+					Name:  "param-1",
+					Value: "old-value",
+					Class: extensions.TestParameterClass,
+				},
+			},
+		},
+		{
+			name: "Success/NoSelectParameters",
+			assessmentPlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "param-1",
+									Value: "old-value",
+									Class: extensions.TestParameterClass,
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						// No SelectParameters
+					},
+				},
+			},
+			expectError: false,
+			expectedProps: []oscalTypes.Property{
+				{
+					Name:  "param-1",
+					Value: "old-value",
+					Class: extensions.TestParameterClass,
+				},
+			},
+		},
+		{
+			name:           "Success/NoLocalDefinitions",
+			assessmentPlan: &oscalTypes.AssessmentPlan{
+				// No LocalDefinitions
+			},
+			scope: AssessmentScope{
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "param-1", Value: "new-value"},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scope := tt.scope
+			err := scope.applyParameterScope(tt.assessmentPlan, tt.componentDefs, testLogger)
+
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				if tt.expectedProps != nil && tt.assessmentPlan.LocalDefinitions != nil &&
+					tt.assessmentPlan.LocalDefinitions.Activities != nil {
+					activity := (*tt.assessmentPlan.LocalDefinitions.Activities)[0]
+					if activity.Props != nil {
+						require.Equal(t, tt.expectedProps, *activity.Props)
+					}
+				}
+			}
+		})
+	}
+}
