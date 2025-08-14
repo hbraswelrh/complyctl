@@ -16,6 +16,8 @@ MAN_OPENSCAP_PLUGIN = docs/man/complyctl-openscap-plugin.md
 MAN_OPENSCAP_PLUGIN_OUTPUT = docs/man/complyctl-openscap-plugin.7
 MAN_OPENSCAP_CONF = docs/man/c2p-openscap-manifest.md
 MAN_OPENSCAP_CONF_OUTPUT = docs/man/c2p-openscap-manifest.5
+MAN_COMPLYCTLPLAN = docs/man/complyctl-plan-edit.md
+MAN_COMPLYCTLPLAN_OUTPUT = docs/man/complyctl-plan-edit.2
 
 ##@ Compilation
 
@@ -33,6 +35,7 @@ man: ## generate man pages
 	pandoc -s -t man $(MAN_COMPLYCTL) -o $(MAN_COMPLYCTL_OUTPUT)
 	pandoc -s -t man $(MAN_OPENSCAP_PLUGIN) -o $(MAN_OPENSCAP_PLUGIN_OUTPUT)
 	pandoc -s -t man $(MAN_OPENSCAP_CONF) -o $(MAN_OPENSCAP_CONF_OUTPUT)
+	pandoc -s -t man $(MAN_COMPLYCTLPLAN) -o $(MAN_COMPLYCTLPLAN_OUTPUT)
 
 ##@ Environment
 
