@@ -50,14 +50,16 @@ func NewAssessmentScope(frameworkID string) AssessmentScope {
 // NewAssessmentScopeFromCDs creates and populates an AssessmentScope struct for a given framework id and set of
 // OSCAL Component Definitions.
 func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, validator validation.Validator, cds ...oscalTypes.ComponentDefinition) (AssessmentScope, error) {
-	includeControls := make(includeControlsSet)
-	controlTitles := make(map[string]string)
-	setParameters := make(map[string][]string)
 	scope := NewAssessmentScope(frameworkId)
 
 	if cds == nil {
 		return AssessmentScope{}, fmt.Errorf("no component definitions found")
 	}
+
+	// Process control implementations and build control relationships
+	includeControls := make(includeControlsSet)
+	controlTitles := make(map[string]string)
+	controlParameters := make(map[string]map[string][]string) // control -> parameter -> values
 
 	// Map to store control titles by source to avoid loading the same source multiple times
 	controlTitlesBySource := make(map[string]map[string]string)
@@ -76,7 +78,7 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 				}
 				if ci.Props != nil {
 					frameworkProp, found := extensions.GetTrestleProp(extensions.FrameworkProp, *ci.Props)
-					if !found || frameworkProp.Value != scope.FrameworkID {
+					if !found || frameworkProp.Value != frameworkId {
 						continue
 					}
 
@@ -117,34 +119,81 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 						}
 					}
 
-					// Process set parameters and extract values
+					// Process set parameters - match by remarks groups with control rules
 					if ci.SetParameters != nil {
+						// Create map of available set parameters
+						implementedSetParams := make(map[string][]string)
 						for _, sp := range *ci.SetParameters {
 							if sp.ParamId != "" && len(sp.Values) > 0 {
-								setParameters[sp.ParamId] = sp.Values
+								implementedSetParams[sp.ParamId] = sp.Values
+							}
+						}
+
+						remarksProps := extractRemarksProperties(cds)
+
+						// For each control, find parameters used by included rules in controls
+						for _, ir := range ci.ImplementedRequirements {
+							if ir.ControlId != "" && ir.Props != nil {
+								controlRules := make(map[string]bool)
+								for _, prop := range *ir.Props {
+									if prop.Name == extensions.RuleIdProp {
+										controlRules[prop.Value] = true
+									}
+								}
+
+								// Find parameters used by rules in control
+								for _, props := range remarksProps {
+									var ruleID string
+									var parametersInGroup []string
+
+									for _, prop := range props {
+										if prop.Name == extensions.RuleIdProp {
+											ruleID = prop.Value
+										}
+										if prop.Name == extensions.ParameterIdProp || strings.HasPrefix(prop.Name, extensions.ParameterIdProp+"_") {
+											parametersInGroup = append(parametersInGroup, prop.Value)
+										}
+									}
+
+									if ruleID != "" && controlRules[ruleID] {
+										for _, paramID := range parametersInGroup {
+											if paramValues, hasSetParam := implementedSetParams[paramID]; hasSetParam {
+												if controlParameters[ir.ControlId] == nil {
+													controlParameters[ir.ControlId] = make(map[string][]string)
+												}
+												controlParameters[ir.ControlId][paramID] = paramValues
+											}
+										}
+									}
+								}
 							}
 						}
 					}
+
 				}
 			}
 		}
 	}
 
+	// Build control entries from extracted data
 	controlIDs := includeControls.All()
 	scope.IncludeControls = make([]ControlEntry, len(controlIDs))
 	for i, id := range controlIDs {
-		// Create parameter entries from current set parameter values
+		// Create parameter entries only for used parameters
 		var parameterSelections []ParameterEntry
-		for paramID, values := range setParameters {
-			// Use single value from set parameter entry to follow info command pattern
-			paramValue := ""
-			if len(values) > 0 {
-				paramValue = values[0]
+		if controlParams, exists := controlParameters[id]; exists {
+			for paramID, values := range controlParams {
+				// Use set parameter values as the default value
+				paramValue := ""
+				if len(values) > 0 {
+					paramValue = values[0]
+				}
+
+				parameterSelections = append(parameterSelections, ParameterEntry{
+					Name:  paramID,
+					Value: paramValue,
+				})
 			}
-			parameterSelections = append(parameterSelections, ParameterEntry{
-				Name:  paramID, // Use parameter ID as name
-				Value: paramValue,
-			})
 		}
 
 		// If no specific parameters found, add N/A
@@ -173,7 +222,18 @@ func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan, l
 	// of customization.
 	a.applyControlScope(assessmentPlan, logger)
 	a.applyRuleScope(assessmentPlan, logger)
-	return a.applyParameterScope(assessmentPlan, logger)
+	return a.applyParameterScope(assessmentPlan, nil, logger)
+}
+
+// ApplyScopeWithComponentDefinitions alters the given OSCAL Assessment Plan based on the AssessmentScope,
+// with access to component definitions for parameter validation.
+func (a AssessmentScope) ApplyScopeWithComponentDefinitions(assessmentPlan *oscalTypes.AssessmentPlan, componentDefs []oscalTypes.ComponentDefinition, logger hclog.Logger) error {
+
+	// This is a thin wrapper right now, but the goal to expand to different areas
+	// of customization.
+	a.applyControlScope(assessmentPlan, logger)
+	a.applyRuleScope(assessmentPlan, logger)
+	return a.applyParameterScope(assessmentPlan, componentDefs, logger)
 }
 
 // applyControlScope alters the AssessedControls of the given OSCAL Assessment Plan by the AssessmentScope
@@ -330,19 +390,24 @@ func (a AssessmentScope) applyRuleScope(assessmentPlan *oscalTypes.AssessmentPla
 }
 
 // applyParameterScope updates activity properties based on SelectParameters values
-func (a AssessmentScope) applyParameterScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger) error {
-	// Build map of parameters to selected values from scope config
-	selectedParams := make(map[string]string)
+// If componentDefs is provided, validates against component definitions; otherwise validates against assessment plan
+func (a AssessmentScope) applyParameterScope(assessmentPlan *oscalTypes.AssessmentPlan, componentDefs []oscalTypes.ComponentDefinition, logger hclog.Logger) error {
+	// Build map of control ID to parameters for that control
+	controlParams := make(map[string]map[string]string)
+
 	for _, entry := range a.IncludeControls {
-		for _, p := range entry.SelectParameters {
-			if p.Name == "" {
-				continue
+		if len(entry.SelectParameters) > 0 {
+			controlParams[entry.ControlID] = make(map[string]string)
+			for _, p := range entry.SelectParameters {
+				if p.Name == "" {
+					continue
+				}
+				controlParams[entry.ControlID][p.Name] = p.Value
 			}
-			selectedParams[p.Name] = p.Value
 		}
 	}
 
-	if len(selectedParams) == 0 {
+	if len(controlParams) == 0 {
 		return nil
 	}
 
@@ -350,23 +415,40 @@ func (a AssessmentScope) applyParameterScope(assessmentPlan *oscalTypes.Assessme
 		return nil
 	}
 
-	// First, validate all selected parameters against available alternatives
-	if err := a.validateParameterSelections(selectedParams, assessmentPlan); err != nil {
-		return err
+	// CRITICAL: Validate ALL selected parameters per control BEFORE making any changes to the assessment plan
+	if err := a.validateAllControlParameterSelections(controlParams, componentDefs); err != nil {
+		logger.Debug("Parameter validation failed", "error", err)
+		return err // Return immediately without modifying the assessment plan.
 	}
 
-	// Update activity parameters
+	// Only proceed with updates if validation passed
+	logger.Debug("Parameter validation passed, applying parameter updates")
+
+	// Update activity parameters based on control relationships
 	for activityI := range *assessmentPlan.LocalDefinitions.Activities {
 		activity := &(*assessmentPlan.LocalDefinitions.Activities)[activityI]
 		if activity.Props == nil {
 			continue
 		}
+
 		logger.Debug("Scoping activity parameters", "activity", activity.Title)
+
+		// Get control IDs related to this activity
+		relatedControlIDs := a.getRelatedControlIDs(activity)
+
+		// Apply parameters for the related controls
 		props := *activity.Props
 		for i := range props {
 			if props[i].Class == extensions.TestParameterClass {
-				if val, ok := selectedParams[props[i].Name]; ok {
-					props[i].Value = val
+				var newValue string
+
+				if len(relatedControlIDs) > 0 {
+					// Find the appropriate parameter value from the related controls
+					newValue = a.findParameterValueForControls(props[i].Name, relatedControlIDs, controlParams)
+				}
+
+				if newValue != "" {
+					props[i].Value = newValue
 				}
 			}
 		}
@@ -375,39 +457,53 @@ func (a AssessmentScope) applyParameterScope(assessmentPlan *oscalTypes.Assessme
 	return nil
 }
 
-// validateParameterSelections validates that all selected parameter values are valid alternatives
-func (a AssessmentScope) validateParameterSelections(selectedParams map[string]string, assessmentPlan *oscalTypes.AssessmentPlan) error {
-	// Extract parameter alternatives from assessment plan properties
-	remarksProps := a.extractRemarksPropertiesFromPlan(assessmentPlan)
+// getRelatedControlIDs extracts control IDs from an activity's RelatedControls
+func (a AssessmentScope) getRelatedControlIDs(activity *oscalTypes.Activity) []string {
+	var controlIDs []string
 
-	var validationErrors []string
+	if activity.RelatedControls == nil || activity.RelatedControls.ControlSelections == nil {
+		return controlIDs
+	}
 
-	for paramID, selectedValue := range selectedParams {
-		if selectedValue == "" || selectedValue == "N/A" {
-			continue // Skip empty or N/A values
-		}
-
-		// Find available alternatives for this parameter
-		availableAlternatives := a.findParameterAlternativesFromRemarks(paramID, remarksProps)
-
-		// If no alternatives are defined, any value is acceptable
-		if len(availableAlternatives) == 0 {
-			continue
-		}
-
-		// Check if the selected value is in the alternatives
-		isValidSelection := false
-		for _, alternative := range availableAlternatives {
-			if alternative == selectedValue {
-				isValidSelection = true
-				break
+	for _, controlSelection := range activity.RelatedControls.ControlSelections {
+		if controlSelection.IncludeControls != nil {
+			for _, control := range *controlSelection.IncludeControls {
+				controlIDs = append(controlIDs, control.ControlId)
 			}
 		}
+	}
 
-		if !isValidSelection {
-			errorMsg := fmt.Sprintf("parameter '%s' has invalid value '%s'. Available alternatives: [%s]",
-				paramID, selectedValue, strings.Join(availableAlternatives, ", "))
-			validationErrors = append(validationErrors, errorMsg)
+	return controlIDs
+}
+
+// findParameterValueForControls finds the appropriate parameter value for the given parameter name
+// from the related controls. Uses the first matching control in the order they appear.
+func (a AssessmentScope) findParameterValueForControls(paramName string, relatedControlIDs []string, controlParams map[string]map[string]string) string {
+	// Check each related control in order for the parameter
+	for _, controlID := range relatedControlIDs {
+		if params, ok := controlParams[controlID]; ok {
+			if value, exists := params[paramName]; exists {
+				return value
+			}
+		}
+	}
+
+	return "" // No value found for this parameter in any related control
+}
+
+// validateAllControlParameterSelections validates parameter selections
+func (a AssessmentScope) validateAllControlParameterSelections(controlParams map[string]map[string]string, componentDefs []oscalTypes.ComponentDefinition) error {
+	remarksProps := extractRemarksProperties(componentDefs)
+	var validationErrors []string
+
+	for controlID, params := range controlParams {
+		for paramID, selectedValue := range params {
+			isValid, availableAlternatives := filterParameterSelection(paramID, selectedValue, remarksProps)
+			if !isValid {
+				errorMsg := fmt.Sprintf("control '%s': parameter '%s' has invalid value '%s'. Available alternatives: [%s]",
+					controlID, paramID, selectedValue, strings.Join(availableAlternatives, ", "))
+				validationErrors = append(validationErrors, errorMsg)
+			}
 		}
 	}
 
@@ -418,148 +514,14 @@ func (a AssessmentScope) validateParameterSelections(selectedParams map[string]s
 	return nil
 }
 
-// extractRemarksPropertiesFromPlan extracts remarks-grouped properties from assessment plan
-func (a AssessmentScope) extractRemarksPropertiesFromPlan(assessmentPlan *oscalTypes.AssessmentPlan) map[string][]oscalTypes.Property {
+// extractRemarksProperties extracts remarks-grouped properties
+func extractRemarksProperties(componentDefs []oscalTypes.ComponentDefinition) map[string][]oscalTypes.Property {
 	remarksProps := make(map[string][]oscalTypes.Property)
 
-	// Extract properties from local definitions activities
-	if assessmentPlan.LocalDefinitions != nil && assessmentPlan.LocalDefinitions.Activities != nil {
-		for _, activity := range *assessmentPlan.LocalDefinitions.Activities {
-			if activity.Props != nil {
-				for _, prop := range *activity.Props {
-					if prop.Remarks != "" {
-						remarksProps[prop.Remarks] = append(remarksProps[prop.Remarks], prop)
-					}
-				}
-			}
-		}
-	}
-
-	return remarksProps
-}
-
-// findParameterAlternativesFromRemarks finds parameter alternatives using the remarks-grouped properties
-func (a AssessmentScope) findParameterAlternativesFromRemarks(parameterID string, remarksProps map[string][]oscalTypes.Property) []string {
-	// Find the remarks group of the parameter
-	var parameterRemarks string
-	for remarks, props := range remarksProps {
-		for _, prop := range props {
-			// Check for Parameter_Id patterns
-			if a.isParameterIdProperty(prop.Name) && prop.Value == parameterID {
-				parameterRemarks = remarks
-				break
-			}
-		}
-		if parameterRemarks != "" {
-			break
-		}
-	}
-
-	// If the parameter's remarks group is found, check for alternatives in same group
-	if parameterRemarks != "" {
-		if props, ok := remarksProps[parameterRemarks]; ok {
-			for _, prop := range props {
-				if strings.HasPrefix(prop.Name, "Parameter_Value_Alternatives_") {
-					return a.parseParameterAlternatives(prop.Value)
-				}
-			}
-		}
-	}
-
-	return []string{}
-}
-
-// isParameterIdProperty checks if a property name matches Parameter_Id pattern
-func (a AssessmentScope) isParameterIdProperty(propName string) bool {
-	// Handles Parameter_Id patterns
-	if propName == extensions.ParameterIdProp {
-		return true
-	}
-	// Check for suffix patterns
-	return strings.HasPrefix(propName, extensions.ParameterIdProp+"_")
-}
-
-// parseParameterAlternatives parses the Parameter_Value_Alternatives value to extract choice options
-func (a AssessmentScope) parseParameterAlternatives(alternativesValue string) []string {
-	var alternatives []string
-
-	// Remove outer quotes and braces
-	cleaned := strings.Trim(alternativesValue, "\"'")
-	cleaned = strings.Trim(cleaned, "{}")
-
-	if cleaned == "" {
-		return alternatives
-	}
-
-	// Split by comma and extract values
-	pairs := strings.Split(cleaned, ",")
-	for _, pair := range pairs {
-		parts := strings.Split(strings.TrimSpace(pair), ":")
-		if len(parts) == 2 {
-			value := strings.Trim(strings.TrimSpace(parts[1]), "\"'")
-			if value != "" {
-				alternatives = append(alternatives, value)
-			}
-		}
-	}
-	// Remove duplicates
-	return a.removeDuplicates(alternatives)
-}
-
-// removeDuplicates removes duplicate items from a slice
-func (a AssessmentScope) removeDuplicates(slice []string) []string {
-	seen := make(map[string]bool)
-	result := []string{}
-
-	for _, val := range slice {
-		if _, ok := seen[val]; !ok {
-			seen[val] = true
-			result = append(result, val)
-		}
-	}
-	return result
-}
-
-// ValidateParameterValue validates a single parameter value against available alternatives
-// Returns an error with available alternatives if the value is invalid
-func ValidateParameterValue(parameterID, selectedValue string, componentDefinitions []oscalTypes.ComponentDefinition) error {
-	if selectedValue == "" || selectedValue == "N/A" {
-		return nil // Empty or N/A values are always valid
-	}
-
-	// Extract parameter alternatives from component definitions
-	remarksProps := extractRemarksPropertiesFromComponents(componentDefinitions)
-	scope := AssessmentScope{} // Create a temporary scope to use helper methods
-
-	// Find available alternatives for this parameter
-	availableAlternatives := scope.findParameterAlternativesFromRemarks(parameterID, remarksProps)
-
-	// If no alternatives are defined, any value is acceptable
-	if len(availableAlternatives) == 0 {
-		return nil
-	}
-
-	// Check if the selected value is in the alternatives
-	for _, alternative := range availableAlternatives {
-		if alternative == selectedValue {
-			return nil // Valid selection
-		}
-	}
-
-	// Invalid selection - return error with available alternatives
-	return fmt.Errorf("parameter '%s' has invalid value '%s'. Available alternatives: [%s]",
-		parameterID, selectedValue, strings.Join(availableAlternatives, ", "))
-}
-
-// extractRemarksPropertiesFromComponents extracts remarks-grouped properties from component definitions
-func extractRemarksPropertiesFromComponents(componentDefinitions []oscalTypes.ComponentDefinition) map[string][]oscalTypes.Property {
-	remarksProps := make(map[string][]oscalTypes.Property)
-
-	for _, compDef := range componentDefinitions {
+	for _, compDef := range componentDefs {
 		if compDef.Components == nil {
 			continue
 		}
-
 		for _, component := range *compDef.Components {
 			if component.Props != nil {
 				for _, prop := range *component.Props {
@@ -572,6 +534,19 @@ func extractRemarksPropertiesFromComponents(componentDefinitions []oscalTypes.Co
 	}
 
 	return remarksProps
+}
+
+// ValidateParameterValue validates a parameter value to configure the assessment plan.
+func ValidateParameterValue(parameterID, selectedValue string, componentDefinitions []oscalTypes.ComponentDefinition) error {
+	remarksProps := extractRemarksProperties(componentDefinitions)
+	isValid, availableAlternatives := filterParameterSelection(parameterID, selectedValue, remarksProps)
+
+	if !isValid {
+		return fmt.Errorf("parameter '%s' has invalid value '%s'. Available alternatives: [%s]",
+			parameterID, selectedValue, strings.Join(availableAlternatives, ", "))
+	}
+
+	return nil
 }
 
 func filterControlSelection(controlSelection *oscalTypes.AssessedControls, includedControls includeControlsSet) {
@@ -666,6 +641,111 @@ func (a AssessmentScope) isRuleInList(ruleID string, ruleList []string) bool {
 		}
 	}
 	return false
+}
+
+// filterParameterSelection validates a parameter selection against alternatives
+func filterParameterSelection(parameterID, selectedValue string, remarksProps map[string][]oscalTypes.Property) (bool, []string) {
+	if selectedValue == "" || selectedValue == "N/A" {
+		return true, nil
+	}
+
+	var allPossibleAlternatives []string
+	var hasAlternatives bool
+
+	for _, props := range remarksProps {
+		var foundParameterID bool
+		var parameterSuffix string
+
+		// Look for the parameter ID in this remarks group to get its suffix
+		for _, prop := range props {
+			if prop.Value == parameterID && isParameterIdProperty(prop.Name) {
+				foundParameterID = true
+				if prop.Name == extensions.ParameterIdProp {
+					parameterSuffix = ""
+				} else {
+					parameterSuffix = strings.TrimPrefix(prop.Name, extensions.ParameterIdProp+"_")
+				}
+				break
+			}
+		}
+
+		if foundParameterID {
+			var alternativesPropertyName string
+			if parameterSuffix == "" {
+				alternativesPropertyName = "Parameter_Value_Alternatives"
+			} else {
+				alternativesPropertyName = "Parameter_Value_Alternatives_" + parameterSuffix
+			}
+
+			for _, prop := range props {
+				if prop.Name == alternativesPropertyName {
+					alternatives := parseParameterAlternatives(prop.Value)
+					if len(alternatives) > 0 {
+						hasAlternatives = true
+						for _, altValue := range alternatives {
+							if altValue == selectedValue {
+								return true, alternatives
+							}
+						}
+						allPossibleAlternatives = append(allPossibleAlternatives, alternatives...)
+					}
+					break
+				}
+			}
+		}
+	}
+
+	if hasAlternatives {
+		cleanedAlternatives := removeDuplicates(allPossibleAlternatives)
+		return false, cleanedAlternatives
+	}
+
+	return true, nil
+}
+
+// isParameterIdProperty checks if a property matches Parameter_Id.
+func isParameterIdProperty(propertyName string) bool {
+	return propertyName == extensions.ParameterIdProp || strings.HasPrefix(propertyName, extensions.ParameterIdProp+"_")
+}
+
+// parseParameterAlternatives parses the Parameter_Value_Alternatives value to extract choice options
+// Returns the keys that users can input as alternatives.
+func parseParameterAlternatives(alternativesValue string) []string {
+	var alternatives []string
+
+	cleaned := strings.Trim(alternativesValue, "\"'")
+	cleaned = strings.Trim(cleaned, "{}")
+
+	if cleaned == "" {
+		return alternatives
+	}
+
+	// Split by comma and extract keys
+	pairs := strings.Split(cleaned, ",")
+	for _, pair := range pairs {
+		parts := strings.Split(strings.TrimSpace(pair), ":")
+		if len(parts) == 2 {
+			key := strings.Trim(strings.TrimSpace(parts[0]), "\"'")
+			if key != "" {
+				alternatives = append(alternatives, key)
+			}
+		}
+	}
+	return removeDuplicates(alternatives)
+}
+
+// removeDuplicates removes duplicate items from a slice
+func removeDuplicates(slice []string) []string {
+	seen := make(map[string]bool)
+	result := []string{}
+
+	for _, val := range slice {
+		if _, ok := seen[val]; !ok {
+			seen[val] = true
+			result = append(result, val)
+		}
+	}
+	return result
 }
 
 type includeControlsSet map[string]struct{}
