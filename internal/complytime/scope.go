@@ -47,6 +47,13 @@ func NewAssessmentScope(frameworkID string) AssessmentScope {
 	}
 }
 
+// componentDefResult holds the results from processing component definitions
+type componentDefResult struct {
+	includeControls   includeControlsSet
+	controlTitles     map[string]string
+	controlParameters map[string]map[string][]string
+}
+
 // NewAssessmentScopeFromCDs creates and populates an AssessmentScope struct for a given framework id and set of
 // OSCAL Component Definitions.
 func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, validator validation.Validator, cds ...oscalTypes.ComponentDefinition) (AssessmentScope, error) {
@@ -56,14 +63,17 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 		return AssessmentScope{}, fmt.Errorf("no component definitions found")
 	}
 
-	// Process control implementations and build control relationships
-	includeControls := make(includeControlsSet)
-	controlTitles := make(map[string]string)
-	controlParameters := make(map[string]map[string][]string) // control -> parameter -> values
+	// Initialize processing results
+	result := &componentDefResult{
+		includeControls:   make(includeControlsSet),
+		controlTitles:     make(map[string]string),
+		controlParameters: make(map[string]map[string][]string),
+	}
 
 	// Map to store control titles by source to avoid loading the same source multiple times
 	controlTitlesBySource := make(map[string]map[string]string)
 
+	// Process control implementations and build control relationships
 	for _, componentDef := range cds {
 		if componentDef.Components == nil {
 			continue
@@ -76,114 +86,125 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 				if ci.ImplementedRequirements == nil {
 					continue
 				}
-				if ci.Props != nil {
-					frameworkProp, found := extensions.GetTrestleProp(extensions.FrameworkProp, *ci.Props)
-					if !found || frameworkProp.Value != frameworkId {
-						continue
-					}
 
-					// Checking once for control titles from source on the control implementation
-					if validator != nil {
-						// Check if source was already loaded
-						if _, sourceLoaded := controlTitlesBySource[ci.Source]; !sourceLoaded {
-							// Load all titles from this source
-							loadedTitles, err := loadControlTitlesFromSource(ci.Source, appDir, validator)
-							if err != nil {
-								// Empty map if source can't be loaded
-								controlTitlesBySource[ci.Source] = make(map[string]string)
-							} else {
-								controlTitlesBySource[ci.Source] = loadedTitles
-							}
+				if ci.Props == nil {
+					continue
+				}
+
+				frameworkProp, found := extensions.GetTrestleProp(extensions.FrameworkProp, *ci.Props)
+				if !found || frameworkProp.Value != frameworkId {
+					continue
+				}
+
+				// Load control titles from source on control implementation if needed
+				if validator != nil {
+					// Check if source was already loaded
+					if _, sourceLoaded := controlTitlesBySource[ci.Source]; !sourceLoaded {
+						// Load all titles from this source
+						loadedTitles, err := loadControlTitlesFromSource(ci.Source, appDir, validator)
+						if err != nil {
+							// Empty map if source can't be loaded
+							controlTitlesBySource[ci.Source] = make(map[string]string)
+						} else {
+							controlTitlesBySource[ci.Source] = loadedTitles
 						}
 					}
+				}
 
-					for _, ir := range ci.ImplementedRequirements {
-						if ir.ControlId != "" {
-							includeControls.Add(ir.ControlId)
+				// Process implemented requirements
+				for _, ir := range ci.ImplementedRequirements {
+					if ir.ControlId != "" {
+						result.includeControls.Add(ir.ControlId)
 
-							// Getting control title for id from map lookup
+						// Set control title if not already set
+						if _, exists := result.controlTitles[ir.ControlId]; !exists {
 							if validator != nil {
-								if _, exists := controlTitles[ir.ControlId]; !exists {
-									// Get the title from the loaded source
-									if title, found := controlTitlesBySource[ci.Source][ir.ControlId]; found {
-										controlTitles[ir.ControlId] = title
-									} else {
-										// Empty string if title isn't available
-										controlTitles[ir.ControlId] = ""
-									}
+								// Get the title from the loaded source
+								if title, found := controlTitlesBySource[ci.Source][ir.ControlId]; found {
+									result.controlTitles[ir.ControlId] = title
+								} else {
+									// Empty string if title isn't available
+									result.controlTitles[ir.ControlId] = ""
 								}
 							} else {
-								// Empty string if title isn't available
-								controlTitles[ir.ControlId] = ""
+								// Empty string if the title isn't available
+								result.controlTitles[ir.ControlId] = ""
 							}
 						}
 					}
+				}
 
-					// Process set parameters - match by remarks groups with control rules
-					if ci.SetParameters != nil {
-						// Create map of available set parameters
-						implementedSetParams := make(map[string][]string)
-						for _, sp := range *ci.SetParameters {
-							if sp.ParamId != "" && len(sp.Values) > 0 {
-								implementedSetParams[sp.ParamId] = sp.Values
-							}
-						}
-
-						remarksProps := extractRemarksProperties(cds)
-
-						// For each control, find parameters used by included rules in controls
-						for _, ir := range ci.ImplementedRequirements {
-							if ir.ControlId != "" && ir.Props != nil {
-								controlRules := make(map[string]bool)
-								for _, prop := range *ir.Props {
-									if prop.Name == extensions.RuleIdProp {
-										controlRules[prop.Value] = true
-									}
-								}
-
-								// Find parameters used by rules in control
-								for _, props := range remarksProps {
-									var ruleID string
-									var parametersInGroup []string
-
-									for _, prop := range props {
-										if prop.Name == extensions.RuleIdProp {
-											ruleID = prop.Value
-										}
-										if prop.Name == extensions.ParameterIdProp || strings.HasPrefix(prop.Name, extensions.ParameterIdProp+"_") {
-											parametersInGroup = append(parametersInGroup, prop.Value)
-										}
-									}
-
-									if ruleID != "" && controlRules[ruleID] {
-										for _, paramID := range parametersInGroup {
-											if paramValues, hasSetParam := implementedSetParams[paramID]; hasSetParam {
-												if controlParameters[ir.ControlId] == nil {
-													controlParameters[ir.ControlId] = make(map[string][]string)
-												}
-												controlParameters[ir.ControlId][paramID] = paramValues
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-
+				// Process set parameters
+				if ci.SetParameters != nil {
+					processSetParameters(ci, result, cds)
 				}
 			}
 		}
 	}
 
 	// Build control entries from extracted data
-	controlIDs := includeControls.All()
-	scope.IncludeControls = make([]ControlEntry, len(controlIDs))
+	scope.IncludeControls = buildControlEntries(result)
+
+	return scope, nil
+}
+
+// processSetParameters processes set parameters for a control implementation
+func processSetParameters(ci oscalTypes.ControlImplementationSet, result *componentDefResult, cds []oscalTypes.ComponentDefinition) {
+	implementedSetParams := make(map[string][]string)
+	for _, sp := range *ci.SetParameters {
+		if sp.ParamId != "" && len(sp.Values) > 0 {
+			implementedSetParams[sp.ParamId] = sp.Values
+		}
+	}
+
+	remarksProps := extractRemarksProperties(cds)
+
+	for _, ir := range ci.ImplementedRequirements {
+		if ir.ControlId != "" && ir.Props != nil {
+			controlRules := make(map[string]bool)
+			for _, prop := range *ir.Props {
+				if prop.Name == extensions.RuleIdProp {
+					controlRules[prop.Value] = true
+				}
+			}
+
+			for _, props := range remarksProps {
+				var ruleID string
+				var parametersInGroup []string
+
+				for _, prop := range props {
+					if prop.Name == extensions.RuleIdProp {
+						ruleID = prop.Value
+					}
+					if prop.Name == extensions.ParameterIdProp || strings.HasPrefix(prop.Name, extensions.ParameterIdProp+"_") {
+						parametersInGroup = append(parametersInGroup, prop.Value)
+					}
+				}
+
+				if ruleID != "" && controlRules[ruleID] {
+					for _, paramID := range parametersInGroup {
+						if paramValues, hasSetParam := implementedSetParams[paramID]; hasSetParam {
+							if result.controlParameters[ir.ControlId] == nil {
+								result.controlParameters[ir.ControlId] = make(map[string][]string)
+							}
+							result.controlParameters[ir.ControlId][paramID] = paramValues
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// buildControlEntries builds the final control entries from the processing results
+func buildControlEntries(result *componentDefResult) []ControlEntry {
+	controlIDs := result.includeControls.All()
+	controlEntries := make([]ControlEntry, len(controlIDs))
+
 	for i, id := range controlIDs {
-		// Create parameter entries only for used parameters
 		var parameterSelections []ParameterEntry
-		if controlParams, exists := controlParameters[id]; exists {
+		if controlParams, exists := result.controlParameters[id]; exists {
 			for paramID, values := range controlParams {
-				// Use set parameter values as the default value
 				paramValue := ""
 				if len(values) > 0 {
 					paramValue = values[0]
@@ -196,38 +217,28 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 			}
 		}
 
-		// If no specific parameters found, add N/A
 		if len(parameterSelections) == 0 {
 			parameterSelections = []ParameterEntry{{Name: "N/A", Value: "N/A"}}
 		}
 
-		scope.IncludeControls[i] = ControlEntry{
+		controlEntries[i] = ControlEntry{
 			ControlID:        id,
-			ControlTitle:     controlTitles[id],
+			ControlTitle:     result.controlTitles[id],
 			IncludeRules:     []string{"*"}, // by default, include all rules
 			SelectParameters: parameterSelections,
 		}
 	}
-	sort.Slice(scope.IncludeControls, func(i, j int) bool {
-		return scope.IncludeControls[i].ControlID < scope.IncludeControls[j].ControlID
+
+	sort.Slice(controlEntries, func(i, j int) bool {
+		return controlEntries[i].ControlID < controlEntries[j].ControlID
 	})
 
-	return scope, nil
+	return controlEntries
 }
 
 // ApplyScope alters the given OSCAL Assessment Plan based on the AssessmentScope.
-func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger) error {
-
-	// This is a thin wrapper right now, but the goal to expand to different areas
-	// of customization.
-	a.applyControlScope(assessmentPlan, logger)
-	a.applyRuleScope(assessmentPlan, logger)
-	return a.applyParameterScope(assessmentPlan, nil, logger)
-}
-
-// ApplyScopeWithComponentDefinitions alters the given OSCAL Assessment Plan based on the AssessmentScope,
-// with access to component definitions for parameter validation.
-func (a AssessmentScope) ApplyScopeWithComponentDefinitions(assessmentPlan *oscalTypes.AssessmentPlan, componentDefs []oscalTypes.ComponentDefinition, logger hclog.Logger) error {
+// If componentDefs is provided, it will be used for parameter validation; otherwise validation is skipped.
+func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger, componentDefs ...oscalTypes.ComponentDefinition) error {
 
 	// This is a thin wrapper right now, but the goal to expand to different areas
 	// of customization.
@@ -415,13 +426,12 @@ func (a AssessmentScope) applyParameterScope(assessmentPlan *oscalTypes.Assessme
 		return nil
 	}
 
-	// CRITICAL: Validate ALL selected parameters per control BEFORE making any changes to the assessment plan
+	// Validate all selected parameters by control before updating the assessment plan
 	if err := a.validateAllControlParameterSelections(controlParams, componentDefs); err != nil {
 		logger.Debug("Parameter validation failed", "error", err)
 		return err // Return immediately without modifying the assessment plan.
 	}
 
-	// Only proceed with updates if validation passed
 	logger.Debug("Parameter validation passed, applying parameter updates")
 
 	// Update activity parameters based on control relationships
@@ -476,8 +486,7 @@ func (a AssessmentScope) getRelatedControlIDs(activity *oscalTypes.Activity) []s
 	return controlIDs
 }
 
-// findParameterValueForControls finds the appropriate parameter value for the given parameter name
-// from the related controls. Uses the first matching control in the order they appear.
+// findParameterValueForControls finds the parameter value from related controls.
 func (a AssessmentScope) findParameterValueForControls(paramName string, relatedControlIDs []string, controlParams map[string]map[string]string) string {
 	// Check each related control in order for the parameter
 	for _, controlID := range relatedControlIDs {
