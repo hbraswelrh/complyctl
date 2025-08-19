@@ -54,6 +54,13 @@ type componentDefResult struct {
 	controlParameters map[string]map[string][]string
 }
 
+// componentDefResult holds the results from processing component definitions
+type componentDefResult struct {
+	includeControls   includeControlsSet
+	controlTitles     map[string]string
+	controlParameters map[string]map[string][]string
+}
+
 // NewAssessmentScopeFromCDs creates and populates an AssessmentScope struct for a given framework id and set of
 // OSCAL Component Definitions.
 func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, validator validation.Validator, cds ...oscalTypes.ComponentDefinition) (AssessmentScope, error) {
@@ -69,10 +76,17 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 		controlTitles:     make(map[string]string),
 		controlParameters: make(map[string]map[string][]string),
 	}
+	// Initialize processing results
+	result := &componentDefResult{
+		includeControls:   make(includeControlsSet),
+		controlTitles:     make(map[string]string),
+		controlParameters: make(map[string]map[string][]string),
+	}
 
 	// Map to store control titles by source to avoid loading the same source multiple times
 	controlTitlesBySource := make(map[string]map[string]string)
 
+	// Process control implementations and build control relationships
 	// Process control implementations and build control relationships
 	for _, componentDef := range cds {
 		if componentDef.Components == nil {
@@ -115,7 +129,13 @@ func NewAssessmentScopeFromCDs(frameworkId string, appDir ApplicationDirectory, 
 				for _, ir := range ci.ImplementedRequirements {
 					if ir.ControlId != "" {
 						result.includeControls.Add(ir.ControlId)
+				// Process implemented requirements
+				for _, ir := range ci.ImplementedRequirements {
+					if ir.ControlId != "" {
+						result.includeControls.Add(ir.ControlId)
 
+						// Set control title if not already set
+						if _, exists := result.controlTitles[ir.ControlId]; !exists {
 						// Set control title if not already set
 						if _, exists := result.controlTitles[ir.ControlId]; !exists {
 							if validator != nil {
@@ -158,7 +178,16 @@ func processSetParameters(ci oscalTypes.ControlImplementationSet, result *compon
 	}
 
 	remarksProps := extractRemarksProperties(cds)
+	remarksProps := extractRemarksProperties(cds)
 
+	for _, ir := range ci.ImplementedRequirements {
+		if ir.ControlId != "" && ir.Props != nil {
+			controlRules := make(map[string]bool)
+			for _, prop := range *ir.Props {
+				if prop.Name == extensions.RuleIdProp {
+					controlRules[prop.Value] = true
+				}
+			}
 	for _, ir := range ci.ImplementedRequirements {
 		if ir.ControlId != "" && ir.Props != nil {
 			controlRules := make(map[string]bool)
@@ -171,7 +200,18 @@ func processSetParameters(ci oscalTypes.ControlImplementationSet, result *compon
 			for _, props := range remarksProps {
 				var ruleID string
 				var parametersInGroup []string
+			for _, props := range remarksProps {
+				var ruleID string
+				var parametersInGroup []string
 
+				for _, prop := range props {
+					if prop.Name == extensions.RuleIdProp {
+						ruleID = prop.Value
+					}
+					if prop.Name == extensions.ParameterIdProp || strings.HasPrefix(prop.Name, extensions.ParameterIdProp+"_") {
+						parametersInGroup = append(parametersInGroup, prop.Value)
+					}
+				}
 				for _, prop := range props {
 					if prop.Name == extensions.RuleIdProp {
 						ruleID = prop.Value
@@ -204,6 +244,7 @@ func buildControlEntries(result *componentDefResult) []ControlEntry {
 	for i, id := range controlIDs {
 		var parameterSelections []ParameterEntry
 		if controlParams, exists := result.controlParameters[id]; exists {
+		if controlParams, exists := result.controlParameters[id]; exists {
 			for paramID, values := range controlParams {
 				paramValue := ""
 				if len(values) > 0 {
@@ -222,7 +263,9 @@ func buildControlEntries(result *componentDefResult) []ControlEntry {
 		}
 
 		controlEntries[i] = ControlEntry{
+		controlEntries[i] = ControlEntry{
 			ControlID:        id,
+			ControlTitle:     result.controlTitles[id],
 			ControlTitle:     result.controlTitles[id],
 			IncludeRules:     []string{"*"}, // by default, include all rules
 			SelectParameters: parameterSelections,
@@ -231,12 +274,18 @@ func buildControlEntries(result *componentDefResult) []ControlEntry {
 
 	sort.Slice(controlEntries, func(i, j int) bool {
 		return controlEntries[i].ControlID < controlEntries[j].ControlID
+
+	sort.Slice(controlEntries, func(i, j int) bool {
+		return controlEntries[i].ControlID < controlEntries[j].ControlID
 	})
 
+	return controlEntries
 	return controlEntries
 }
 
 // ApplyScope alters the given OSCAL Assessment Plan based on the AssessmentScope.
+// If componentDefs is provided, it will be used for parameter validation; otherwise validation is skipped.
+func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger, componentDefs ...oscalTypes.ComponentDefinition) error {
 // If componentDefs is provided, it will be used for parameter validation; otherwise validation is skipped.
 func (a AssessmentScope) ApplyScope(assessmentPlan *oscalTypes.AssessmentPlan, logger hclog.Logger, componentDefs ...oscalTypes.ComponentDefinition) error {
 
@@ -426,6 +475,7 @@ func (a AssessmentScope) applyParameterScope(assessmentPlan *oscalTypes.Assessme
 		return nil
 	}
 
+	// Validate all selected parameters by control before updating the assessment plan
 	// Validate all selected parameters by control before updating the assessment plan
 	if err := a.validateAllControlParameterSelections(controlParams, componentDefs); err != nil {
 		logger.Debug("Parameter validation failed", "error", err)
