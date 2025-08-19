@@ -22,6 +22,28 @@ func TestNewAssessmentScopeFromCDs(t *testing.T) {
 		Components: &[]oscalTypes.DefinedComponent{
 			{
 				Title: "Component",
+				Props: &[]oscalTypes.Property{
+					{
+						Name:    extensions.RuleIdProp,
+						Value:   "rule-1",
+						Remarks: "remarks-group-1",
+					},
+					{
+						Name:    extensions.ParameterIdProp,
+						Value:   "param-1",
+						Remarks: "remarks-group-1",
+					},
+					{
+						Name:    extensions.RuleIdProp,
+						Value:   "rule-2",
+						Remarks: "remarks-group-2",
+					},
+					{
+						Name:    extensions.ParameterIdProp,
+						Value:   "param-2",
+						Remarks: "remarks-group-2",
+					},
+				},
 				ControlImplementations: &[]oscalTypes.ControlImplementationSet{
 					{
 						Props: &[]oscalTypes.Property{
@@ -34,19 +56,31 @@ func TestNewAssessmentScopeFromCDs(t *testing.T) {
 						SetParameters: &[]oscalTypes.SetParameter{
 							{
 								ParamId: "param-1",
-								Values:  []string{"value-1", "value-2"},
+								Values:  []string{"value-1"},
 							},
 							{
 								ParamId: "param-2",
-								Values:  []string{"value-3"},
+								Values:  []string{"value-2"},
 							},
 						},
 						ImplementedRequirements: []oscalTypes.ImplementedRequirementControlImplementation{
 							{
 								ControlId: "control-1",
+								Props: &[]oscalTypes.Property{
+									{
+										Name:  extensions.RuleIdProp,
+										Value: "rule-1",
+									},
+								},
 							},
 							{
 								ControlId: "control-2",
+								Props: &[]oscalTypes.Property{
+									{
+										Name:  extensions.RuleIdProp,
+										Value: "rule-2",
+									},
+								},
 							},
 						},
 					},
@@ -64,7 +98,6 @@ func TestNewAssessmentScopeFromCDs(t *testing.T) {
 				IncludeRules: []string{"*"},
 				SelectParameters: []ParameterEntry{
 					{Name: "param-1", Value: "value-1"},
-					{Name: "param-2", Value: "value-3"},
 				},
 			},
 			{
@@ -72,8 +105,7 @@ func TestNewAssessmentScopeFromCDs(t *testing.T) {
 				ControlTitle: "",
 				IncludeRules: []string{"*"},
 				SelectParameters: []ParameterEntry{
-					{Name: "param-1", Value: "value-1"},
-					{Name: "param-2", Value: "value-3"},
+					{Name: "param-2", Value: "value-2"},
 				},
 			},
 		},
@@ -121,9 +153,21 @@ func TestNewAssessmentScopeFromCDs(t *testing.T) {
 				ImplementedRequirements: []oscalTypes.ImplementedRequirementControlImplementation{
 					{
 						ControlId: "control-1",
+						Props: &[]oscalTypes.Property{
+							{
+								Name:  extensions.RuleIdProp,
+								Value: "rule-1",
+							},
+						},
 					},
 					{
 						ControlId: "control-2",
+						Props: &[]oscalTypes.Property{
+							{
+								Name:  extensions.RuleIdProp,
+								Value: "rule-2",
+							},
+						},
 					},
 				},
 			},
@@ -158,6 +202,143 @@ func TestNewAssessmentScopeFromCDs(t *testing.T) {
 			require.True(t, found, "Expected parameter %s=%s not found", wantParam.Name, wantParam.Value)
 		}
 	}
+}
+
+func TestNewAssessmentScopeFromCDs_ParameterRuleMatching(t *testing.T) {
+	testAppDir := ApplicationDirectory{}
+	validator := validation.NoopValidator{}
+
+	cd := oscalTypes.ComponentDefinition{
+		Components: &[]oscalTypes.DefinedComponent{
+			{
+				Title: "Component",
+				Props: &[]oscalTypes.Property{
+					// Remarks group 1: rule-1 with param-1 and param-2
+					{
+						Name:    extensions.RuleIdProp,
+						Value:   "rule-1",
+						Remarks: "remarks-group-1",
+					},
+					{
+						Name:    extensions.ParameterIdProp + "_1",
+						Value:   "param-1",
+						Remarks: "remarks-group-1",
+					},
+					{
+						Name:    extensions.ParameterIdProp + "_2",
+						Value:   "param-2",
+						Remarks: "remarks-group-1",
+					},
+					// Remarks group 2: rule-2 with param-3
+					{
+						Name:    extensions.RuleIdProp,
+						Value:   "rule-2",
+						Remarks: "remarks-group-2",
+					},
+					{
+						Name:    extensions.ParameterIdProp,
+						Value:   "param-3",
+						Remarks: "remarks-group-2",
+					},
+					// Remarks group 3: rule-3 with param-4 (not used by any control)
+					{
+						Name:    extensions.RuleIdProp,
+						Value:   "rule-3",
+						Remarks: "remarks-group-3",
+					},
+					{
+						Name:    extensions.ParameterIdProp,
+						Value:   "param-4",
+						Remarks: "remarks-group-3",
+					},
+				},
+				ControlImplementations: &[]oscalTypes.ControlImplementationSet{
+					{
+						Props: &[]oscalTypes.Property{
+							{
+								Name:  extensions.FrameworkProp,
+								Value: "example",
+								Ns:    extensions.TrestleNameSpace,
+							},
+						},
+						SetParameters: &[]oscalTypes.SetParameter{
+							{
+								ParamId: "param-1",
+								Values:  []string{"value-1"},
+							},
+							{
+								ParamId: "param-2",
+								Values:  []string{"value-2"},
+							},
+							{
+								ParamId: "param-3",
+								Values:  []string{"value-3"},
+							},
+							{
+								ParamId: "param-4",
+								Values:  []string{"value-4"},
+							},
+						},
+						ImplementedRequirements: []oscalTypes.ImplementedRequirementControlImplementation{
+							{
+								ControlId: "control-1",
+								Props: &[]oscalTypes.Property{
+									{
+										Name:  extensions.RuleIdProp,
+										Value: "rule-1",
+									},
+								},
+							},
+							{
+								ControlId: "control-2",
+								Props: &[]oscalTypes.Property{
+									{
+										Name:  extensions.RuleIdProp,
+										Value: "rule-2",
+									},
+								},
+							},
+							{
+								ControlId: "control-3",
+								// No rules - should have default N/A parameter
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	scope, err := NewAssessmentScopeFromCDs("example", testAppDir, validator, cd)
+	require.NoError(t, err)
+
+	// Check that control-1 gets param-1 and param-2 (from rule-1's remarks group)
+	require.Len(t, scope.IncludeControls, 3)
+
+	control1 := scope.IncludeControls[0]
+	require.Equal(t, "control-1", control1.ControlID)
+	require.Len(t, control1.SelectParameters, 2)
+
+	paramNames := make([]string, len(control1.SelectParameters))
+	for i, param := range control1.SelectParameters {
+		paramNames[i] = param.Name
+	}
+	require.Contains(t, paramNames, "param-1")
+	require.Contains(t, paramNames, "param-2")
+
+	// Check that control-2 gets param-3 (from rule-2's remarks group)
+	control2 := scope.IncludeControls[1]
+	require.Equal(t, "control-2", control2.ControlID)
+	require.Len(t, control2.SelectParameters, 1)
+	require.Equal(t, "param-3", control2.SelectParameters[0].Name)
+	require.Equal(t, "value-3", control2.SelectParameters[0].Value)
+
+	// Check that control-3 gets default N/A parameter (no rules)
+	control3 := scope.IncludeControls[2]
+	require.Equal(t, "control-3", control3.ControlID)
+	require.Len(t, control3.SelectParameters, 1)
+	require.Equal(t, "N/A", control3.SelectParameters[0].Name)
+	require.Equal(t, "N/A", control3.SelectParameters[0].Value)
 }
 
 func TestNewAssessmentScopeFromCDs_NoParameters(t *testing.T) {
@@ -349,6 +530,17 @@ func TestAssessmentScope_ApplyParameterScope(t *testing.T) {
 									Class: "other-class",
 								},
 							},
+							RelatedControls: &oscalTypes.ReviewedControls{
+								ControlSelections: []oscalTypes.AssessedControls{
+									{
+										IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+											{
+												ControlId: "control-1",
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -377,6 +569,17 @@ func TestAssessmentScope_ApplyParameterScope(t *testing.T) {
 							Name:  "other-param",
 							Value: "other-value",
 							Class: "other-class",
+						},
+					},
+					RelatedControls: &oscalTypes.ReviewedControls{
+						ControlSelections: []oscalTypes.AssessedControls{
+							{
+								IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+									{
+										ControlId: "control-1",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -438,6 +641,17 @@ func TestAssessmentScope_ApplyParameterScope(t *testing.T) {
 									Class: extensions.TestParameterClass,
 								},
 							},
+							RelatedControls: &oscalTypes.ReviewedControls{
+								ControlSelections: []oscalTypes.AssessedControls{
+									{
+										IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+											{
+												ControlId: "control-1",
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -462,6 +676,17 @@ func TestAssessmentScope_ApplyParameterScope(t *testing.T) {
 							Name:  "test-param",
 							Value: "custom-value",
 							Class: extensions.TestParameterClass,
+						},
+					},
+					RelatedControls: &oscalTypes.ReviewedControls{
+						ControlSelections: []oscalTypes.AssessedControls{
+							{
+								IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+									{
+										ControlId: "control-1",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -538,52 +763,35 @@ func TestAssessmentScope_ApplyParameterScope(t *testing.T) {
 	}
 }
 
-func TestAssessmentScope_ParameterValidation(t *testing.T) {
-	testLogger := hclog.NewNullLogger()
-
+func TestValidateParameterValue(t *testing.T) {
 	tests := []struct {
 		name          string
-		basePlan      *oscalTypes.AssessmentPlan
-		scope         AssessmentScope
+		parameterID   string
+		selectedValue string
+		componentDefs []oscalTypes.ComponentDefinition
 		expectError   bool
 		errorContains string
 	}{
 		{
-			name: "Error/InvalidParameterValue",
-			basePlan: &oscalTypes.AssessmentPlan{
-				LocalDefinitions: &oscalTypes.LocalDefinitions{
-					Activities: &[]oscalTypes.Activity{
+			name:          "Error/InvalidParameterValue",
+			parameterID:   "test-param",
+			selectedValue: "invalid-value",
+			componentDefs: []oscalTypes.ComponentDefinition{
+				{
+					Components: &[]oscalTypes.DefinedComponent{
 						{
-							Title: "test-activity",
 							Props: &[]oscalTypes.Property{
 								{
 									Name:    extensions.ParameterIdProp,
 									Value:   "test-param",
-									Remarks: "test-remarks",
+									Remarks: "test-group",
 								},
 								{
-									Name:    "test-param",
-									Value:   "default-value",
-									Class:   extensions.TestParameterClass,
-									Remarks: "test-remarks",
-								},
-								{
-									Name:    "Parameter_Value_Alternatives_1",
-									Value:   `{"option1": "valid-value-1", "option2": "valid-value-2"}`,
-									Remarks: "test-remarks",
+									Name:    "Parameter_Value_Alternatives",
+									Value:   `{"valid-option": "Valid Option"}`,
+									Remarks: "test-group",
 								},
 							},
-						},
-					},
-				},
-			},
-			scope: AssessmentScope{
-				FrameworkID: "test",
-				IncludeControls: []ControlEntry{
-					{
-						ControlID: "control-1",
-						SelectParameters: []ParameterEntry{
-							{Name: "test-param", Value: "invalid-value"},
 						},
 					},
 				},
@@ -592,41 +800,25 @@ func TestAssessmentScope_ParameterValidation(t *testing.T) {
 			errorContains: "parameter 'test-param' has invalid value 'invalid-value'",
 		},
 		{
-			name: "Success/ValidParameterValue",
-			basePlan: &oscalTypes.AssessmentPlan{
-				LocalDefinitions: &oscalTypes.LocalDefinitions{
-					Activities: &[]oscalTypes.Activity{
+			name:          "Success/ValidParameterValue",
+			parameterID:   "test-param",
+			selectedValue: "valid-option",
+			componentDefs: []oscalTypes.ComponentDefinition{
+				{
+					Components: &[]oscalTypes.DefinedComponent{
 						{
-							Title: "test-activity",
 							Props: &[]oscalTypes.Property{
 								{
 									Name:    extensions.ParameterIdProp,
 									Value:   "test-param",
-									Remarks: "test-remarks",
+									Remarks: "test-group",
 								},
 								{
-									Name:    "test-param",
-									Value:   "default-value",
-									Class:   extensions.TestParameterClass,
-									Remarks: "test-remarks",
-								},
-								{
-									Name:    "Parameter_Value_Alternatives_1",
-									Value:   `{"option1": "valid-value-1", "option2": "valid-value-2"}`,
-									Remarks: "test-remarks",
+									Name:    "Parameter_Value_Alternatives",
+									Value:   `{"valid-option": "Valid Option"}`,
+									Remarks: "test-group",
 								},
 							},
-						},
-					},
-				},
-			},
-			scope: AssessmentScope{
-				FrameworkID: "test",
-				IncludeControls: []ControlEntry{
-					{
-						ControlID: "control-1",
-						SelectParameters: []ParameterEntry{
-							{Name: "test-param", Value: "valid-value-1"},
 						},
 					},
 				},
@@ -634,42 +826,45 @@ func TestAssessmentScope_ParameterValidation(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Success/NoAlternativesDefinedAnyValueAccepted",
-			basePlan: &oscalTypes.AssessmentPlan{
-				LocalDefinitions: &oscalTypes.LocalDefinitions{
-					Activities: &[]oscalTypes.Activity{
+			name:          "Success/NoAlternativesAcceptAnyValue",
+			parameterID:   "test-param",
+			selectedValue: "any-value",
+			componentDefs: []oscalTypes.ComponentDefinition{
+				{
+					Components: &[]oscalTypes.DefinedComponent{
 						{
-							Title: "test-activity",
 							Props: &[]oscalTypes.Property{
 								{
-									Name:  "test-param",
-									Value: "default-value",
-									Class: extensions.TestParameterClass,
+									Name:    extensions.ParameterIdProp,
+									Value:   "test-param",
+									Remarks: "test-group",
 								},
 							},
 						},
 					},
 				},
 			},
-			scope: AssessmentScope{
-				FrameworkID: "test",
-				IncludeControls: []ControlEntry{
-					{
-						ControlID: "control-1",
-						SelectParameters: []ParameterEntry{
-							{Name: "test-param", Value: "any-value"},
-						},
-					},
-				},
-			},
 			expectError: false,
+		},
+		{
+			name:          "Success/EmptyValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "",
+			componentDefs: []oscalTypes.ComponentDefinition{},
+			expectError:   false,
+		},
+		{
+			name:          "Success/NAValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "N/A",
+			componentDefs: []oscalTypes.ComponentDefinition{},
+			expectError:   false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			scope := tt.scope
-			err := scope.ApplyScope(tt.basePlan, testLogger)
+			err := ValidateParameterValue(tt.parameterID, tt.selectedValue, tt.componentDefs)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -678,6 +873,116 @@ func TestAssessmentScope_ParameterValidation(t *testing.T) {
 				}
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterParameterSelection(t *testing.T) {
+	tests := []struct {
+		name          string
+		parameterID   string
+		selectedValue string
+		remarksProps  map[string][]oscalTypes.Property
+		expectValid   bool
+		expectedAlts  []string
+	}{
+		{
+			name:          "Success/ValidValueInAlternatives",
+			parameterID:   "test-param",
+			selectedValue: "option1",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp,
+						Value: "test-param",
+					},
+					{
+						Name:  "Parameter_Value_Alternatives",
+						Value: `{"option1": "value1", "option2": "value2"}`,
+					},
+				},
+			},
+			expectValid:  true,
+			expectedAlts: []string{"option1", "option2"},
+		},
+		{
+			name:          "Error/InvalidValueNotInAlternatives",
+			parameterID:   "test-param",
+			selectedValue: "invalid-option",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp,
+						Value: "test-param",
+					},
+					{
+						Name:  "Parameter_Value_Alternatives",
+						Value: `{"option1": "value1", "option2": "value2"}`,
+					},
+				},
+			},
+			expectValid:  false,
+			expectedAlts: []string{"option1", "option2"},
+		},
+		{
+			name:          "Success/IndexedParameterValidAlternatives",
+			parameterID:   "indexed-param",
+			selectedValue: "choice-a",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp + "_1",
+						Value: "indexed-param",
+					},
+					{
+						Name:  "Parameter_Value_Alternatives_1",
+						Value: `{"choice-a": "A", "choice-b": "B"}`,
+					},
+				},
+			},
+			expectValid:  true,
+			expectedAlts: []string{"choice-a", "choice-b"},
+		},
+		{
+			name:          "Success/EmptyValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "",
+			remarksProps:  map[string][]oscalTypes.Property{},
+			expectValid:   true,
+			expectedAlts:  nil,
+		},
+		{
+			name:          "Success/NAValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "N/A",
+			remarksProps:  map[string][]oscalTypes.Property{},
+			expectValid:   true,
+			expectedAlts:  nil,
+		},
+		{
+			name:          "Success/NoAlternativesAcceptAnyValue",
+			parameterID:   "test-param",
+			selectedValue: "any-value",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp,
+						Value: "test-param",
+					},
+				},
+			},
+			expectValid:  true,
+			expectedAlts: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isValid, alternatives := filterParameterSelection(tt.parameterID, tt.selectedValue, tt.remarksProps)
+			require.Equal(t, tt.expectValid, isValid)
+			if tt.expectedAlts != nil {
+				require.Equal(t, tt.expectedAlts, alternatives)
 			}
 		})
 	}
