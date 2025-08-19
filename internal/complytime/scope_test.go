@@ -1074,6 +1074,17 @@ func TestAssessmentScope_ApplyRuleScope(t *testing.T) {
 							},
 						},
 					},
+					RelatedControls: &oscalTypes.ReviewedControls{
+						ControlSelections: []oscalTypes.AssessedControls{
+							{
+								IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+									{
+										ControlId: "control-1",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
