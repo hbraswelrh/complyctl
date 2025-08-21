@@ -13,7 +13,7 @@ require (
 	github.com/defenseunicorns/go-oscal v0.6.2
 	github.com/goccy/go-yaml v1.18.0
 	github.com/hashicorp/go-hclog v1.6.3
-	github.com/hashicorp/go-plugin v1.6.3
+	github.com/hashicorp/go-plugin v1.7.0
 	github.com/oscal-compass/compliance-to-policy-go/v2 v2.0.0-alpha.2
 	github.com/oscal-compass/oscal-sdk-go v0.0.5
 	github.com/spf13/cobra v1.9.1
