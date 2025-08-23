@@ -208,7 +208,7 @@ func processSetParameters(ci oscalTypes.ControlImplementationSet, result *compon
 					if prop.Name == extensions.RuleIdProp {
 						ruleID = prop.Value
 					}
-					if prop.Name == extensions.ParameterIdProp || strings.HasPrefix(prop.Name, extensions.ParameterIdProp+"_") {
+					if isParameterIdProperty(prop.Name) {
 						parametersInGroup = append(parametersInGroup, prop.Value)
 					}
 				}
