@@ -18,6 +18,7 @@ Determine the baseline you want to run a scan for and create an OSCAL [Assessmen
 Plan will act as configuration to guide the complyctl generation and scanning operations.
 
 ### `list` command
+
 ```bash
 complyctl list
 ...
@@ -25,6 +26,7 @@ complyctl list
 ```
 
 ### `info` command
+
 ```bash
 complyctl info <framework-id>
 # Display information about a framework's controls and rules.
@@ -34,9 +36,13 @@ complyctl info <framework-id> --control <control-id>
 
 complyctl info <framework-id> --rule <rule-id>
 # Display details about a specific rule.
+
+complyctl info <framework-id> --parameter <parameter-id>
+# Display details about a specific parameter.
 ```
 
 ### `plan` command
+
 ```bash
 complyctl plan <framework-id>
 ...
@@ -50,13 +56,16 @@ complyctl plan <framework-id> --dry-run
 # See the default contents of the assessment-plan.json.
 ```
 
-
 Use a scope config file to customize the assessment plan:
+
 ```bash
 complyctl plan <framework-id> --dry-run --out config.yml
 # Customize the assessment-plan.json with the 'out' flag. Updates can be made to the config.yml.
 ```
+
 Open the `config.yml` file in a text editor and modify the YAML as desired.  The example below shows various options for including and excluding rules.
+
+The `selectParameters` YAML key sets parameters for the `controlId`. If you try to use a value that isn't supported, an error will occur, and the valid alternative values will be displayed. To fix this, update the `value` in the `config.yml` file, and then run the command with the `--scope-config <config.yml>` flag. This will generate a new `assessment-plan.json` file with the updated values.
 
 ```yaml
 frameworkId: example-framework
@@ -65,6 +74,11 @@ includeControls:
   controlTitle: Title of Control 01
   includeRules:
   - "*" # all rules included by default
+  selectParameters:
+  - name: param-1-id
+    value: param-1-value
+  - name: param-2-id
+    value: param-2-value  
 - controlId: control-02
   controlTitle: Title of Control 02
   includeRules:
@@ -73,26 +87,33 @@ includeControls:
   controlTitle: Title of Control 03
   includeRules:
   - "*"
+  selectParameters:
+  - name: param-1-id
+    value: param-1-value
+  - name: param-5-id
+    value: param-5-value # update the value with available alternatives
   excludeRules:
   - "rule-03" # exclude rule-03 specific rule from control-03
-
 globalExcludeRules:
   - "rule-99" # will be excluded for all controls, this takes priority over any includeRules clauses above
 ```
 
 The edited `config.yml` can then be used with the `plan` command to customize the assessment plan.
+
 ```bash
 complyctl plan <framework-id> --scope-config config.yml
 # The config.yml will be loaded by passing '--scope-config' to customize the assessment-plan.json.
 ```
 
 ### `generate` command
+
 ```bash
 complyctl generate
 # Run the `generate` command to generate the plugin specific policy artifacts in the workspace.
 ```
 
 ### `scan` command
+
 ```bash
 complyctl scan
 # Run the `scan` command to execute the PVP plugins and create results artifacts. The results will be written to assessment-results.json in the specified workspace.
