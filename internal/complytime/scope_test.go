@@ -988,6 +988,492 @@ func TestFilterParameterSelection(t *testing.T) {
 	}
 }
 
+func TestAssessmentScope_ApplyParameterScope(t *testing.T) {
+	testLogger := hclog.NewNullLogger()
+
+	tests := []struct {
+		name           string
+		basePlan       *oscalTypes.AssessmentPlan
+		scope          AssessmentScope
+		wantActivities *[]oscalTypes.Activity
+	}{
+		{
+			name: "Success/ParameterUpdate",
+			basePlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "test-param",
+									Value: "default-value",
+									Class: extensions.TestParameterClass,
+								},
+								{
+									Name:  "other-param",
+									Value: "other-value",
+									Class: "other-class",
+								},
+							},
+							RelatedControls: &oscalTypes.ReviewedControls{
+								ControlSelections: []oscalTypes.AssessedControls{
+									{
+										IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+											{
+												ControlId: "control-1",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				FrameworkID: "test",
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "test-param", Value: "custom-value"},
+						},
+					},
+				},
+			},
+			wantActivities: &[]oscalTypes.Activity{
+				{
+					Title: "test-activity",
+					Props: &[]oscalTypes.Property{
+						{
+							Name:  "test-param",
+							Value: "custom-value",
+							Class: extensions.TestParameterClass,
+						},
+						{
+							Name:  "other-param",
+							Value: "other-value",
+							Class: "other-class",
+						},
+					},
+					RelatedControls: &oscalTypes.ReviewedControls{
+						ControlSelections: []oscalTypes.AssessedControls{
+							{
+								IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+									{
+										ControlId: "control-1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Success/NoParametersToUpdate",
+			basePlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "some-param",
+									Value: "default-value",
+									Class: "other-class",
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				FrameworkID: "test",
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "different-param", Value: "custom-value"},
+						},
+					},
+				},
+			},
+			wantActivities: &[]oscalTypes.Activity{
+				{
+					Title: "test-activity",
+					Props: &[]oscalTypes.Property{
+						{
+							Name:  "some-param",
+							Value: "default-value",
+							Class: "other-class",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Success/EmptyParameterName",
+			basePlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "test-param",
+									Value: "default-value",
+									Class: extensions.TestParameterClass,
+								},
+							},
+							RelatedControls: &oscalTypes.ReviewedControls{
+								ControlSelections: []oscalTypes.AssessedControls{
+									{
+										IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+											{
+												ControlId: "control-1",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				FrameworkID: "test",
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "", Value: "should-be-ignored"},
+							{Name: "test-param", Value: "custom-value"},
+						},
+					},
+				},
+			},
+			wantActivities: &[]oscalTypes.Activity{
+				{
+					Title: "test-activity",
+					Props: &[]oscalTypes.Property{
+						{
+							Name:  "test-param",
+							Value: "custom-value",
+							Class: extensions.TestParameterClass,
+						},
+					},
+					RelatedControls: &oscalTypes.ReviewedControls{
+						ControlSelections: []oscalTypes.AssessedControls{
+							{
+								IncludeControls: &[]oscalTypes.AssessedControlsSelectControlById{
+									{
+										ControlId: "control-1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Success/NoSelectParameters",
+			basePlan: &oscalTypes.AssessmentPlan{
+				LocalDefinitions: &oscalTypes.LocalDefinitions{
+					Activities: &[]oscalTypes.Activity{
+						{
+							Title: "test-activity",
+							Props: &[]oscalTypes.Property{
+								{
+									Name:  "test-param",
+									Value: "default-value",
+									Class: extensions.TestParameterClass,
+								},
+							},
+						},
+					},
+				},
+			},
+			scope: AssessmentScope{
+				FrameworkID: "test",
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+					},
+				},
+			},
+			wantActivities: &[]oscalTypes.Activity{
+				{
+					Title: "test-activity",
+					Props: &[]oscalTypes.Property{
+						{
+							Name:  "test-param",
+							Value: "default-value",
+							Class: extensions.TestParameterClass,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "Success/NoLocalDefinitions",
+			basePlan: &oscalTypes.AssessmentPlan{},
+			scope: AssessmentScope{
+				FrameworkID: "test",
+				IncludeControls: []ControlEntry{
+					{
+						ControlID: "control-1",
+						SelectParameters: []ParameterEntry{
+							{Name: "test-param", Value: "custom-value"},
+						},
+					},
+				},
+			},
+			wantActivities: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scope := tt.scope
+			err := scope.ApplyScope(tt.basePlan, testLogger)
+			require.NoError(t, err)
+			if tt.basePlan.LocalDefinitions != nil {
+				require.Equal(t, tt.wantActivities, tt.basePlan.LocalDefinitions.Activities)
+			} else {
+				require.Nil(t, tt.wantActivities)
+			}
+		})
+	}
+}
+
+func TestValidateParameterValue(t *testing.T) {
+	tests := []struct {
+		name          string
+		parameterID   string
+		selectedValue string
+		componentDefs []oscalTypes.ComponentDefinition
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "Error/InvalidParameterValue",
+			parameterID:   "test-param",
+			selectedValue: "invalid-value",
+			componentDefs: []oscalTypes.ComponentDefinition{
+				{
+					Components: &[]oscalTypes.DefinedComponent{
+						{
+							Props: &[]oscalTypes.Property{
+								{
+									Name:    extensions.ParameterIdProp,
+									Value:   "test-param",
+									Remarks: "test-group",
+								},
+								{
+									Name:    "Parameter_Value_Alternatives",
+									Value:   `{"valid-option": "Valid Option"}`,
+									Remarks: "test-group",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError:   true,
+			errorContains: "parameter 'test-param' has invalid value 'invalid-value'",
+		},
+		{
+			name:          "Success/ValidParameterValue",
+			parameterID:   "test-param",
+			selectedValue: "valid-option",
+			componentDefs: []oscalTypes.ComponentDefinition{
+				{
+					Components: &[]oscalTypes.DefinedComponent{
+						{
+							Props: &[]oscalTypes.Property{
+								{
+									Name:    extensions.ParameterIdProp,
+									Value:   "test-param",
+									Remarks: "test-group",
+								},
+								{
+									Name:    "Parameter_Value_Alternatives",
+									Value:   `{"valid-option": "Valid Option"}`,
+									Remarks: "test-group",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "Success/NoAlternativesAcceptAnyValue",
+			parameterID:   "test-param",
+			selectedValue: "any-value",
+			componentDefs: []oscalTypes.ComponentDefinition{
+				{
+					Components: &[]oscalTypes.DefinedComponent{
+						{
+							Props: &[]oscalTypes.Property{
+								{
+									Name:    extensions.ParameterIdProp,
+									Value:   "test-param",
+									Remarks: "test-group",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "Success/EmptyValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "",
+			componentDefs: []oscalTypes.ComponentDefinition{},
+			expectError:   false,
+		},
+		{
+			name:          "Success/NAValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "N/A",
+			componentDefs: []oscalTypes.ComponentDefinition{},
+			expectError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateParameterValue(tt.parameterID, tt.selectedValue, tt.componentDefs)
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.errorContains != "" {
+					require.Contains(t, err.Error(), tt.errorContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterParameterSelection(t *testing.T) {
+	tests := []struct {
+		name          string
+		parameterID   string
+		selectedValue string
+		remarksProps  map[string][]oscalTypes.Property
+		expectValid   bool
+		expectedAlts  []string
+	}{
+		{
+			name:          "Success/ValidValueInAlternatives",
+			parameterID:   "test-param",
+			selectedValue: "option1",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp,
+						Value: "test-param",
+					},
+					{
+						Name:  "Parameter_Value_Alternatives",
+						Value: `{"option1": "value1", "option2": "value2"}`,
+					},
+				},
+			},
+			expectValid:  true,
+			expectedAlts: []string{"option1", "option2"},
+		},
+		{
+			name:          "Error/InvalidValueNotInAlternatives",
+			parameterID:   "test-param",
+			selectedValue: "invalid-option",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp,
+						Value: "test-param",
+					},
+					{
+						Name:  "Parameter_Value_Alternatives",
+						Value: `{"option1": "value1", "option2": "value2"}`,
+					},
+				},
+			},
+			expectValid:  false,
+			expectedAlts: []string{"option1", "option2"},
+		},
+		{
+			name:          "Success/IndexedParameterValidAlternatives",
+			parameterID:   "indexed-param",
+			selectedValue: "choice-a",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp + "_1",
+						Value: "indexed-param",
+					},
+					{
+						Name:  "Parameter_Value_Alternatives_1",
+						Value: `{"choice-a": "A", "choice-b": "B"}`,
+					},
+				},
+			},
+			expectValid:  true,
+			expectedAlts: []string{"choice-a", "choice-b"},
+		},
+		{
+			name:          "Success/EmptyValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "",
+			remarksProps:  map[string][]oscalTypes.Property{},
+			expectValid:   true,
+			expectedAlts:  nil,
+		},
+		{
+			name:          "Success/NAValueAccepted",
+			parameterID:   "test-param",
+			selectedValue: "N/A",
+			remarksProps:  map[string][]oscalTypes.Property{},
+			expectValid:   true,
+			expectedAlts:  nil,
+		},
+		{
+			name:          "Success/NoAlternativesAcceptAnyValue",
+			parameterID:   "test-param",
+			selectedValue: "any-value",
+			remarksProps: map[string][]oscalTypes.Property{
+				"group1": {
+					{
+						Name:  extensions.ParameterIdProp,
+						Value: "test-param",
+					},
+				},
+			},
+			expectValid:  true,
+			expectedAlts: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isValid, alternatives := filterParameterSelection(tt.parameterID, tt.selectedValue, tt.remarksProps)
+			require.Equal(t, tt.expectValid, isValid)
+			if tt.expectedAlts != nil {
+				require.Equal(t, tt.expectedAlts, alternatives)
+			}
+		})
+	}
+}
+
 func TestAssessmentScope_ApplyRuleScope(t *testing.T) {
 	testLogger := hclog.NewNullLogger()
 
