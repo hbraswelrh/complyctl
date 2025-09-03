@@ -24,7 +24,7 @@ Rule ID: {{$ruleResult.RuleId}}
 - Title: {{$subj.Title}}
 {{- range $prop := $subj.Props}}
 {{- if eq $prop.Name "result"}}
-{{- if eq $prop.Value == "pass"}}
+{{- if eq $prop.Value "pass"}}
 
   - Result: {{$prop.Value}}
 {{- end}}
