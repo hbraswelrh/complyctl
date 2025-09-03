@@ -23,6 +23,8 @@ type RuleResult struct {
 	RuleId string `json:"ruleId,omitempty" yaml:"ruleId,omitempty"`
 	// Subjects
 	Subjects []oscalTypes.SubjectReference `json:"subjects,omitempty" yaml:"subjects,omitempty"`
+	// Properties
+	Props []oscalTypes.Property `json:"props,omitempty" yaml:"subjects,omitempty"`
 }
 
 type Findings struct {
