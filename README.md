@@ -129,7 +129,7 @@ complyctl scan --with-md
 ```
 ## Plugin Interactions
 
-<img alt="plugin-img" height="300" src="plugin-img.png" width="600"/>
+![img_1.png](./docs/diagrams/img_1.png)
 
 ## Contributing
 
