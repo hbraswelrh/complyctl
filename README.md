@@ -127,6 +127,9 @@ complyctl scan
 complyctl scan --with-md
 # Results can also be created in Markdown format by passing the `--with-md` flag.
 ```
+## Plugin Interactions
+
+<img src="https://github.com/hbraswelrh/complyctl/blob/docs/CPLYTM-1006-diagram-plugin/graph-plugin-interaction.png" alt="img_1.png" width="1000" height="500">
 
 ## Contributing
 
