@@ -129,7 +129,6 @@ complyctl scan --with-md
 ```
 ## Plugin Interactions
 
-![img_1.png](img_1.png)
 
 ## Contributing
 
