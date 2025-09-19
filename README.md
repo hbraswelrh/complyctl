@@ -130,6 +130,7 @@ complyctl scan --with-md
 ## Plugin Interactions
 
 <img src="https://github.com/hbraswelrh/complyctl/blob/docs/CPLYTM-1006-diagram-update/graph-plugin-interaction.png" alt="img_1.png" width="1000" height="500">
+
 ## Contributing
 
 :paperclip: Read the [contributing guidelines](./docs/CONTRIBUTING.md)\
