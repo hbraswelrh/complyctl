@@ -129,7 +129,7 @@ complyctl scan --with-md
 ```
 ## Plugin Interactions
 
-<img alt="img.png" src="https://github.com/hbraswelrh/complyctl/blob/docs/CPLYTM-1006-diagram-update/img.png"/>
+![img_1.png](img_1.png)
 
 ## Contributing
 
