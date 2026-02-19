@@ -1,0 +1,81 @@
+# Threat Catalog
+title: ComplyCtl Threat Catalog
+metadata:
+  id: CPLYTM.CTL
+  description: Threat catalog for complyctl CLI tool.
+  version: 1.0.0
+  author:
+    id: complytime
+    name: ComplyTime Team
+    type: Human
+  mapping-references:
+    - id: CCC
+      title: Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/tree/main/catalogs/core/ccc
+      description: |
+        Foundational repository of reusable security controls, capabilities,
+        and threat models maintained by FINOS.
+imported-threats:
+  - reference-id: CCC
+    entries:
+      - reference-id: CCC.Core.TH10 # Access Log Publication - Tampering with Results
+      - reference-id: CCC.Core.TH09 # Runtime Logs Read by Unauthorized Entities - Config Details Leaked
+      - reference-id: CCC.Core.TH14 # Older Resource Versions are Used - False "Pass" if using wrong version
+threats: 
+  - id: CPLYTM.CTL.THR01 
+    title: Malicious Plugin Execution
+    description: |
+      An attacker could provide a malicious plugin that performs Unauthorized
+      actions or reports "Passed" status for failing controls during the 'generate'
+      or 'scan' phase.
+    capabilities:
+      - reference-id: CCC 
+        entries:
+          - reference-id: CCC.Core.CP28 
+          - reference-id: CCC.Core.CP03
+          - reference-id: CCC.Core.CP18 
+      - reference-id: CPLYTM.CTL
+        entries:
+          - reference-id: CPLYTM.CTL.CAP01
+    external-mappings:
+      - reference-id: MITRE.ATT&CK
+        entries:
+          - reference-id: T1195.001 # Supply Chain Compromise - open source deps
+          - reference-id: T1204.002 # Malicious File Execution
+  - id: CPLYTM.CTL.THR02 
+    title: OSCAL Plan Tampering
+    description: |
+      Unauthorized modification of the assessment-plan.json file could lead to
+      incomplete scans, effectively blinding the organization to critical security gaps.
+      Excluding specific high-risk controls from the scan, ensuring a system appears
+      compliant when it is not.
+    capabilities:
+      - reference-id: CPLYTM.CTL 
+        entries:
+          - reference-id: CPLYTM.CTL.CAP02
+      - reference-id: CCC 
+        entries:
+          - reference-id: CCC.Core.CP28
+          - reference-id: CCC.Core.CP03
+    external-mappings:
+      - reference-id: MITRE.ATT&CK
+        entries:
+          - reference-id: T1562.001 # Impair Defenses: Disable or Modify Tools
+  - id: CPLYTM.CTL.THR03 
+    title: Credential Leakage in Audit Evidence
+    description: |
+      Plugins might inadvertently capture sensitive data (environment variables, tokens)
+      during a scan and include them in the human-readable Markdown output from (--with-md).
+    capabilities:
+      - reference-id: CPLYTM.CTL 
+        entries:
+          - reference-id: CPLYTM.CTL.CAP02
+      - reference-id: CCC 
+        entries:
+          - reference-id: CCC.Core.CP03
+          - reference-id: CCC.Core.CP28 # CLI flag `--with-md`
+    external-mappings:
+      - reference-id: MITRE.ATT&CK
+        entries:
+          - reference-id: T1552.001 # Unsecured Credentials

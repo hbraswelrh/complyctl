@@ -1,0 +1,139 @@
+# ControlCatalog 
+# Map specific FINOS CCC that mitigate threats identified
+# Looking for CP.28, CP.18, CP.03
+# TH10, TH09, TH14
+
+# TH09 
+# CCC.Core.CN09
+# https://github.com/finos/common-cloud-controls/blob/ab3e851d060a1f643fff01b1844b49f6de623b01/catalogs/core/ccc/controls.yaml#L246 
+# Ensure Integrity of Access Logs
+
+
+# Custom COMPLYCTL THR with CCC
+# THR02 (ComplyCTL Plan Tampering)
+# CCC.Core.CN04 - Auditable Events
+
+# THR01 (ComplyCTL Malicious Plugins)
+# CCC.Core.CN03 - User Identification and Authentication
+# CCC.Core.CN06 - Least Functionality
+
+# THR03 (ComplyCTL Credentials Leakage)
+# CCC.Core.CN07 - Information Systems Monitoring Tools
+
+# Validate using cue vet "#ControlCatalog"
+
+metadata:
+  id: CPLYTM.CTL.CTRL
+  description: Control catalog for complyctl CLI tool
+  version: 1.0.0
+  author:
+    id: complytime
+    name: ComplyTime Maintainers
+    type: Human
+  mapping-references:
+    - id: CCC 
+      title: Common Cloud Controls Core Catalog
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/releases
+    - id: CPLYTM.CTL
+      title: ComplyCtl Threat Catalog
+      version: 1.0.0 
+    - id: NIST-SP-800-53-R5
+      title: NIST Special Publication 800-53 Revision 5
+      version: Rev. 5
+      url: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
+# title
+title: ComplyCtl Security Controls
+# imported controls
+imported-controls:
+  - reference-id: CCC 
+    entries:
+      - reference-id: CCC.Core.CN04
+        remarks: Auditable Events - essential for detecting OSCAL plan tampering.
+      - reference-id: CCC.Core.CN06
+        remarks: Least Functionality - restricts plugin execution to required scopes only.
+      - reference-id: CCC.Core.CN07
+        remarks: Information Systems Monitoring - used to scan output for leaked secrets.
+# controls - list of unique controls identified by this catalog
+controls: 
+  - id: CPLYTM.CTL.CTRL01
+    title: Plugin Signature Verification and Sandboxing
+    objective: |
+      Ensures plugins are cryptographically signed and executed within a
+      restricted process environment to prevent unauthorized system access.
+    family: Data
+    assessment-requirements:
+      - id: CPLYTM.CTL.AR01.01
+        text: Verify that the CLI rejects any plugin without a valid ComplyTime digital signature.
+        applicability:
+          - tlp_green
+    guideline-mappings:
+      - reference-id: NIST-SP-800-53-R5
+        entries: 
+          - reference-id: SI-7
+            remarks: Software and Information Integrity
+          - reference-id: CM-7
+            remarks: Least Functionality
+    threat-mappings:
+      - reference-id: CPLYTM.CTL 
+        entries:
+          - reference-id: CPLYTM.CTL.THR01
+            remarks: Malicious Plugin Execution
+      - reference-id: CCC
+        entries:
+          - reference-id: CCC.Core.TH14
+            remarks: Verifying Signatures and Sandboxing
+  - id: CPLYTM.CTL.CTRL02
+    title: Artifact Integrity Protection
+    objective: |
+      Calculates and verifies hashes for assessment-plan.json and
+      resulting OSCAL observations to detect unauthorized modifications.
+    family: Data
+    assessment-requirements:
+      - id: CPLYTM.CTL.AR02.01
+        text: Confirm an error is thrown and execution stops if the assessment-plan.json hash does not match the signed manifest.
+        applicability:
+          - tlp_green
+    guideline-mappings:
+      - reference-id: NIST-SP-800-53-R5
+        entries:
+          - reference-id: AU-10  
+            remarks: Non-repudation
+          - reference-id: SI-12
+            remarks: Information Management and Retention 
+    threat-mappings:
+      - reference-id: CPLYTM.CTL
+        entries:
+          - reference-id: CPLYTM.CTL.THR02
+            remarks: OSCAL Plan Tampering
+      - reference-id: CCC
+        entries:
+          - reference-id: CCC.Core.TH10
+            remarks: Tampering with Results
+  - id: CPLYTM.CTL.CTRL03
+    title: Automated Evidence Sanitizaton
+    objective: |
+      A post-processing filter that identifies and redacts potential
+      credentials (tokens, keys) from human-readable Markdown exports.
+    family: Data
+    assessment-requirements:
+      - id: CPLYTM.CTL.AR03.01
+        text: Test the `--with-md` flag against a mock environment containing known secrets to ensure they are replaced with [REDACTED] in the output.
+        applicability:
+          - tlp_green
+    guideline-mappings:
+      - reference-id: NIST-SP-800-53-R5
+        entries:
+          - reference-id: AC-3
+            remarks: Access Enforcement
+          - reference-id: SC-28
+            remarks: Protection of Information at Rest
+    threat-mappings:
+      - reference-id: CPLYTM.CTL
+        entries:
+          - reference-id: CPLYTM.CTL.THR03
+            remarks: Credential Leakage
+      - reference-id: CCC
+        entries:
+          - reference-id: CCC.Core.TH09
+            remarks: Sanitization Filter

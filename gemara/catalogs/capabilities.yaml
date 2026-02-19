@@ -1,0 +1,47 @@
+# Threat catalog
+# ComplyCtl uses a plugin architecture and generates OSCAL Artifacts
+title: ComplyCtl Capability Catalog
+metadata:
+  id: CPLYTM.CTL
+  description: Capabilities for complyctl CLI tool.
+  version: 1.0.0
+  author:
+    id: complytime
+    name: ComplyTime Team
+    type: Human
+  mapping-references:
+    - id: CCC
+      title: Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/releases
+      description: |
+        Foundational repository of reusable security controls, capabilities,
+        and threat models maintained by FINOS.
+imported-capabilities:
+  - reference-id: CCC
+    entries:
+      - reference-id: CCC.Core.CP28
+        remarks: |
+          Command-line Interface - primary CLI for compliance activities.
+      - reference-id: CCC.Core.CP03
+        remarks: |
+          Access Log Publication - generation of audit trails and machine readable logs. 
+      - reference-id: CCC.Core.CP18
+        remarks: |
+          Resource Versioning - management of versioned scanner plugins and compliance profiles.
+capabilities:
+  - id: CPLYTM.CTL.CAP01
+    title: Plugin-Based Policy Generation
+    description: |
+      The ability to dynamically load scanner-specific plugins (e.g., OPA) to
+      generate executable policy artifacts from a centralized OSCAL Assessment Plan
+  - id: CPLYTM.CTL.CAP02
+    title: OSCAL Artifact Orchestration
+    description: |
+      The ability to ingest, transform, and output standardized machine-readable
+      compliance data using the OSCAL format (Plans, Results, and Observations).
+  - id: CPLYTM.CTL.CAP03
+    title: Framework Discovery and mapping
+    description: |
+      The ability to query and list available compliance frameworks via 
+      (complyctl list) and map them to local system configurations.

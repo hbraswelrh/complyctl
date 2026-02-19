@@ -1,0 +1,23 @@
+title: ComplyCtl Threat Catalog
+metadata:
+  id: CPLYTM.CTL
+  description: Threat catalog for complyctl CLI tool.
+  version: 1.0.0
+  author:
+    id: complytime
+    name: ComplyTime Team
+    type: Human
+  mapping-references:
+    - id: CCC
+      title: Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/tree/main/catalogs/core/ccc
+      description: |
+        Foundational repository of reusable security controls, capabilities,
+        and threat models maintained by FINOS.
+imported-threats:
+  - reference-id: CCC
+    entries:
+      - reference-id: CCC.Core.TH10 # Access Log Publication - Tampering with Results
+      - reference-id: CCC.Core.TH09 # Runtime Logs Read by Unauthorized Entities - Config Details Leaked
+      - reference-id: CCC.Core.TH14 # Older Resource Versions are Used - False "Pass" if using wrong version
