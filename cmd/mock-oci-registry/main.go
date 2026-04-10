@@ -505,7 +505,7 @@ imports:
     - reference-id: nist-800-53-r5
 adherence:
   evaluation-methods:
-    - type: automated
+    - type: Behavioral
       executor:
         id: test
         name: Test Evaluator
@@ -515,12 +515,12 @@ adherence:
       requirement-id: AC-1-ar
       frequency: on-demand
       evaluation-methods:
-        - type: automated
+        - type: Behavioral
     - id: AC-2-impl
       requirement-id: AC-2-ar
       frequency: on-demand
       evaluation-methods:
-        - type: automated
+        - type: Behavioral
 `)},
 	})
 
