@@ -28,7 +28,7 @@ imports:
         - reference-id: repo-branch-protection
 adherence:
     evaluation-methods:
-        - type: automated
+        - type: Behavioral
           description: AMPEL automated branch protection evaluation
           executor:
               id: ampel
@@ -39,34 +39,34 @@ adherence:
           requirement-id: BP-1.01
           frequency: on-demand
           evaluation-methods:
-              - type: automated
+              - type: Behavioral
                 executor:
                     id: ampel
         - id: BP-2.01
           requirement-id: BP-2.01
           frequency: on-demand
           evaluation-methods:
-              - type: automated
+              - type: Behavioral
                 executor:
                     id: ampel
         - id: BP-3.01
           requirement-id: BP-3.01
           frequency: on-demand
           evaluation-methods:
-              - type: automated
+              - type: Behavioral
                 executor:
                     id: ampel
         - id: BP-4.01
           requirement-id: BP-4.01
           frequency: on-demand
           evaluation-methods:
-              - type: automated
+              - type: Behavioral
                 executor:
                     id: ampel
         - id: BP-5.01
           requirement-id: BP-5.01
           frequency: on-demand
           evaluation-methods:
-              - type: automated
+              - type: Behavioral
                 executor:
                     id: ampel

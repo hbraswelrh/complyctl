@@ -1,63 +1,75 @@
 title: Branch Protection Controls
-metadata:
-    id: repo-branch-protection
-    description: Branch protection controls for GitHub/GitLab repositories
-    author:
-        id: complytime
-        name: ComplyTime
-        type: Software-Assisted
-families:
-    - id: source-code
-      title: Source Code Protection
-      description: Controls for protecting source code repositories via branch protection rules
 controls:
     - id: BP-1
       title: Require Pull Request Reviews
       objective: Ensure changes to protected branches go through a pull request process
-      family: source-code
+      group: source-code
       assessment-requirements:
           - id: BP-1.01
             text: Direct pushes to protected branches MUST be blocked
             applicability:
                 - GitHub repositories
                 - GitLab repositories
+            state: Active
+      state: Active
     - id: BP-2
       title: Require Minimum Approvals
       objective: Pull requests to protected branches must have a minimum number of approvals
-      family: source-code
+      group: source-code
       assessment-requirements:
           - id: BP-2.01
             text: Pull requests must require a minimum number of approvals
             applicability:
                 - GitHub repositories
                 - GitLab repositories
+            state: Active
+      state: Active
     - id: BP-3
       title: Restrict Force Pushes
       objective: Force pushes to protected branches must be blocked
-      family: source-code
+      group: source-code
       assessment-requirements:
           - id: BP-3.01
             text: Force pushes to protected branches must be blocked
             applicability:
                 - GitHub repositories
                 - GitLab repositories
+            state: Active
+      state: Active
     - id: BP-4
       title: Prevent Admin Bypass
       objective: Admin bypass of branch protection rules must be prevented
-      family: source-code
+      group: source-code
       assessment-requirements:
           - id: BP-4.01
             text: Admin bypass prevention must be enabled on protected branches
             applicability:
                 - GitHub repositories
                 - GitLab repositories
+            state: Active
+      state: Active
     - id: BP-5
       title: Require Code Owner Review
       objective: Code owner review must be required when CODEOWNERS file exists
-      family: source-code
+      group: source-code
       assessment-requirements:
           - id: BP-5.01
             text: Code owner review requirements must be enabled
             applicability:
                 - GitHub repositories
                 - GitLab repositories
+            state: Active
+      state: Active
+groups:
+    - id: source-code
+      title: Source Code Protection
+      description: Controls for protecting source code repositories via branch protection rules
+metadata:
+    id: repo-branch-protection
+    type: ControlCatalog
+    gemara-version: 1.0.0-rc.0
+    description: Branch protection controls for GitHub/GitLab repositories
+    author:
+        id: complytime
+        name: ComplyTime
+        type: Software Assisted

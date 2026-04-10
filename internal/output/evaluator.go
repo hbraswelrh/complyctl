@@ -154,6 +154,6 @@ func pluginConfidenceToGemara(c plugin.ConfidenceLevel) gemara.ConfidenceLevel {
 	case plugin.ConfidenceLevelUndetermined:
 		return gemara.Undetermined
 	default:
-		return gemara.NotSet
+		return gemara.Undetermined
 	}
 }

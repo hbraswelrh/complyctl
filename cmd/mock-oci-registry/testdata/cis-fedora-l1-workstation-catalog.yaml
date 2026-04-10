@@ -1,1816 +1,2214 @@
 title: CIS Fedora Linux - Level 1 Workstation
-metadata:
-    id: cis-fedora-l1-workstation
-    description: Control catalog derived from the CIS Fedora Linux Level 1 Workstation Benchmark
-    author:
-        id: complytime
-        name: ComplyTime
-        type: Software-Assisted
-families:
-    - id: initial-setup
-      title: Initial Setup
-      description: Filesystem, software updates, SELinux, boot, kernel, crypto, and banner configuration
-    - id: services
-      title: Services
-      description: Network services, client packages, and time synchronization configuration
-    - id: network
-      title: Network Configuration
-      description: Kernel modules, IPv4, and IPv6 network stack configuration
-    - id: firewall
-      title: Host-Based Firewall
-      description: Firewall package installation and traffic filtering configuration
-    - id: access-auth
-      title: Access, Authentication, and Authorization
-      description: SSH, sudo, PAM, password, user account, and shell configuration
-    - id: logging
-      title: Logging and Auditing
-      description: System logging, journald, and file integrity monitoring configuration
-    - id: maintenance
-      title: System Maintenance
-      description: File permissions, user/group integrity, and home directory configuration
-    - id: operations
-      title: Operations
-      description: Operational tasks required for configuration application
 controls:
-    - id: cis_fedora_1-1.1.1
-      title: Ensure Cramfs Kernel Module Is Not Available
-      objective: Ensure Cramfs Kernel Module Is Not Available
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.1.1-ar
-            text: Cramfs Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.1.2
-      title: Ensure Freevxfs Kernel Module Is Not Available
-      objective: Ensure Freevxfs Kernel Module Is Not Available
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.1.2-ar
-            text: Freevxfs Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.1.3
-      title: Ensure Hfs Kernel Module Is Not Available
-      objective: Ensure Hfs Kernel Module Is Not Available
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.1.3-ar
-            text: Hfs Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.1.4
-      title: Ensure Hfsplus Kernel Module Is Not Available
-      objective: Ensure Hfsplus Kernel Module Is Not Available
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.1.4-ar
-            text: Hfsplus Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.1.5
-      title: Ensure Jffs2 Kernel Module Is Not Available
-      objective: Ensure Jffs2 Kernel Module Is Not Available
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.1.5-ar
-            text: Jffs2 Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.1.1
-      title: CIS Fedora 1 - 1.2.1.1
-      objective: CIS Fedora 1 - 1.2.1.1
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.1.1-ar
-            text: CIS Fedora 1 - 1.2.1.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.1.2
-      title: CIS Fedora 1 - 1.2.1.2
-      objective: CIS Fedora 1 - 1.2.1.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.1.2-ar
-            text: CIS Fedora 1 - 1.2.1.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.1.3
-      title: CIS Fedora 1 - 1.2.1.3
-      objective: CIS Fedora 1 - 1.2.1.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.1.3-ar
-            text: CIS Fedora 1 - 1.2.1.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.1.4
-      title: CIS Fedora 1 - 1.2.1.4
-      objective: CIS Fedora 1 - 1.2.1.4
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.1.4-ar
-            text: CIS Fedora 1 - 1.2.1.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.2.1
-      title: CIS Fedora 1 - 1.2.2.1
-      objective: CIS Fedora 1 - 1.2.2.1
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.2.1-ar
-            text: CIS Fedora 1 - 1.2.2.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.2.2
-      title: CIS Fedora 1 - 1.2.2.2
-      objective: CIS Fedora 1 - 1.2.2.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.2.2-ar
-            text: CIS Fedora 1 - 1.2.2.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.2.3
-      title: CIS Fedora 1 - 1.2.2.3
-      objective: CIS Fedora 1 - 1.2.2.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.2.3-ar
-            text: CIS Fedora 1 - 1.2.2.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.2.4
-      title: CIS Fedora 1 - 1.2.2.4
-      objective: CIS Fedora 1 - 1.2.2.4
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.2.4-ar
-            text: CIS Fedora 1 - 1.2.2.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.3.2
-      title: CIS Fedora 1 - 1.2.3.2
-      objective: CIS Fedora 1 - 1.2.3.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.3.2-ar
-            text: CIS Fedora 1 - 1.2.3.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.3.3
-      title: CIS Fedora 1 - 1.2.3.3
-      objective: CIS Fedora 1 - 1.2.3.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.3.3-ar
-            text: CIS Fedora 1 - 1.2.3.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.4.2
-      title: CIS Fedora 1 - 1.2.4.2
-      objective: CIS Fedora 1 - 1.2.4.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.4.2-ar
-            text: CIS Fedora 1 - 1.2.4.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.4.3
-      title: CIS Fedora 1 - 1.2.4.3
-      objective: CIS Fedora 1 - 1.2.4.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.4.3-ar
-            text: CIS Fedora 1 - 1.2.4.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.5.2
-      title: CIS Fedora 1 - 1.2.5.2
-      objective: CIS Fedora 1 - 1.2.5.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.5.2-ar
-            text: CIS Fedora 1 - 1.2.5.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.5.3
-      title: CIS Fedora 1 - 1.2.5.3
-      objective: CIS Fedora 1 - 1.2.5.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.5.3-ar
-            text: CIS Fedora 1 - 1.2.5.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.5.4
-      title: CIS Fedora 1 - 1.2.5.4
-      objective: CIS Fedora 1 - 1.2.5.4
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.5.4-ar
-            text: CIS Fedora 1 - 1.2.5.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.6.2
-      title: CIS Fedora 1 - 1.2.6.2
-      objective: CIS Fedora 1 - 1.2.6.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.6.2-ar
-            text: CIS Fedora 1 - 1.2.6.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.6.3
-      title: CIS Fedora 1 - 1.2.6.3
-      objective: CIS Fedora 1 - 1.2.6.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.6.3-ar
-            text: CIS Fedora 1 - 1.2.6.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.6.4
-      title: CIS Fedora 1 - 1.2.6.4
-      objective: CIS Fedora 1 - 1.2.6.4
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.6.4-ar
-            text: CIS Fedora 1 - 1.2.6.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.7.2
-      title: CIS Fedora 1 - 1.2.7.2
-      objective: CIS Fedora 1 - 1.2.7.2
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.7.2-ar
-            text: CIS Fedora 1 - 1.2.7.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.7.3
-      title: CIS Fedora 1 - 1.2.7.3
-      objective: CIS Fedora 1 - 1.2.7.3
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.7.3-ar
-            text: CIS Fedora 1 - 1.2.7.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-1.2.7.4
-      title: CIS Fedora 1 - 1.2.7.4
-      objective: CIS Fedora 1 - 1.2.7.4
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-1.2.7.4-ar
-            text: CIS Fedora 1 - 1.2.7.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-2.1.2
-      title: Ensure Gpgcheck Is Configured
-      objective: Ensure Gpgcheck Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-2.1.2-ar
-            text: Gpgcheck Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-3.1.1
-      title: Ensure Selinux Is Installed
-      objective: Ensure Selinux Is Installed
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-3.1.1-ar
-            text: Selinux Is Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-3.1.2
-      title: Ensure Selinux Is Not Disabled In Bootloader Configuration
-      objective: Ensure Selinux Is Not Disabled In Bootloader Configuration
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-3.1.2-ar
-            text: Selinux Is Not Disabled In Bootloader Configuration MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-3.1.3
-      title: Ensure Selinux Policy Is Configured
-      objective: Ensure Selinux Policy Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-3.1.3-ar
-            text: Selinux Policy Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-3.1.4
-      title: Ensure The Selinux Mode Is Not Disabled
-      objective: Ensure The Selinux Mode Is Not Disabled
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-3.1.4-ar
-            text: The Selinux Mode Is Not Disabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-3.1.7
-      title: Ensure The Mcs Translation Service (Mcstrans) Is Not Installed
-      objective: Ensure The Mcs Translation Service (Mcstrans) Is Not Installed
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-3.1.7-ar
-            text: The Mcs Translation Service (Mcstrans) Is Not Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-4.1
-      title: Ensure Bootloader Password Is Set
-      objective: Ensure Bootloader Password Is Set
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-4.1-ar
-            text: Bootloader Password Is Set MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.1
-      title: Ensure Core File Size Is Configured
-      objective: Ensure Core File Size Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.1-ar
-            text: Core File Size Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.10
-      title: Ensure Systemd-Coredump Storage Is Configured
-      objective: Ensure Systemd-Coredump Storage Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.10-ar
-            text: Systemd-Coredump Storage Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.2
-      title: Ensure Fs.Protected_Hardlinks Is Configured
-      objective: Ensure Fs.Protected_Hardlinks Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.2-ar
-            text: Fs.Protected_Hardlinks Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.3
-      title: Ensure Fs.Protected_Symlinks Is Configured
-      objective: Ensure Fs.Protected_Symlinks Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.3-ar
-            text: Fs.Protected_Symlinks Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.4
-      title: Ensure Fs.Suid_Dumpable Is Configured
-      objective: Ensure Fs.Suid_Dumpable Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.4-ar
-            text: Fs.Suid_Dumpable Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.5
-      title: Ensure Kernel.Dmesg_Restrict Is Configured
-      objective: Ensure Kernel.Dmesg_Restrict Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.5-ar
-            text: Kernel.Dmesg_Restrict Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.6
-      title: Ensure Kernel.Kptr_Restrict Is Configured
-      objective: Ensure Kernel.Kptr_Restrict Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.6-ar
-            text: Kernel.Kptr_Restrict Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.7
-      title: Ensure Kernel.Yama.Ptrace_Scope Is Configured
-      objective: Ensure Kernel.Yama.Ptrace_Scope Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.7-ar
-            text: Kernel.Yama.Ptrace_Scope Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.8
-      title: Ensure Kernel.Randomize_Va_Space Is Configured
-      objective: Ensure Kernel.Randomize_Va_Space Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.8-ar
-            text: Kernel.Randomize_Va_Space Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-5.9
-      title: Ensure Systemd-Coredump Processsizemax Is Configured
-      objective: Ensure Systemd-Coredump Processsizemax Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-5.9-ar
-            text: Systemd-Coredump Processsizemax Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-6.2
-      title: Ensure System Wide Crypto Policy Disables Sha1 Hash And Signature Support
-      objective: Ensure System Wide Crypto Policy Disables Sha1 Hash And Signature Support
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-6.2-ar
-            text: System Wide Crypto Policy Disables Sha1 Hash And Signature Support MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-6.3
-      title: Ensure System Wide Crypto Policy Macs Are Configured
-      objective: Ensure System Wide Crypto Policy Macs Are Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-6.3-ar
-            text: System Wide Crypto Policy Macs Are Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-6.4
-      title: Ensure System Wide Crypto Policy Disables Cbc For Ssh
-      objective: Ensure System Wide Crypto Policy Disables Cbc For Ssh
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-6.4-ar
-            text: System Wide Crypto Policy Disables Cbc For Ssh MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-7.1
-      title: Ensure /Etc/Motd Is Configured
-      objective: Ensure /Etc/Motd Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-7.1-ar
-            text: /Etc/Motd Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-7.2
-      title: Ensure /Etc/Issue Is Configured
-      objective: Ensure /Etc/Issue Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-7.2-ar
-            text: /Etc/Issue Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-7.3
-      title: Ensure /Etc/Issue.Net Is Configured
-      objective: Ensure /Etc/Issue.Net Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-7.3-ar
-            text: /Etc/Issue.Net Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-7.4
-      title: Ensure Access To /Etc/Motd Is Configured
-      objective: Ensure Access To /Etc/Motd Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-7.4-ar
-            text: Access To /Etc/Motd Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-7.5
-      title: Ensure Access To /Etc/Issue Is Configured
-      objective: Ensure Access To /Etc/Issue Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-7.5-ar
-            text: Access To /Etc/Issue Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-7.6
-      title: Ensure Access To /Etc/Issue.Net Is Configured
-      objective: Ensure Access To /Etc/Issue.Net Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-7.6-ar
-            text: Access To /Etc/Issue.Net Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-8.1
-      title: Ensure Gdm Login Banner Is Configured
-      objective: Ensure Gdm Login Banner Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-8.1-ar
-            text: Gdm Login Banner Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-8.2
-      title: Ensure Gdm Disable-User-List Is Configured
-      objective: Ensure Gdm Disable-User-List Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-8.2-ar
-            text: Gdm Disable-User-List Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-8.3
-      title: Ensure Gdm Screen Lock Is Configured
-      objective: Ensure Gdm Screen Lock Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-8.3-ar
-            text: Gdm Screen Lock Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_1-8.5
-      title: Ensure Gdm Autorun-Never Is Configured
-      objective: Ensure Gdm Autorun-Never Is Configured
-      family: initial-setup
-      assessment-requirements:
-          - id: cis_fedora_1-8.5-ar
-            text: Gdm Autorun-Never Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.12
-      title: Ensure Rpcbind Services Are Not In Use
-      objective: Ensure Rpcbind Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.12-ar
-            text: Rpcbind Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.13
-      title: Ensure Rsync Services Are Not In Use
-      objective: Ensure Rsync Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.13-ar
-            text: Rsync Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.14
-      title: Ensure Samba File Server Services Are Not In Use
-      objective: Ensure Samba File Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.14-ar
-            text: Samba File Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.15
-      title: Ensure Snmp Services Are Not In Use
-      objective: Ensure Snmp Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.15-ar
-            text: Snmp Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.16
-      title: Ensure Telnet Server Services Are Not In Use
-      objective: Ensure Telnet Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.16-ar
-            text: Telnet Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.17
-      title: Ensure Tftp Server Services Are Not In Use
-      objective: Ensure Tftp Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.17-ar
-            text: Tftp Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.18
-      title: Ensure Web Proxy Server Services Are Not In Use
-      objective: Ensure Web Proxy Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.18-ar
-            text: Web Proxy Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.19
-      title: Ensure Web Server Services Are Not In Use
-      objective: Ensure Web Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.19-ar
-            text: Web Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.23
-      title: Ensure Mail Transfer Agents Are Configured For Local-Only Mode
-      objective: Ensure Mail Transfer Agents Are Configured For Local-Only Mode
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.23-ar
-            text: Mail Transfer Agents Are Configured For Local-Only Mode MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.4
-      title: Ensure Dhcp Server Services Are Not In Use
-      objective: Ensure Dhcp Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.4-ar
-            text: Dhcp Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.5
-      title: Ensure Dns Server Services Are Not In Use
-      objective: Ensure Dns Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.5-ar
-            text: Dns Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.6
-      title: Ensure Dnsmasq Services Are Not In Use
-      objective: Ensure Dnsmasq Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.6-ar
-            text: Dnsmasq Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.7
-      title: Ensure Ftp Server Services Are Not In Use
-      objective: Ensure Ftp Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.7-ar
-            text: Ftp Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.8
-      title: Ensure Message Access Server Services Are Not In Use
-      objective: Ensure Message Access Server Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.8-ar
-            text: Message Access Server Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-1.9
-      title: Ensure Network File System Services Are Not In Use
-      objective: Ensure Network File System Services Are Not In Use
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-1.9-ar
-            text: Network File System Services Are Not In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-2.1
-      title: Ensure Ftp Client Is Not Installed
-      objective: Ensure Ftp Client Is Not Installed
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-2.1-ar
-            text: Ftp Client Is Not Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-2.4
-      title: Ensure Telnet Client Is Not Installed
-      objective: Ensure Telnet Client Is Not Installed
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-2.4-ar
-            text: Telnet Client Is Not Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-2.5
-      title: Ensure Tftp Client Is Not Installed
-      objective: Ensure Tftp Client Is Not Installed
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-2.5-ar
-            text: Tftp Client Is Not Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-3.2
-      title: Ensure Chrony Is Configured
-      objective: Ensure Chrony Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-3.2-ar
-            text: Chrony Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-3.3
-      title: Ensure Chrony Is Not Run As The Root User
-      objective: Ensure Chrony Is Not Run As The Root User
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-3.3-ar
-            text: Chrony Is Not Run As The Root User MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.1
-      title: Ensure Cron Daemon Is Enabled And Active
-      objective: Ensure Cron Daemon Is Enabled And Active
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.1-ar
-            text: Cron Daemon Is Enabled And Active MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.2
-      title: Ensure Access To /Etc/Crontab Is Configured
-      objective: Ensure Access To /Etc/Crontab Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.2-ar
-            text: Access To /Etc/Crontab Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.3
-      title: Ensure Access To /Etc/Cron.Hourly Is Configured
-      objective: Ensure Access To /Etc/Cron.Hourly Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.3-ar
-            text: Access To /Etc/Cron.Hourly Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.4
-      title: Ensure Access To /Etc/Cron.Daily Is Configured
-      objective: Ensure Access To /Etc/Cron.Daily Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.4-ar
-            text: Access To /Etc/Cron.Daily Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.5
-      title: Ensure Access To /Etc/Cron.Weekly Is Configured
-      objective: Ensure Access To /Etc/Cron.Weekly Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.5-ar
-            text: Access To /Etc/Cron.Weekly Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.6
-      title: Ensure Access To /Etc/Cron.Monthly Is Configured
-      objective: Ensure Access To /Etc/Cron.Monthly Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.6-ar
-            text: Access To /Etc/Cron.Monthly Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.8
-      title: Ensure Access To /Etc/Cron.D Is Configured
-      objective: Ensure Access To /Etc/Cron.D Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.8-ar
-            text: Access To /Etc/Cron.D Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.1.9
-      title: Ensure Access To Crontab Is Configured
-      objective: Ensure Access To Crontab Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.1.9-ar
-            text: Access To Crontab Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_2-4.2.1
-      title: Ensure Access To At Is Configured
-      objective: Ensure Access To At Is Configured
-      family: services
-      assessment-requirements:
-          - id: cis_fedora_2-4.2.1-ar
-            text: Access To At Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-2.1
-      title: Ensure Atm Kernel Module Is Not Available
-      objective: Ensure Atm Kernel Module Is Not Available
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-2.1-ar
-            text: Atm Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-2.2
-      title: Ensure Can Kernel Module Is Not Available
-      objective: Ensure Can Kernel Module Is Not Available
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-2.2-ar
-            text: Can Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-2.3
-      title: Ensure Dccp Kernel Module Is Not Available
-      objective: Ensure Dccp Kernel Module Is Not Available
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-2.3-ar
-            text: Dccp Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-2.4
-      title: Ensure Tipc Kernel Module Is Not Available
-      objective: Ensure Tipc Kernel Module Is Not Available
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-2.4-ar
-            text: Tipc Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-2.5
-      title: Ensure Rds Kernel Module Is Not Available
-      objective: Ensure Rds Kernel Module Is Not Available
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-2.5-ar
-            text: Rds Kernel Module Is Not Available MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.1
-      title: Ensure Net.Ipv4.Ip_Forward Is Configured
-      objective: Ensure Net.Ipv4.Ip_Forward Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.1-ar
-            text: Net.Ipv4.Ip_Forward Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.10
-      title: Ensure Net.Ipv4.Conf.All.Secure_Redirects Is Configured
-      objective: Ensure Net.Ipv4.Conf.All.Secure_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.10-ar
-            text: Net.Ipv4.Conf.All.Secure_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.11
-      title: Ensure Net.Ipv4.Conf.Default.Secure_Redirects Is Configured
-      objective: Ensure Net.Ipv4.Conf.Default.Secure_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.11-ar
-            text: Net.Ipv4.Conf.Default.Secure_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.12
-      title: Ensure Net.Ipv4.Conf.All.Rp_Filter Is Configured
-      objective: Ensure Net.Ipv4.Conf.All.Rp_Filter Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.12-ar
-            text: Net.Ipv4.Conf.All.Rp_Filter Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.13
-      title: Ensure Net.Ipv4.Conf.Default.Rp_Filter Is Configured
-      objective: Ensure Net.Ipv4.Conf.Default.Rp_Filter Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.13-ar
-            text: Net.Ipv4.Conf.Default.Rp_Filter Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.14
-      title: Ensure Net.Ipv4.Conf.All.Accept_Source_Route Is Configured
-      objective: Ensure Net.Ipv4.Conf.All.Accept_Source_Route Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.14-ar
-            text: Net.Ipv4.Conf.All.Accept_Source_Route Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.15
-      title: Ensure Net.Ipv4.Conf.Default.Accept_Source_Route Is Configured
-      objective: Ensure Net.Ipv4.Conf.Default.Accept_Source_Route Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.15-ar
-            text: Net.Ipv4.Conf.Default.Accept_Source_Route Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.16
-      title: Ensure Net.Ipv4.Conf.All.Log_Martians Is Configured
-      objective: Ensure Net.Ipv4.Conf.All.Log_Martians Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.16-ar
-            text: Net.Ipv4.Conf.All.Log_Martians Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.17
-      title: Ensure Net.Ipv4.Conf.Default.Log_Martians Is Configured
-      objective: Ensure Net.Ipv4.Conf.Default.Log_Martians Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.17-ar
-            text: Net.Ipv4.Conf.Default.Log_Martians Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.18
-      title: Ensure Net.Ipv4.Tcp_Syncookies Is Configured
-      objective: Ensure Net.Ipv4.Tcp_Syncookies Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.18-ar
-            text: Net.Ipv4.Tcp_Syncookies Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.4
-      title: Ensure Net.Ipv4.Conf.All.Send_Redirects Is Configured
-      objective: Ensure Net.Ipv4.Conf.All.Send_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.4-ar
-            text: Net.Ipv4.Conf.All.Send_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.5
-      title: Ensure Net.Ipv4.Conf.Default.Send_Redirects Is Configured
-      objective: Ensure Net.Ipv4.Conf.Default.Send_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.5-ar
-            text: Net.Ipv4.Conf.Default.Send_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.6
-      title: Ensure Net.Ipv4.Icmp_Ignore_Bogus_Error_Responses Is Configured
-      objective: Ensure Net.Ipv4.Icmp_Ignore_Bogus_Error_Responses Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.6-ar
-            text: Net.Ipv4.Icmp_Ignore_Bogus_Error_Responses Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.7
-      title: Ensure Net.Ipv4.Icmp_Echo_Ignore_Broadcasts Is Configured
-      objective: Ensure Net.Ipv4.Icmp_Echo_Ignore_Broadcasts Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.7-ar
-            text: Net.Ipv4.Icmp_Echo_Ignore_Broadcasts Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.8
-      title: Ensure Net.Ipv4.Conf.All.Accept_Redirects Is Configured
-      objective: Ensure Net.Ipv4.Conf.All.Accept_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.8-ar
-            text: Net.Ipv4.Conf.All.Accept_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.1.9
-      title: Ensure Net.Ipv4.Conf.Default.Accept_Redirects Is Configured
-      objective: Ensure Net.Ipv4.Conf.Default.Accept_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.1.9-ar
-            text: Net.Ipv4.Conf.Default.Accept_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.1
-      title: Ensure Net.Ipv6.Conf.All.Forwarding Is Configured
-      objective: Ensure Net.Ipv6.Conf.All.Forwarding Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.1-ar
-            text: Net.Ipv6.Conf.All.Forwarding Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.3
-      title: Ensure Net.Ipv6.Conf.All.Accept_Redirects Is Configured
-      objective: Ensure Net.Ipv6.Conf.All.Accept_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.3-ar
-            text: Net.Ipv6.Conf.All.Accept_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.4
-      title: Ensure Net.Ipv6.Conf.Default.Accept_Redirects Is Configured
-      objective: Ensure Net.Ipv6.Conf.Default.Accept_Redirects Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.4-ar
-            text: Net.Ipv6.Conf.Default.Accept_Redirects Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.5
-      title: Ensure Net.Ipv6.Conf.All.Accept_Source_Route Is Configured
-      objective: Ensure Net.Ipv6.Conf.All.Accept_Source_Route Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.5-ar
-            text: Net.Ipv6.Conf.All.Accept_Source_Route Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.6
-      title: Ensure Net.Ipv6.Conf.Default.Accept_Source_Route Is Configured
-      objective: Ensure Net.Ipv6.Conf.Default.Accept_Source_Route Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.6-ar
-            text: Net.Ipv6.Conf.Default.Accept_Source_Route Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.7
-      title: Ensure Net.Ipv6.Conf.All.Accept_Ra Is Configured
-      objective: Ensure Net.Ipv6.Conf.All.Accept_Ra Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.7-ar
-            text: Net.Ipv6.Conf.All.Accept_Ra Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_3-3.2.8
-      title: Ensure Net.Ipv6.Conf.Default.Accept_Ra Is Configured
-      objective: Ensure Net.Ipv6.Conf.Default.Accept_Ra Is Configured
-      family: network
-      assessment-requirements:
-          - id: cis_fedora_3-3.2.8-ar
-            text: Net.Ipv6.Conf.Default.Accept_Ra Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_4-1.1
-      title: Ensure Nftables Is Installed
-      objective: Ensure Nftables Is Installed
-      family: firewall
-      assessment-requirements:
-          - id: cis_fedora_4-1.1-ar
-            text: Nftables Is Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_4-1.2
-      title: Ensure A Single Firewall Configuration Utility Is In Use
-      objective: Ensure A Single Firewall Configuration Utility Is In Use
-      family: firewall
-      assessment-requirements:
-          - id: cis_fedora_4-1.2-ar
-            text: A Single Firewall Configuration Utility Is In Use MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_4-2.2
-      title: Ensure Firewalld Loopback Traffic Is Configured
-      objective: Ensure Firewalld Loopback Traffic Is Configured
-      family: firewall
-      assessment-requirements:
-          - id: cis_fedora_4-2.2-ar
-            text: Firewalld Loopback Traffic Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.1
-      title: Ensure Access To /Etc/Ssh/Sshd_Config Is Configured
-      objective: Ensure Access To /Etc/Ssh/Sshd_Config Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.1-ar
-            text: Access To /Etc/Ssh/Sshd_Config Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.11
-      title: Ensure Sshd Gssapiauthentication Is Disabled
-      objective: Ensure Sshd Gssapiauthentication Is Disabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.11-ar
-            text: Sshd Gssapiauthentication Is Disabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.12
-      title: Ensure Sshd Hostbasedauthentication Is Disabled
-      objective: Ensure Sshd Hostbasedauthentication Is Disabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.12-ar
-            text: Sshd Hostbasedauthentication Is Disabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.13
-      title: Ensure Sshd Ignorerhosts Is Enabled
-      objective: Ensure Sshd Ignorerhosts Is Enabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.13-ar
-            text: Sshd Ignorerhosts Is Enabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.14
-      title: Ensure Sshd Logingracetime Is Configured
-      objective: Ensure Sshd Logingracetime Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.14-ar
-            text: Sshd Logingracetime Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.15
-      title: Ensure Sshd Loglevel Is Configured
-      objective: Ensure Sshd Loglevel Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.15-ar
-            text: Sshd Loglevel Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.16
-      title: Ensure Sshd Maxauthtries Is Configured
-      objective: Ensure Sshd Maxauthtries Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.16-ar
-            text: Sshd Maxauthtries Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.17
-      title: Ensure Sshd Maxstartups Is Configured
-      objective: Ensure Sshd Maxstartups Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.17-ar
-            text: Sshd Maxstartups Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.18
-      title: Ensure Sshd Maxsessions Is Configured
-      objective: Ensure Sshd Maxsessions Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.18-ar
-            text: Sshd Maxsessions Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.19
-      title: Ensure Sshd Permitemptypasswords Is Disabled
-      objective: Ensure Sshd Permitemptypasswords Is Disabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.19-ar
-            text: Sshd Permitemptypasswords Is Disabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.2
-      title: Ensure Access To Ssh Private Host Key Files Is Configured
-      objective: Ensure Access To Ssh Private Host Key Files Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.2-ar
-            text: Access To Ssh Private Host Key Files Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.20
-      title: Ensure Sshd Permitrootlogin Is Disabled
-      objective: Ensure Sshd Permitrootlogin Is Disabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.20-ar
-            text: Sshd Permitrootlogin Is Disabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.21
-      title: Ensure Sshd Permituserenvironment Is Disabled
-      objective: Ensure Sshd Permituserenvironment Is Disabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.21-ar
-            text: Sshd Permituserenvironment Is Disabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.22
-      title: Ensure Sshd Usepam Is Enabled
-      objective: Ensure Sshd Usepam Is Enabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.22-ar
-            text: Sshd Usepam Is Enabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.3
-      title: Ensure Access To Ssh Public Host Key Files Is Configured
-      objective: Ensure Access To Ssh Public Host Key Files Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.3-ar
-            text: Access To Ssh Public Host Key Files Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.4
-      title: Ensure Sshd Ciphers Are Configured
-      objective: Ensure Sshd Ciphers Are Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.4-ar
-            text: Sshd Ciphers Are Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.5
-      title: Ensure Sshd Kexalgorithms Is Configured
-      objective: Ensure Sshd Kexalgorithms Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.5-ar
-            text: Sshd Kexalgorithms Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.6
-      title: Ensure Sshd Macs Are Configured
-      objective: Ensure Sshd Macs Are Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.6-ar
-            text: Sshd Macs Are Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.7
-      title: Ensure Sshd Access Is Configured
-      objective: Ensure Sshd Access Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.7-ar
-            text: Sshd Access Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.8
-      title: Ensure Sshd Banner Is Configured
-      objective: Ensure Sshd Banner Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.8-ar
-            text: Sshd Banner Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-1.9
-      title: Ensure Sshd Clientaliveinterval And Clientalivecountmax Are Configured
-      objective: Ensure Sshd Clientaliveinterval And Clientalivecountmax Are Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-1.9-ar
-            text: Sshd Clientaliveinterval And Clientalivecountmax Are Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-2.1
-      title: Ensure Sudo Is Installed
-      objective: Ensure Sudo Is Installed
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-2.1-ar
-            text: Sudo Is Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-2.2
-      title: Ensure Sudo Commands Use Pty
-      objective: Ensure Sudo Commands Use Pty
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-2.2-ar
-            text: Sudo Commands Use Pty MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-2.3
-      title: Ensure Sudo Log File Exists
-      objective: Ensure Sudo Log File Exists
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-2.3-ar
-            text: Sudo Log File Exists MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-2.5
-      title: Ensure Re-Authentication For Privilege Escalation Is Not Disabled Globally
-      objective: Ensure Re-Authentication For Privilege Escalation Is Not Disabled Globally
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-2.5-ar
-            text: Re-Authentication For Privilege Escalation Is Not Disabled Globally MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-2.6
-      title: Ensure Sudo Timestamp_Timeout Is Configured
-      objective: Ensure Sudo Timestamp_Timeout Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-2.6-ar
-            text: Sudo Timestamp_Timeout Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-2.7
-      title: Ensure Access To The Su Command Is Restricted
-      objective: Ensure Access To The Su Command Is Restricted
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-2.7-ar
-            text: Access To The Su Command Is Restricted MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.1.3
-      title: Ensure Latest Version Of Libpwquality Is Installed
-      objective: Ensure Latest Version Of Libpwquality Is Installed
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.1.3-ar
-            text: Latest Version Of Libpwquality Is Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.2.2
-      title: Ensure Pam_Faillock Module Is Enabled
-      objective: Ensure Pam_Faillock Module Is Enabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.2.2-ar
-            text: Pam_Faillock Module Is Enabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.2.3
-      title: Ensure Pam_Pwquality Module Is Enabled
-      objective: Ensure Pam_Pwquality Module Is Enabled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.2.3-ar
-            text: Pam_Pwquality Module Is Enabled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.1.1
-      title: CIS Fedora 5 - 3.3.1.1
-      objective: CIS Fedora 5 - 3.3.1.1
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.1.1-ar
-            text: CIS Fedora 5 - 3.3.1.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.1.2
-      title: CIS Fedora 5 - 3.3.1.2
-      objective: CIS Fedora 5 - 3.3.1.2
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.1.2-ar
-            text: CIS Fedora 5 - 3.3.1.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.2.1
-      title: CIS Fedora 5 - 3.3.2.1
-      objective: CIS Fedora 5 - 3.3.2.1
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.2.1-ar
-            text: CIS Fedora 5 - 3.3.2.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.2.2
-      title: CIS Fedora 5 - 3.3.2.2
-      objective: CIS Fedora 5 - 3.3.2.2
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.2.2-ar
-            text: CIS Fedora 5 - 3.3.2.2 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.2.3
-      title: CIS Fedora 5 - 3.3.2.3
-      objective: CIS Fedora 5 - 3.3.2.3
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.2.3-ar
-            text: CIS Fedora 5 - 3.3.2.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.2.4
-      title: CIS Fedora 5 - 3.3.2.4
-      objective: CIS Fedora 5 - 3.3.2.4
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.2.4-ar
-            text: CIS Fedora 5 - 3.3.2.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.2.6
-      title: CIS Fedora 5 - 3.3.2.6
-      objective: CIS Fedora 5 - 3.3.2.6
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.2.6-ar
-            text: CIS Fedora 5 - 3.3.2.6 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.2.7
-      title: CIS Fedora 5 - 3.3.2.7
-      objective: CIS Fedora 5 - 3.3.2.7
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.2.7-ar
-            text: CIS Fedora 5 - 3.3.2.7 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.3.1
-      title: CIS Fedora 5 - 3.3.3.1
-      objective: CIS Fedora 5 - 3.3.3.1
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.3.1-ar
-            text: CIS Fedora 5 - 3.3.3.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.4.1
-      title: CIS Fedora 5 - 3.3.4.1
-      objective: CIS Fedora 5 - 3.3.4.1
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.4.1-ar
-            text: CIS Fedora 5 - 3.3.4.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-3.3.4.3
-      title: CIS Fedora 5 - 3.3.4.3
-      objective: CIS Fedora 5 - 3.3.4.3
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-3.3.4.3-ar
-            text: CIS Fedora 5 - 3.3.4.3 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.1.1
-      title: Ensure Password Expiration Is Configured
-      objective: Ensure Password Expiration Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.1.1-ar
-            text: Password Expiration Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.1.3
-      title: Ensure Password Expiration Warning Days Is Configured
-      objective: Ensure Password Expiration Warning Days Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.1.3-ar
-            text: Password Expiration Warning Days Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.1.4
-      title: Ensure Strong Password Hashing Algorithm Is Configured
-      objective: Ensure Strong Password Hashing Algorithm Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.1.4-ar
-            text: Strong Password Hashing Algorithm Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.1.5
-      title: Ensure Inactive Password Lock Is Configured
-      objective: Ensure Inactive Password Lock Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.1.5-ar
-            text: Inactive Password Lock Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.1.6
-      title: Ensure All Users Last Password Change Date Is In The Past
-      objective: Ensure All Users Last Password Change Date Is In The Past
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.1.6-ar
-            text: All Users Last Password Change Date Is In The Past MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.2.1
-      title: Ensure Root Is The Only Uid 0 Account
-      objective: Ensure Root Is The Only Uid 0 Account
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.2.1-ar
-            text: Root Is The Only Uid 0 Account MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.2.2
-      title: Ensure Root Is The Only Gid 0 Account
-      objective: Ensure Root Is The Only Gid 0 Account
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.2.2-ar
-            text: Root Is The Only Gid 0 Account MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.2.4
-      title: Ensure Root Account Access Is Controlled
-      objective: Ensure Root Account Access Is Controlled
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.2.4-ar
-            text: Root Account Access Is Controlled MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.2.5
-      title: Ensure Root Path Integrity
-      objective: Ensure Root Path Integrity
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.2.5-ar
-            text: Root Path Integrity MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.2.7
-      title: Ensure System Accounts Do Not Have A Valid Login Shell
-      objective: Ensure System Accounts Do Not Have A Valid Login Shell
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.2.7-ar
-            text: System Accounts Do Not Have A Valid Login Shell MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.3.2
-      title: Ensure Default User Shell Timeout Is Configured
-      objective: Ensure Default User Shell Timeout Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.3.2-ar
-            text: Default User Shell Timeout Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_5-4.3.3
-      title: Ensure Default User Umask Is Configured
-      objective: Ensure Default User Umask Is Configured
-      family: access-auth
-      assessment-requirements:
-          - id: cis_fedora_5-4.3.3-ar
-            text: Default User Umask Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-1.1
-      title: Ensure Aide Is Installed
-      objective: Ensure Aide Is Installed
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-1.1-ar
-            text: Aide Is Installed MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-1.2
-      title: Ensure Filesystem Integrity Is Regularly Checked
-      objective: Ensure Filesystem Integrity Is Regularly Checked
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-1.2-ar
-            text: Filesystem Integrity Is Regularly Checked MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-1.3
-      title: Ensure Cryptographic Mechanisms Are Used To Protect The Integrity Of Audit Tools
-      objective: Ensure Cryptographic Mechanisms Are Used To Protect The Integrity Of Audit Tools
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-1.3-ar
-            text: Cryptographic Mechanisms Are Used To Protect The Integrity Of Audit Tools MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-2.1.1
-      title: Ensure Journald Service Is Active
-      objective: Ensure Journald Service Is Active
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-2.1.1-ar
-            text: Journald Service Is Active MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-2.2.1.1
-      title: CIS Fedora 6 - 2.2.1.1
-      objective: CIS Fedora 6 - 2.2.1.1
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-2.2.1.1-ar
-            text: CIS Fedora 6 - 2.2.1.1 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-2.2.1.4
-      title: CIS Fedora 6 - 2.2.1.4
-      objective: CIS Fedora 6 - 2.2.1.4
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-2.2.1.4-ar
-            text: CIS Fedora 6 - 2.2.1.4 MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-2.2.3
-      title: Ensure Journald Compress Is Configured
-      objective: Ensure Journald Compress Is Configured
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-2.2.3-ar
-            text: Journald Compress Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-2.2.4
-      title: Ensure Journald Storage Is Configured
-      objective: Ensure Journald Storage Is Configured
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-2.2.4-ar
-            text: Journald Storage Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_6-2.6.1
-      title: Ensure Access To All Logfiles Has Been Configured
-      objective: Ensure Access To All Logfiles Has Been Configured
-      family: logging
-      assessment-requirements:
-          - id: cis_fedora_6-2.6.1-ar
-            text: Access To All Logfiles Has Been Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.1
-      title: Ensure Access To /Etc/Passwd Is Configured
-      objective: Ensure Access To /Etc/Passwd Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.1-ar
-            text: Access To /Etc/Passwd Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.11
-      title: Ensure World Writable Files And Directories Are Secured
-      objective: Ensure World Writable Files And Directories Are Secured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.11-ar
-            text: World Writable Files And Directories Are Secured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.2
-      title: Ensure Access To /Etc/Passwd- Is Configured
-      objective: Ensure Access To /Etc/Passwd- Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.2-ar
-            text: Access To /Etc/Passwd- Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.3
-      title: Ensure Access To /Etc/Group Is Configured
-      objective: Ensure Access To /Etc/Group Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.3-ar
-            text: Access To /Etc/Group Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.4
-      title: Ensure Access To /Etc/Group- Is Configured
-      objective: Ensure Access To /Etc/Group- Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.4-ar
-            text: Access To /Etc/Group- Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.5
-      title: Ensure Access To /Etc/Shadow Is Configured
-      objective: Ensure Access To /Etc/Shadow Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.5-ar
-            text: Access To /Etc/Shadow Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.6
-      title: Ensure Access To /Etc/Shadow- Is Configured
-      objective: Ensure Access To /Etc/Shadow- Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.6-ar
-            text: Access To /Etc/Shadow- Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.7
-      title: Ensure Access To /Etc/Gshadow Is Configured
-      objective: Ensure Access To /Etc/Gshadow Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.7-ar
-            text: Access To /Etc/Gshadow Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.8
-      title: Ensure Access To /Etc/Gshadow- Is Configured
-      objective: Ensure Access To /Etc/Gshadow- Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.8-ar
-            text: Access To /Etc/Gshadow- Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-1.9
-      title: Ensure Access To /Etc/Shells Is Configured
-      objective: Ensure Access To /Etc/Shells Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-1.9-ar
-            text: Access To /Etc/Shells Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.1
-      title: Ensure Accounts In /Etc/Passwd Use Shadowed Passwords
-      objective: Ensure Accounts In /Etc/Passwd Use Shadowed Passwords
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.1-ar
-            text: Accounts In /Etc/Passwd Use Shadowed Passwords MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.2
-      title: Ensure /Etc/Shadow Password Fields Are Not Empty
-      objective: Ensure /Etc/Shadow Password Fields Are Not Empty
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.2-ar
-            text: /Etc/Shadow Password Fields Are Not Empty MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.3
-      title: Ensure All Groups In /Etc/Passwd Exist In /Etc/Group
-      objective: Ensure All Groups In /Etc/Passwd Exist In /Etc/Group
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.3-ar
-            text: All Groups In /Etc/Passwd Exist In /Etc/Group MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.4
-      title: Ensure No Duplicate Uids Exist
-      objective: Ensure No Duplicate Uids Exist
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.4-ar
-            text: No Duplicate Uids Exist MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.5
-      title: Ensure No Duplicate Gids Exist
-      objective: Ensure No Duplicate Gids Exist
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.5-ar
-            text: No Duplicate Gids Exist MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.6
-      title: Ensure No Duplicate User Names Exist
-      objective: Ensure No Duplicate User Names Exist
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.6-ar
-            text: No Duplicate User Names Exist MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.7
-      title: Ensure No Duplicate Group Names Exist
-      objective: Ensure No Duplicate Group Names Exist
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.7-ar
-            text: No Duplicate Group Names Exist MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.8
-      title: Ensure Local Interactive User Home Directories Are Configured
-      objective: Ensure Local Interactive User Home Directories Are Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.8-ar
-            text: Local Interactive User Home Directories Are Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: cis_fedora_7-2.9
-      title: Ensure Local Interactive User Dot Files Access Is Configured
-      objective: Ensure Local Interactive User Dot Files Access Is Configured
-      family: maintenance
-      assessment-requirements:
-          - id: cis_fedora_7-2.9-ar
-            text: Local Interactive User Dot Files Access Is Configured MUST be verified
-            applicability:
-                - Fedora Linux
-    - id: reload_dconf_db
-      title: Reload Dconf Database
-      objective: Reload Dconf Database
-      family: operations
-      assessment-requirements:
-          - id: reload_dconf_db-ar
-            text: The dconf database MUST be reloaded after configuration changes
-            applicability:
-                - Fedora Linux
+- id: cis_fedora_1-1.1.1
+  title: Ensure Cramfs Kernel Module Is Not Available
+  objective: Ensure Cramfs Kernel Module Is Not Available
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.1.1-ar
+    text: Cramfs Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.1.2
+  title: Ensure Freevxfs Kernel Module Is Not Available
+  objective: Ensure Freevxfs Kernel Module Is Not Available
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.1.2-ar
+    text: Freevxfs Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.1.3
+  title: Ensure Hfs Kernel Module Is Not Available
+  objective: Ensure Hfs Kernel Module Is Not Available
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.1.3-ar
+    text: Hfs Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.1.4
+  title: Ensure Hfsplus Kernel Module Is Not Available
+  objective: Ensure Hfsplus Kernel Module Is Not Available
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.1.4-ar
+    text: Hfsplus Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.1.5
+  title: Ensure Jffs2 Kernel Module Is Not Available
+  objective: Ensure Jffs2 Kernel Module Is Not Available
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.1.5-ar
+    text: Jffs2 Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.1.1
+  title: CIS Fedora 1 - 1.2.1.1
+  objective: CIS Fedora 1 - 1.2.1.1
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.1.1-ar
+    text: CIS Fedora 1 - 1.2.1.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.1.2
+  title: CIS Fedora 1 - 1.2.1.2
+  objective: CIS Fedora 1 - 1.2.1.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.1.2-ar
+    text: CIS Fedora 1 - 1.2.1.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.1.3
+  title: CIS Fedora 1 - 1.2.1.3
+  objective: CIS Fedora 1 - 1.2.1.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.1.3-ar
+    text: CIS Fedora 1 - 1.2.1.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.1.4
+  title: CIS Fedora 1 - 1.2.1.4
+  objective: CIS Fedora 1 - 1.2.1.4
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.1.4-ar
+    text: CIS Fedora 1 - 1.2.1.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.2.1
+  title: CIS Fedora 1 - 1.2.2.1
+  objective: CIS Fedora 1 - 1.2.2.1
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.2.1-ar
+    text: CIS Fedora 1 - 1.2.2.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.2.2
+  title: CIS Fedora 1 - 1.2.2.2
+  objective: CIS Fedora 1 - 1.2.2.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.2.2-ar
+    text: CIS Fedora 1 - 1.2.2.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.2.3
+  title: CIS Fedora 1 - 1.2.2.3
+  objective: CIS Fedora 1 - 1.2.2.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.2.3-ar
+    text: CIS Fedora 1 - 1.2.2.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.2.4
+  title: CIS Fedora 1 - 1.2.2.4
+  objective: CIS Fedora 1 - 1.2.2.4
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.2.4-ar
+    text: CIS Fedora 1 - 1.2.2.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.3.2
+  title: CIS Fedora 1 - 1.2.3.2
+  objective: CIS Fedora 1 - 1.2.3.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.3.2-ar
+    text: CIS Fedora 1 - 1.2.3.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.3.3
+  title: CIS Fedora 1 - 1.2.3.3
+  objective: CIS Fedora 1 - 1.2.3.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.3.3-ar
+    text: CIS Fedora 1 - 1.2.3.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.4.2
+  title: CIS Fedora 1 - 1.2.4.2
+  objective: CIS Fedora 1 - 1.2.4.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.4.2-ar
+    text: CIS Fedora 1 - 1.2.4.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.4.3
+  title: CIS Fedora 1 - 1.2.4.3
+  objective: CIS Fedora 1 - 1.2.4.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.4.3-ar
+    text: CIS Fedora 1 - 1.2.4.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.5.2
+  title: CIS Fedora 1 - 1.2.5.2
+  objective: CIS Fedora 1 - 1.2.5.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.5.2-ar
+    text: CIS Fedora 1 - 1.2.5.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.5.3
+  title: CIS Fedora 1 - 1.2.5.3
+  objective: CIS Fedora 1 - 1.2.5.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.5.3-ar
+    text: CIS Fedora 1 - 1.2.5.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.5.4
+  title: CIS Fedora 1 - 1.2.5.4
+  objective: CIS Fedora 1 - 1.2.5.4
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.5.4-ar
+    text: CIS Fedora 1 - 1.2.5.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.6.2
+  title: CIS Fedora 1 - 1.2.6.2
+  objective: CIS Fedora 1 - 1.2.6.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.6.2-ar
+    text: CIS Fedora 1 - 1.2.6.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.6.3
+  title: CIS Fedora 1 - 1.2.6.3
+  objective: CIS Fedora 1 - 1.2.6.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.6.3-ar
+    text: CIS Fedora 1 - 1.2.6.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.6.4
+  title: CIS Fedora 1 - 1.2.6.4
+  objective: CIS Fedora 1 - 1.2.6.4
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.6.4-ar
+    text: CIS Fedora 1 - 1.2.6.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.7.2
+  title: CIS Fedora 1 - 1.2.7.2
+  objective: CIS Fedora 1 - 1.2.7.2
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.7.2-ar
+    text: CIS Fedora 1 - 1.2.7.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.7.3
+  title: CIS Fedora 1 - 1.2.7.3
+  objective: CIS Fedora 1 - 1.2.7.3
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.7.3-ar
+    text: CIS Fedora 1 - 1.2.7.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-1.2.7.4
+  title: CIS Fedora 1 - 1.2.7.4
+  objective: CIS Fedora 1 - 1.2.7.4
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-1.2.7.4-ar
+    text: CIS Fedora 1 - 1.2.7.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-2.1.2
+  title: Ensure Gpgcheck Is Configured
+  objective: Ensure Gpgcheck Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-2.1.2-ar
+    text: Gpgcheck Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-3.1.1
+  title: Ensure Selinux Is Installed
+  objective: Ensure Selinux Is Installed
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-3.1.1-ar
+    text: Selinux Is Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-3.1.2
+  title: Ensure Selinux Is Not Disabled In Bootloader Configuration
+  objective: Ensure Selinux Is Not Disabled In Bootloader Configuration
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-3.1.2-ar
+    text: Selinux Is Not Disabled In Bootloader Configuration MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-3.1.3
+  title: Ensure Selinux Policy Is Configured
+  objective: Ensure Selinux Policy Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-3.1.3-ar
+    text: Selinux Policy Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-3.1.4
+  title: Ensure The Selinux Mode Is Not Disabled
+  objective: Ensure The Selinux Mode Is Not Disabled
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-3.1.4-ar
+    text: The Selinux Mode Is Not Disabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-3.1.7
+  title: Ensure The Mcs Translation Service (Mcstrans) Is Not Installed
+  objective: Ensure The Mcs Translation Service (Mcstrans) Is Not Installed
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-3.1.7-ar
+    text: The Mcs Translation Service (Mcstrans) Is Not Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-4.1
+  title: Ensure Bootloader Password Is Set
+  objective: Ensure Bootloader Password Is Set
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-4.1-ar
+    text: Bootloader Password Is Set MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.1
+  title: Ensure Core File Size Is Configured
+  objective: Ensure Core File Size Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.1-ar
+    text: Core File Size Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.10
+  title: Ensure Systemd-Coredump Storage Is Configured
+  objective: Ensure Systemd-Coredump Storage Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.10-ar
+    text: Systemd-Coredump Storage Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.2
+  title: Ensure Fs.Protected_Hardlinks Is Configured
+  objective: Ensure Fs.Protected_Hardlinks Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.2-ar
+    text: Fs.Protected_Hardlinks Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.3
+  title: Ensure Fs.Protected_Symlinks Is Configured
+  objective: Ensure Fs.Protected_Symlinks Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.3-ar
+    text: Fs.Protected_Symlinks Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.4
+  title: Ensure Fs.Suid_Dumpable Is Configured
+  objective: Ensure Fs.Suid_Dumpable Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.4-ar
+    text: Fs.Suid_Dumpable Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.5
+  title: Ensure Kernel.Dmesg_Restrict Is Configured
+  objective: Ensure Kernel.Dmesg_Restrict Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.5-ar
+    text: Kernel.Dmesg_Restrict Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.6
+  title: Ensure Kernel.Kptr_Restrict Is Configured
+  objective: Ensure Kernel.Kptr_Restrict Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.6-ar
+    text: Kernel.Kptr_Restrict Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.7
+  title: Ensure Kernel.Yama.Ptrace_Scope Is Configured
+  objective: Ensure Kernel.Yama.Ptrace_Scope Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.7-ar
+    text: Kernel.Yama.Ptrace_Scope Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.8
+  title: Ensure Kernel.Randomize_Va_Space Is Configured
+  objective: Ensure Kernel.Randomize_Va_Space Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.8-ar
+    text: Kernel.Randomize_Va_Space Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-5.9
+  title: Ensure Systemd-Coredump Processsizemax Is Configured
+  objective: Ensure Systemd-Coredump Processsizemax Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-5.9-ar
+    text: Systemd-Coredump Processsizemax Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-6.2
+  title: Ensure System Wide Crypto Policy Disables Sha1 Hash And Signature Support
+  objective: Ensure System Wide Crypto Policy Disables Sha1 Hash And Signature Support
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-6.2-ar
+    text: System Wide Crypto Policy Disables Sha1 Hash And Signature Support MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-6.3
+  title: Ensure System Wide Crypto Policy Macs Are Configured
+  objective: Ensure System Wide Crypto Policy Macs Are Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-6.3-ar
+    text: System Wide Crypto Policy Macs Are Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-6.4
+  title: Ensure System Wide Crypto Policy Disables Cbc For Ssh
+  objective: Ensure System Wide Crypto Policy Disables Cbc For Ssh
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-6.4-ar
+    text: System Wide Crypto Policy Disables Cbc For Ssh MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-7.1
+  title: Ensure /Etc/Motd Is Configured
+  objective: Ensure /Etc/Motd Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-7.1-ar
+    text: /Etc/Motd Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-7.2
+  title: Ensure /Etc/Issue Is Configured
+  objective: Ensure /Etc/Issue Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-7.2-ar
+    text: /Etc/Issue Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-7.3
+  title: Ensure /Etc/Issue.Net Is Configured
+  objective: Ensure /Etc/Issue.Net Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-7.3-ar
+    text: /Etc/Issue.Net Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-7.4
+  title: Ensure Access To /Etc/Motd Is Configured
+  objective: Ensure Access To /Etc/Motd Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-7.4-ar
+    text: Access To /Etc/Motd Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-7.5
+  title: Ensure Access To /Etc/Issue Is Configured
+  objective: Ensure Access To /Etc/Issue Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-7.5-ar
+    text: Access To /Etc/Issue Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-7.6
+  title: Ensure Access To /Etc/Issue.Net Is Configured
+  objective: Ensure Access To /Etc/Issue.Net Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-7.6-ar
+    text: Access To /Etc/Issue.Net Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-8.1
+  title: Ensure Gdm Login Banner Is Configured
+  objective: Ensure Gdm Login Banner Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-8.1-ar
+    text: Gdm Login Banner Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-8.2
+  title: Ensure Gdm Disable-User-List Is Configured
+  objective: Ensure Gdm Disable-User-List Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-8.2-ar
+    text: Gdm Disable-User-List Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-8.3
+  title: Ensure Gdm Screen Lock Is Configured
+  objective: Ensure Gdm Screen Lock Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-8.3-ar
+    text: Gdm Screen Lock Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_1-8.5
+  title: Ensure Gdm Autorun-Never Is Configured
+  objective: Ensure Gdm Autorun-Never Is Configured
+  group: initial-setup
+  assessment-requirements:
+  - id: cis_fedora_1-8.5-ar
+    text: Gdm Autorun-Never Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.12
+  title: Ensure Rpcbind Services Are Not In Use
+  objective: Ensure Rpcbind Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.12-ar
+    text: Rpcbind Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.13
+  title: Ensure Rsync Services Are Not In Use
+  objective: Ensure Rsync Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.13-ar
+    text: Rsync Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.14
+  title: Ensure Samba File Server Services Are Not In Use
+  objective: Ensure Samba File Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.14-ar
+    text: Samba File Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.15
+  title: Ensure Snmp Services Are Not In Use
+  objective: Ensure Snmp Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.15-ar
+    text: Snmp Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.16
+  title: Ensure Telnet Server Services Are Not In Use
+  objective: Ensure Telnet Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.16-ar
+    text: Telnet Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.17
+  title: Ensure Tftp Server Services Are Not In Use
+  objective: Ensure Tftp Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.17-ar
+    text: Tftp Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.18
+  title: Ensure Web Proxy Server Services Are Not In Use
+  objective: Ensure Web Proxy Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.18-ar
+    text: Web Proxy Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.19
+  title: Ensure Web Server Services Are Not In Use
+  objective: Ensure Web Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.19-ar
+    text: Web Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.23
+  title: Ensure Mail Transfer Agents Are Configured For Local-Only Mode
+  objective: Ensure Mail Transfer Agents Are Configured For Local-Only Mode
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.23-ar
+    text: Mail Transfer Agents Are Configured For Local-Only Mode MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.4
+  title: Ensure Dhcp Server Services Are Not In Use
+  objective: Ensure Dhcp Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.4-ar
+    text: Dhcp Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.5
+  title: Ensure Dns Server Services Are Not In Use
+  objective: Ensure Dns Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.5-ar
+    text: Dns Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.6
+  title: Ensure Dnsmasq Services Are Not In Use
+  objective: Ensure Dnsmasq Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.6-ar
+    text: Dnsmasq Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.7
+  title: Ensure Ftp Server Services Are Not In Use
+  objective: Ensure Ftp Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.7-ar
+    text: Ftp Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.8
+  title: Ensure Message Access Server Services Are Not In Use
+  objective: Ensure Message Access Server Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.8-ar
+    text: Message Access Server Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-1.9
+  title: Ensure Network File System Services Are Not In Use
+  objective: Ensure Network File System Services Are Not In Use
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-1.9-ar
+    text: Network File System Services Are Not In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-2.1
+  title: Ensure Ftp Client Is Not Installed
+  objective: Ensure Ftp Client Is Not Installed
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-2.1-ar
+    text: Ftp Client Is Not Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-2.4
+  title: Ensure Telnet Client Is Not Installed
+  objective: Ensure Telnet Client Is Not Installed
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-2.4-ar
+    text: Telnet Client Is Not Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-2.5
+  title: Ensure Tftp Client Is Not Installed
+  objective: Ensure Tftp Client Is Not Installed
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-2.5-ar
+    text: Tftp Client Is Not Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-3.2
+  title: Ensure Chrony Is Configured
+  objective: Ensure Chrony Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-3.2-ar
+    text: Chrony Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-3.3
+  title: Ensure Chrony Is Not Run As The Root User
+  objective: Ensure Chrony Is Not Run As The Root User
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-3.3-ar
+    text: Chrony Is Not Run As The Root User MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.1
+  title: Ensure Cron Daemon Is Enabled And Active
+  objective: Ensure Cron Daemon Is Enabled And Active
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.1-ar
+    text: Cron Daemon Is Enabled And Active MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.2
+  title: Ensure Access To /Etc/Crontab Is Configured
+  objective: Ensure Access To /Etc/Crontab Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.2-ar
+    text: Access To /Etc/Crontab Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.3
+  title: Ensure Access To /Etc/Cron.Hourly Is Configured
+  objective: Ensure Access To /Etc/Cron.Hourly Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.3-ar
+    text: Access To /Etc/Cron.Hourly Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.4
+  title: Ensure Access To /Etc/Cron.Daily Is Configured
+  objective: Ensure Access To /Etc/Cron.Daily Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.4-ar
+    text: Access To /Etc/Cron.Daily Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.5
+  title: Ensure Access To /Etc/Cron.Weekly Is Configured
+  objective: Ensure Access To /Etc/Cron.Weekly Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.5-ar
+    text: Access To /Etc/Cron.Weekly Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.6
+  title: Ensure Access To /Etc/Cron.Monthly Is Configured
+  objective: Ensure Access To /Etc/Cron.Monthly Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.6-ar
+    text: Access To /Etc/Cron.Monthly Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.8
+  title: Ensure Access To /Etc/Cron.D Is Configured
+  objective: Ensure Access To /Etc/Cron.D Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.8-ar
+    text: Access To /Etc/Cron.D Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.1.9
+  title: Ensure Access To Crontab Is Configured
+  objective: Ensure Access To Crontab Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.1.9-ar
+    text: Access To Crontab Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_2-4.2.1
+  title: Ensure Access To At Is Configured
+  objective: Ensure Access To At Is Configured
+  group: services
+  assessment-requirements:
+  - id: cis_fedora_2-4.2.1-ar
+    text: Access To At Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-2.1
+  title: Ensure Atm Kernel Module Is Not Available
+  objective: Ensure Atm Kernel Module Is Not Available
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-2.1-ar
+    text: Atm Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-2.2
+  title: Ensure Can Kernel Module Is Not Available
+  objective: Ensure Can Kernel Module Is Not Available
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-2.2-ar
+    text: Can Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-2.3
+  title: Ensure Dccp Kernel Module Is Not Available
+  objective: Ensure Dccp Kernel Module Is Not Available
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-2.3-ar
+    text: Dccp Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-2.4
+  title: Ensure Tipc Kernel Module Is Not Available
+  objective: Ensure Tipc Kernel Module Is Not Available
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-2.4-ar
+    text: Tipc Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-2.5
+  title: Ensure Rds Kernel Module Is Not Available
+  objective: Ensure Rds Kernel Module Is Not Available
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-2.5-ar
+    text: Rds Kernel Module Is Not Available MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.1
+  title: Ensure Net.Ipv4.Ip_Forward Is Configured
+  objective: Ensure Net.Ipv4.Ip_Forward Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.1-ar
+    text: Net.Ipv4.Ip_Forward Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.10
+  title: Ensure Net.Ipv4.Conf.All.Secure_Redirects Is Configured
+  objective: Ensure Net.Ipv4.Conf.All.Secure_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.10-ar
+    text: Net.Ipv4.Conf.All.Secure_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.11
+  title: Ensure Net.Ipv4.Conf.Default.Secure_Redirects Is Configured
+  objective: Ensure Net.Ipv4.Conf.Default.Secure_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.11-ar
+    text: Net.Ipv4.Conf.Default.Secure_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.12
+  title: Ensure Net.Ipv4.Conf.All.Rp_Filter Is Configured
+  objective: Ensure Net.Ipv4.Conf.All.Rp_Filter Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.12-ar
+    text: Net.Ipv4.Conf.All.Rp_Filter Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.13
+  title: Ensure Net.Ipv4.Conf.Default.Rp_Filter Is Configured
+  objective: Ensure Net.Ipv4.Conf.Default.Rp_Filter Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.13-ar
+    text: Net.Ipv4.Conf.Default.Rp_Filter Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.14
+  title: Ensure Net.Ipv4.Conf.All.Accept_Source_Route Is Configured
+  objective: Ensure Net.Ipv4.Conf.All.Accept_Source_Route Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.14-ar
+    text: Net.Ipv4.Conf.All.Accept_Source_Route Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.15
+  title: Ensure Net.Ipv4.Conf.Default.Accept_Source_Route Is Configured
+  objective: Ensure Net.Ipv4.Conf.Default.Accept_Source_Route Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.15-ar
+    text: Net.Ipv4.Conf.Default.Accept_Source_Route Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.16
+  title: Ensure Net.Ipv4.Conf.All.Log_Martians Is Configured
+  objective: Ensure Net.Ipv4.Conf.All.Log_Martians Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.16-ar
+    text: Net.Ipv4.Conf.All.Log_Martians Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.17
+  title: Ensure Net.Ipv4.Conf.Default.Log_Martians Is Configured
+  objective: Ensure Net.Ipv4.Conf.Default.Log_Martians Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.17-ar
+    text: Net.Ipv4.Conf.Default.Log_Martians Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.18
+  title: Ensure Net.Ipv4.Tcp_Syncookies Is Configured
+  objective: Ensure Net.Ipv4.Tcp_Syncookies Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.18-ar
+    text: Net.Ipv4.Tcp_Syncookies Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.4
+  title: Ensure Net.Ipv4.Conf.All.Send_Redirects Is Configured
+  objective: Ensure Net.Ipv4.Conf.All.Send_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.4-ar
+    text: Net.Ipv4.Conf.All.Send_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.5
+  title: Ensure Net.Ipv4.Conf.Default.Send_Redirects Is Configured
+  objective: Ensure Net.Ipv4.Conf.Default.Send_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.5-ar
+    text: Net.Ipv4.Conf.Default.Send_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.6
+  title: Ensure Net.Ipv4.Icmp_Ignore_Bogus_Error_Responses Is Configured
+  objective: Ensure Net.Ipv4.Icmp_Ignore_Bogus_Error_Responses Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.6-ar
+    text: Net.Ipv4.Icmp_Ignore_Bogus_Error_Responses Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.7
+  title: Ensure Net.Ipv4.Icmp_Echo_Ignore_Broadcasts Is Configured
+  objective: Ensure Net.Ipv4.Icmp_Echo_Ignore_Broadcasts Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.7-ar
+    text: Net.Ipv4.Icmp_Echo_Ignore_Broadcasts Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.8
+  title: Ensure Net.Ipv4.Conf.All.Accept_Redirects Is Configured
+  objective: Ensure Net.Ipv4.Conf.All.Accept_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.8-ar
+    text: Net.Ipv4.Conf.All.Accept_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.1.9
+  title: Ensure Net.Ipv4.Conf.Default.Accept_Redirects Is Configured
+  objective: Ensure Net.Ipv4.Conf.Default.Accept_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.1.9-ar
+    text: Net.Ipv4.Conf.Default.Accept_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.1
+  title: Ensure Net.Ipv6.Conf.All.Forwarding Is Configured
+  objective: Ensure Net.Ipv6.Conf.All.Forwarding Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.1-ar
+    text: Net.Ipv6.Conf.All.Forwarding Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.3
+  title: Ensure Net.Ipv6.Conf.All.Accept_Redirects Is Configured
+  objective: Ensure Net.Ipv6.Conf.All.Accept_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.3-ar
+    text: Net.Ipv6.Conf.All.Accept_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.4
+  title: Ensure Net.Ipv6.Conf.Default.Accept_Redirects Is Configured
+  objective: Ensure Net.Ipv6.Conf.Default.Accept_Redirects Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.4-ar
+    text: Net.Ipv6.Conf.Default.Accept_Redirects Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.5
+  title: Ensure Net.Ipv6.Conf.All.Accept_Source_Route Is Configured
+  objective: Ensure Net.Ipv6.Conf.All.Accept_Source_Route Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.5-ar
+    text: Net.Ipv6.Conf.All.Accept_Source_Route Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.6
+  title: Ensure Net.Ipv6.Conf.Default.Accept_Source_Route Is Configured
+  objective: Ensure Net.Ipv6.Conf.Default.Accept_Source_Route Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.6-ar
+    text: Net.Ipv6.Conf.Default.Accept_Source_Route Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.7
+  title: Ensure Net.Ipv6.Conf.All.Accept_Ra Is Configured
+  objective: Ensure Net.Ipv6.Conf.All.Accept_Ra Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.7-ar
+    text: Net.Ipv6.Conf.All.Accept_Ra Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_3-3.2.8
+  title: Ensure Net.Ipv6.Conf.Default.Accept_Ra Is Configured
+  objective: Ensure Net.Ipv6.Conf.Default.Accept_Ra Is Configured
+  group: network
+  assessment-requirements:
+  - id: cis_fedora_3-3.2.8-ar
+    text: Net.Ipv6.Conf.Default.Accept_Ra Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_4-1.1
+  title: Ensure Nftables Is Installed
+  objective: Ensure Nftables Is Installed
+  group: firewall
+  assessment-requirements:
+  - id: cis_fedora_4-1.1-ar
+    text: Nftables Is Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_4-1.2
+  title: Ensure A Single Firewall Configuration Utility Is In Use
+  objective: Ensure A Single Firewall Configuration Utility Is In Use
+  group: firewall
+  assessment-requirements:
+  - id: cis_fedora_4-1.2-ar
+    text: A Single Firewall Configuration Utility Is In Use MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_4-2.2
+  title: Ensure Firewalld Loopback Traffic Is Configured
+  objective: Ensure Firewalld Loopback Traffic Is Configured
+  group: firewall
+  assessment-requirements:
+  - id: cis_fedora_4-2.2-ar
+    text: Firewalld Loopback Traffic Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.1
+  title: Ensure Access To /Etc/Ssh/Sshd_Config Is Configured
+  objective: Ensure Access To /Etc/Ssh/Sshd_Config Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.1-ar
+    text: Access To /Etc/Ssh/Sshd_Config Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.11
+  title: Ensure Sshd Gssapiauthentication Is Disabled
+  objective: Ensure Sshd Gssapiauthentication Is Disabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.11-ar
+    text: Sshd Gssapiauthentication Is Disabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.12
+  title: Ensure Sshd Hostbasedauthentication Is Disabled
+  objective: Ensure Sshd Hostbasedauthentication Is Disabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.12-ar
+    text: Sshd Hostbasedauthentication Is Disabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.13
+  title: Ensure Sshd Ignorerhosts Is Enabled
+  objective: Ensure Sshd Ignorerhosts Is Enabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.13-ar
+    text: Sshd Ignorerhosts Is Enabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.14
+  title: Ensure Sshd Logingracetime Is Configured
+  objective: Ensure Sshd Logingracetime Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.14-ar
+    text: Sshd Logingracetime Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.15
+  title: Ensure Sshd Loglevel Is Configured
+  objective: Ensure Sshd Loglevel Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.15-ar
+    text: Sshd Loglevel Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.16
+  title: Ensure Sshd Maxauthtries Is Configured
+  objective: Ensure Sshd Maxauthtries Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.16-ar
+    text: Sshd Maxauthtries Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.17
+  title: Ensure Sshd Maxstartups Is Configured
+  objective: Ensure Sshd Maxstartups Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.17-ar
+    text: Sshd Maxstartups Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.18
+  title: Ensure Sshd Maxsessions Is Configured
+  objective: Ensure Sshd Maxsessions Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.18-ar
+    text: Sshd Maxsessions Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.19
+  title: Ensure Sshd Permitemptypasswords Is Disabled
+  objective: Ensure Sshd Permitemptypasswords Is Disabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.19-ar
+    text: Sshd Permitemptypasswords Is Disabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.2
+  title: Ensure Access To Ssh Private Host Key Files Is Configured
+  objective: Ensure Access To Ssh Private Host Key Files Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.2-ar
+    text: Access To Ssh Private Host Key Files Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.20
+  title: Ensure Sshd Permitrootlogin Is Disabled
+  objective: Ensure Sshd Permitrootlogin Is Disabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.20-ar
+    text: Sshd Permitrootlogin Is Disabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.21
+  title: Ensure Sshd Permituserenvironment Is Disabled
+  objective: Ensure Sshd Permituserenvironment Is Disabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.21-ar
+    text: Sshd Permituserenvironment Is Disabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.22
+  title: Ensure Sshd Usepam Is Enabled
+  objective: Ensure Sshd Usepam Is Enabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.22-ar
+    text: Sshd Usepam Is Enabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.3
+  title: Ensure Access To Ssh Public Host Key Files Is Configured
+  objective: Ensure Access To Ssh Public Host Key Files Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.3-ar
+    text: Access To Ssh Public Host Key Files Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.4
+  title: Ensure Sshd Ciphers Are Configured
+  objective: Ensure Sshd Ciphers Are Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.4-ar
+    text: Sshd Ciphers Are Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.5
+  title: Ensure Sshd Kexalgorithms Is Configured
+  objective: Ensure Sshd Kexalgorithms Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.5-ar
+    text: Sshd Kexalgorithms Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.6
+  title: Ensure Sshd Macs Are Configured
+  objective: Ensure Sshd Macs Are Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.6-ar
+    text: Sshd Macs Are Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.7
+  title: Ensure Sshd Access Is Configured
+  objective: Ensure Sshd Access Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.7-ar
+    text: Sshd Access Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.8
+  title: Ensure Sshd Banner Is Configured
+  objective: Ensure Sshd Banner Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.8-ar
+    text: Sshd Banner Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-1.9
+  title: Ensure Sshd Clientaliveinterval And Clientalivecountmax Are Configured
+  objective: Ensure Sshd Clientaliveinterval And Clientalivecountmax Are Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-1.9-ar
+    text: Sshd Clientaliveinterval And Clientalivecountmax Are Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-2.1
+  title: Ensure Sudo Is Installed
+  objective: Ensure Sudo Is Installed
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-2.1-ar
+    text: Sudo Is Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-2.2
+  title: Ensure Sudo Commands Use Pty
+  objective: Ensure Sudo Commands Use Pty
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-2.2-ar
+    text: Sudo Commands Use Pty MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-2.3
+  title: Ensure Sudo Log File Exists
+  objective: Ensure Sudo Log File Exists
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-2.3-ar
+    text: Sudo Log File Exists MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-2.5
+  title: Ensure Re-Authentication For Privilege Escalation Is Not Disabled Globally
+  objective: Ensure Re-Authentication For Privilege Escalation Is Not Disabled Globally
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-2.5-ar
+    text: Re-Authentication For Privilege Escalation Is Not Disabled Globally MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-2.6
+  title: Ensure Sudo Timestamp_Timeout Is Configured
+  objective: Ensure Sudo Timestamp_Timeout Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-2.6-ar
+    text: Sudo Timestamp_Timeout Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-2.7
+  title: Ensure Access To The Su Command Is Restricted
+  objective: Ensure Access To The Su Command Is Restricted
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-2.7-ar
+    text: Access To The Su Command Is Restricted MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.1.3
+  title: Ensure Latest Version Of Libpwquality Is Installed
+  objective: Ensure Latest Version Of Libpwquality Is Installed
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.1.3-ar
+    text: Latest Version Of Libpwquality Is Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.2.2
+  title: Ensure Pam_Faillock Module Is Enabled
+  objective: Ensure Pam_Faillock Module Is Enabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.2.2-ar
+    text: Pam_Faillock Module Is Enabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.2.3
+  title: Ensure Pam_Pwquality Module Is Enabled
+  objective: Ensure Pam_Pwquality Module Is Enabled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.2.3-ar
+    text: Pam_Pwquality Module Is Enabled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.1.1
+  title: CIS Fedora 5 - 3.3.1.1
+  objective: CIS Fedora 5 - 3.3.1.1
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.1.1-ar
+    text: CIS Fedora 5 - 3.3.1.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.1.2
+  title: CIS Fedora 5 - 3.3.1.2
+  objective: CIS Fedora 5 - 3.3.1.2
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.1.2-ar
+    text: CIS Fedora 5 - 3.3.1.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.2.1
+  title: CIS Fedora 5 - 3.3.2.1
+  objective: CIS Fedora 5 - 3.3.2.1
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.2.1-ar
+    text: CIS Fedora 5 - 3.3.2.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.2.2
+  title: CIS Fedora 5 - 3.3.2.2
+  objective: CIS Fedora 5 - 3.3.2.2
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.2.2-ar
+    text: CIS Fedora 5 - 3.3.2.2 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.2.3
+  title: CIS Fedora 5 - 3.3.2.3
+  objective: CIS Fedora 5 - 3.3.2.3
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.2.3-ar
+    text: CIS Fedora 5 - 3.3.2.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.2.4
+  title: CIS Fedora 5 - 3.3.2.4
+  objective: CIS Fedora 5 - 3.3.2.4
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.2.4-ar
+    text: CIS Fedora 5 - 3.3.2.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.2.6
+  title: CIS Fedora 5 - 3.3.2.6
+  objective: CIS Fedora 5 - 3.3.2.6
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.2.6-ar
+    text: CIS Fedora 5 - 3.3.2.6 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.2.7
+  title: CIS Fedora 5 - 3.3.2.7
+  objective: CIS Fedora 5 - 3.3.2.7
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.2.7-ar
+    text: CIS Fedora 5 - 3.3.2.7 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.3.1
+  title: CIS Fedora 5 - 3.3.3.1
+  objective: CIS Fedora 5 - 3.3.3.1
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.3.1-ar
+    text: CIS Fedora 5 - 3.3.3.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.4.1
+  title: CIS Fedora 5 - 3.3.4.1
+  objective: CIS Fedora 5 - 3.3.4.1
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.4.1-ar
+    text: CIS Fedora 5 - 3.3.4.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-3.3.4.3
+  title: CIS Fedora 5 - 3.3.4.3
+  objective: CIS Fedora 5 - 3.3.4.3
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-3.3.4.3-ar
+    text: CIS Fedora 5 - 3.3.4.3 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.1.1
+  title: Ensure Password Expiration Is Configured
+  objective: Ensure Password Expiration Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.1.1-ar
+    text: Password Expiration Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.1.3
+  title: Ensure Password Expiration Warning Days Is Configured
+  objective: Ensure Password Expiration Warning Days Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.1.3-ar
+    text: Password Expiration Warning Days Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.1.4
+  title: Ensure Strong Password Hashing Algorithm Is Configured
+  objective: Ensure Strong Password Hashing Algorithm Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.1.4-ar
+    text: Strong Password Hashing Algorithm Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.1.5
+  title: Ensure Inactive Password Lock Is Configured
+  objective: Ensure Inactive Password Lock Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.1.5-ar
+    text: Inactive Password Lock Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.1.6
+  title: Ensure All Users Last Password Change Date Is In The Past
+  objective: Ensure All Users Last Password Change Date Is In The Past
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.1.6-ar
+    text: All Users Last Password Change Date Is In The Past MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.2.1
+  title: Ensure Root Is The Only Uid 0 Account
+  objective: Ensure Root Is The Only Uid 0 Account
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.2.1-ar
+    text: Root Is The Only Uid 0 Account MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.2.2
+  title: Ensure Root Is The Only Gid 0 Account
+  objective: Ensure Root Is The Only Gid 0 Account
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.2.2-ar
+    text: Root Is The Only Gid 0 Account MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.2.4
+  title: Ensure Root Account Access Is Controlled
+  objective: Ensure Root Account Access Is Controlled
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.2.4-ar
+    text: Root Account Access Is Controlled MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.2.5
+  title: Ensure Root Path Integrity
+  objective: Ensure Root Path Integrity
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.2.5-ar
+    text: Root Path Integrity MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.2.7
+  title: Ensure System Accounts Do Not Have A Valid Login Shell
+  objective: Ensure System Accounts Do Not Have A Valid Login Shell
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.2.7-ar
+    text: System Accounts Do Not Have A Valid Login Shell MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.3.2
+  title: Ensure Default User Shell Timeout Is Configured
+  objective: Ensure Default User Shell Timeout Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.3.2-ar
+    text: Default User Shell Timeout Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_5-4.3.3
+  title: Ensure Default User Umask Is Configured
+  objective: Ensure Default User Umask Is Configured
+  group: access-auth
+  assessment-requirements:
+  - id: cis_fedora_5-4.3.3-ar
+    text: Default User Umask Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-1.1
+  title: Ensure Aide Is Installed
+  objective: Ensure Aide Is Installed
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-1.1-ar
+    text: Aide Is Installed MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-1.2
+  title: Ensure Filesystem Integrity Is Regularly Checked
+  objective: Ensure Filesystem Integrity Is Regularly Checked
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-1.2-ar
+    text: Filesystem Integrity Is Regularly Checked MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-1.3
+  title: Ensure Cryptographic Mechanisms Are Used To Protect The Integrity Of Audit Tools
+  objective: Ensure Cryptographic Mechanisms Are Used To Protect The Integrity Of Audit Tools
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-1.3-ar
+    text: Cryptographic Mechanisms Are Used To Protect The Integrity Of Audit Tools MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-2.1.1
+  title: Ensure Journald Service Is Active
+  objective: Ensure Journald Service Is Active
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-2.1.1-ar
+    text: Journald Service Is Active MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-2.2.1.1
+  title: CIS Fedora 6 - 2.2.1.1
+  objective: CIS Fedora 6 - 2.2.1.1
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-2.2.1.1-ar
+    text: CIS Fedora 6 - 2.2.1.1 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-2.2.1.4
+  title: CIS Fedora 6 - 2.2.1.4
+  objective: CIS Fedora 6 - 2.2.1.4
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-2.2.1.4-ar
+    text: CIS Fedora 6 - 2.2.1.4 MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-2.2.3
+  title: Ensure Journald Compress Is Configured
+  objective: Ensure Journald Compress Is Configured
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-2.2.3-ar
+    text: Journald Compress Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-2.2.4
+  title: Ensure Journald Storage Is Configured
+  objective: Ensure Journald Storage Is Configured
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-2.2.4-ar
+    text: Journald Storage Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_6-2.6.1
+  title: Ensure Access To All Logfiles Has Been Configured
+  objective: Ensure Access To All Logfiles Has Been Configured
+  group: logging
+  assessment-requirements:
+  - id: cis_fedora_6-2.6.1-ar
+    text: Access To All Logfiles Has Been Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.1
+  title: Ensure Access To /Etc/Passwd Is Configured
+  objective: Ensure Access To /Etc/Passwd Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.1-ar
+    text: Access To /Etc/Passwd Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.11
+  title: Ensure World Writable Files And Directories Are Secured
+  objective: Ensure World Writable Files And Directories Are Secured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.11-ar
+    text: World Writable Files And Directories Are Secured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.2
+  title: Ensure Access To /Etc/Passwd- Is Configured
+  objective: Ensure Access To /Etc/Passwd- Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.2-ar
+    text: Access To /Etc/Passwd- Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.3
+  title: Ensure Access To /Etc/Group Is Configured
+  objective: Ensure Access To /Etc/Group Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.3-ar
+    text: Access To /Etc/Group Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.4
+  title: Ensure Access To /Etc/Group- Is Configured
+  objective: Ensure Access To /Etc/Group- Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.4-ar
+    text: Access To /Etc/Group- Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.5
+  title: Ensure Access To /Etc/Shadow Is Configured
+  objective: Ensure Access To /Etc/Shadow Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.5-ar
+    text: Access To /Etc/Shadow Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.6
+  title: Ensure Access To /Etc/Shadow- Is Configured
+  objective: Ensure Access To /Etc/Shadow- Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.6-ar
+    text: Access To /Etc/Shadow- Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.7
+  title: Ensure Access To /Etc/Gshadow Is Configured
+  objective: Ensure Access To /Etc/Gshadow Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.7-ar
+    text: Access To /Etc/Gshadow Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.8
+  title: Ensure Access To /Etc/Gshadow- Is Configured
+  objective: Ensure Access To /Etc/Gshadow- Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.8-ar
+    text: Access To /Etc/Gshadow- Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-1.9
+  title: Ensure Access To /Etc/Shells Is Configured
+  objective: Ensure Access To /Etc/Shells Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-1.9-ar
+    text: Access To /Etc/Shells Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.1
+  title: Ensure Accounts In /Etc/Passwd Use Shadowed Passwords
+  objective: Ensure Accounts In /Etc/Passwd Use Shadowed Passwords
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.1-ar
+    text: Accounts In /Etc/Passwd Use Shadowed Passwords MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.2
+  title: Ensure /Etc/Shadow Password Fields Are Not Empty
+  objective: Ensure /Etc/Shadow Password Fields Are Not Empty
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.2-ar
+    text: /Etc/Shadow Password Fields Are Not Empty MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.3
+  title: Ensure All Groups In /Etc/Passwd Exist In /Etc/Group
+  objective: Ensure All Groups In /Etc/Passwd Exist In /Etc/Group
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.3-ar
+    text: All Groups In /Etc/Passwd Exist In /Etc/Group MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.4
+  title: Ensure No Duplicate Uids Exist
+  objective: Ensure No Duplicate Uids Exist
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.4-ar
+    text: No Duplicate Uids Exist MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.5
+  title: Ensure No Duplicate Gids Exist
+  objective: Ensure No Duplicate Gids Exist
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.5-ar
+    text: No Duplicate Gids Exist MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.6
+  title: Ensure No Duplicate User Names Exist
+  objective: Ensure No Duplicate User Names Exist
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.6-ar
+    text: No Duplicate User Names Exist MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.7
+  title: Ensure No Duplicate Group Names Exist
+  objective: Ensure No Duplicate Group Names Exist
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.7-ar
+    text: No Duplicate Group Names Exist MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.8
+  title: Ensure Local Interactive User Home Directories Are Configured
+  objective: Ensure Local Interactive User Home Directories Are Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.8-ar
+    text: Local Interactive User Home Directories Are Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: cis_fedora_7-2.9
+  title: Ensure Local Interactive User Dot Files Access Is Configured
+  objective: Ensure Local Interactive User Dot Files Access Is Configured
+  group: maintenance
+  assessment-requirements:
+  - id: cis_fedora_7-2.9-ar
+    text: Local Interactive User Dot Files Access Is Configured MUST be verified
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+- id: reload_dconf_db
+  title: Reload Dconf Database
+  objective: Reload Dconf Database
+  group: operations
+  assessment-requirements:
+  - id: reload_dconf_db-ar
+    text: The dconf database MUST be reloaded after configuration changes
+    applicability:
+    - Fedora Linux
+    state: Active
+  state: Active
+groups:
+- id: initial-setup
+  title: Initial Setup
+  description: Filesystem, software updates, SELinux, boot, kernel, crypto, and banner configuration
+- id: services
+  title: Services
+  description: Network services, client packages, and time synchronization configuration
+- id: network
+  title: Network Configuration
+  description: Kernel modules, IPv4, and IPv6 network stack configuration
+- id: firewall
+  title: Host-Based Firewall
+  description: Firewall package installation and traffic filtering configuration
+- id: access-auth
+  title: Access, Authentication, and Authorization
+  description: SSH, sudo, PAM, password, user account, and shell configuration
+- id: logging
+  title: Logging and Auditing
+  description: System logging, journald, and file integrity monitoring configuration
+- id: maintenance
+  title: System Maintenance
+  description: File permissions, user/group integrity, and home directory configuration
+- id: operations
+  title: Operations
+  description: Operational tasks required for configuration application
+metadata:
+  id: cis-fedora-l1-workstation
+  type: ControlCatalog
+  gemara-version: 1.0.0-rc.0
+  description: Control catalog derived from the CIS Fedora Linux Level 1 Workstation Benchmark
+  author:
+    id: complytime
+    name: ComplyTime
+    type: Software Assisted
