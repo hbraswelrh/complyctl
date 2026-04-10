@@ -1,0 +1,93 @@
+title: ComplyTime Capability Catalog
+metadata:
+    id: CT.COMPLYCTL.CAP
+    type: CapabilityCatalog
+    gemara-version: 1.0.0-rc.2
+    description: >
+        Internal capability definitions for the complyctl compliance runtime
+        covering OCI retrieval, plugin execution, gRPC communication,
+        workspace configuration, policy resolution, target variable injection,
+        and report generation.
+    version: 0.1.0
+    author:
+        id: complytime-team
+        name: ComplyTime
+        type: Software Assisted
+        uri: https://github.com/complytime/complytime
+
+groups:
+    - id: oci
+      title: OCI Registry
+      description: >
+          Capabilities related to fetching and managing policy artifacts
+          from OCI-compliant registries.
+    - id: plugin
+      title: Plugin Management
+      description: >
+          Capabilities related to the discovery, execution, and communication
+          with provider plugin subprocesses.
+    - id: configuration
+      title: Configuration and Resolution
+      description: >
+          Capabilities related to workspace configuration loading, policy
+          graph resolution, and variable injection.
+    - id: reporting
+      title: Reporting
+      description: >
+          Capabilities related to assessment report generation and output.
+
+capabilities:
+    - id: CT.COMPLYCTL.CAP01
+      title: OCI Artifact Retrieval
+      group: oci
+      description: >
+          Fetch policy artifacts (catalogs, guidance, policy layers) from OCI-compliant
+          registries using oras-go. Supports credential-based authentication via the
+          Docker credential chain and plain HTTP fallback.
+
+    - id: CT.COMPLYCTL.CAP02
+      title: Plugin Subprocess Execution
+      group: plugin
+      description: >
+          Discover plugin binaries matching the naming convention
+          (complyctl-provider-*) in a configured directory, launch them as
+          subprocesses via hashicorp/go-plugin, and manage their lifecycle.
+
+    - id: CT.COMPLYCTL.CAP03
+      title: gRPC Plugin Communication
+      group: plugin
+      description: >
+          Exchange assessment configurations, scan requests, and evaluation results
+          between the host CLI and plugin subprocesses over gRPC channels with
+          AutoMTLS enabled by hashicorp/go-plugin.
+
+    - id: CT.COMPLYCTL.CAP04
+      title: Workspace Configuration Loading
+      group: configuration
+      description: >
+          Parse the complytime.yaml workspace configuration file including
+          environment variable expansion (${VAR} syntax) for target variables
+          containing credentials and connection strings.
+
+    - id: CT.COMPLYCTL.CAP05
+      title: Policy Graph Resolution
+      group: configuration
+      description: >
+          Resolve cached OCI layers into a policy graph structure, extract
+          assessment configurations, and group them by evaluator ID for
+          plugin routing.
+
+    - id: CT.COMPLYCTL.CAP06
+      title: Target Variable Injection
+      group: configuration
+      description: >
+          Pass target-specific variables (authentication tokens, connection
+          strings, environment identifiers) from workspace configuration
+          through the plugin gRPC interface to assessment evaluators.
+
+    - id: CT.COMPLYCTL.CAP07
+      title: Assessment Report Generation
+      group: reporting
+      description: >
+          Write evaluation results to the local filesystem in multiple formats
+          under the specified output directory.
