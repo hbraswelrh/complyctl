@@ -21,8 +21,8 @@ metadata:
           description: >
               Foundational repository of reusable security controls, capabilities,
               and threat models maintained by FINOS.
-        - id: CT.COMPLYCTL
-          title: ComplyTime Capabilities
+        - id: CT.COMPLYCTL.CAP
+          title: ComplyTime Capability Catalog
           version: 0.1.0
           url: https://github.com/complytime/complyctl
           description: >
@@ -67,7 +67,7 @@ threats:
             entries:
                 - reference-id: CCC.Core.CP29
                 - reference-id: CCC.Core.CP18
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP01
 
@@ -83,7 +83,7 @@ threats:
           references that fail silently could mask missing credentials, and
           plaintext persistence in complytime.yaml widens the exposure surface.
       capabilities:
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP04
                 - reference-id: CT.COMPLYCTL.CAP06
@@ -100,7 +100,7 @@ threats:
           code-signing. A substituted binary inherits the host process's trust
           context including gRPC AutoMTLS and target variables.
       capabilities:
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP02
 
@@ -114,7 +114,7 @@ threats:
           resources available to the invoking user. No sandboxing, namespace
           isolation, or capability restrictions are applied to plugin processes.
       capabilities:
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP02
                 - reference-id: CT.COMPLYCTL.CAP03
@@ -128,7 +128,7 @@ threats:
           exposes OCI manifest and blob traffic (including authentication credentials
           if configured) to network-level interception and modification.
       capabilities:
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP01
 
@@ -143,7 +143,7 @@ threats:
           raw step-level results enables downstream consumers to audit provenance and
           detect inconsistencies.
       capabilities:
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP03
                 - reference-id: CT.COMPLYCTL.CAP07
@@ -159,7 +159,7 @@ threats:
           secondary credential store readable by any process with access to the
           working directory.
       capabilities:
-          - reference-id: CT.COMPLYCTL
+          - reference-id: CT.COMPLYCTL.CAP
             entries:
                 - reference-id: CT.COMPLYCTL.CAP04
                 - reference-id: CT.COMPLYCTL.CAP07
