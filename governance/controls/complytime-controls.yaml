@@ -1,31 +1,14 @@
 title: ComplyTime Gemara-Native Redesign Control Catalog
-metadata:
-    id: CT.COMPLYCTL.CTRL
-    description: >
-        Security controls mitigating threats identified in the CT.COMPLYCTL threat
-        catalog for the complytime CLI redesign.
-    version: 0.1.0
-    author:
-        id: complytime-team
-        name: ComplyTime
-        type: Software-Assisted
-    mapping-references:
-        - id: CT.COMPLYCTL
-          title: ComplyTime Threat Catalog
-          version: 0.1.0
-          url: https://github.com/complytime/complytime
-          description: Threat catalog for the Gemara-native workflow redesign.
-
 controls:
     - id: CT.COMPLYCTL.CTRL01
       title: Policy Content Signature Validation
-      family: Supply Chain Integrity
+      group: supply-chain-integrity
       objective: >
           Reduce the risk of OCI registry artifact tampering by verifying a
           cryptographic signature on fetched policy content before accepting it
           into the local cache, ensuring the publisher is authenticated and the
           content has not been modified in transit.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR02
@@ -35,14 +18,18 @@ controls:
                 After a successful get operation, the system must have verified a
                 cryptographic signature on the fetched policy manifest before
                 writing content to the local cache.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL02
       title: OCI Artifact Digest Tracking
-      family: Supply Chain Integrity
+      group: supply-chain-integrity
       objective: >
           Reduce the risk of OCI registry artifact tampering by tracking content digests
           for all synced policy artifacts to enable tamper detection on subsequent syncs.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR02
@@ -51,19 +38,26 @@ controls:
             text: >
                 Cache state.json must record the manifest digest for each synced
                 policy after a successful get operation.
+            applicability:
+                - complyctl CLI
+            state: Active
           - id: CT.COMPLYCTL.CTRL02.AR02
             text: >
                 The OCI layout directory must contain oci-layout marker and
                 index.json for each cached policy.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL03
       title: Environment Variable Resolution Safety
-      family: Credential Protection
+      group: credential-protection
       objective: >
           Reduce the risk of credential exposure via target variable transmission
           by requiring explicit environment variable
           references and failing on unresolvable variables at config load time.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR03
@@ -72,19 +66,26 @@ controls:
             text: >
                 Configuration loading must fail with a descriptive error when a
                 referenced environment variable is not set.
+            applicability:
+                - complyctl CLI
+            state: Active
           - id: CT.COMPLYCTL.CTRL03.AR02
             text: >
                 Target variables using ${VAR} syntax must resolve from the
                 process environment at config load time.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL04
       title: Plugin Routing Isolation
-      family: Plugin Security
+      group: plugin-security
       objective: >
           Reduce the risk of credential exposure to unintended plugins
           by routing assessment requests exclusively to
           matched evaluators and rejecting requests when no match exists.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR03
@@ -93,19 +94,26 @@ controls:
             text: >
                 When a matching evaluator ID exists, only that plugin must
                 receive the generate or scan request.
+            applicability:
+                - complyctl CLI
+            state: Active
           - id: CT.COMPLYCTL.CTRL04.AR02
             text: >
                 When an evaluator ID is specified but no matching plugin is
                 loaded, RouteGenerate and RouteScan must return an error.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL05
       title: Registry Transport Validation
-      family: Transport Security
+      group: transport-security
       objective: >
           Reduce the risk of insecure registry transport downgrade
           by enforcing awareness of transport scheme and
           correctly toggling plainHTTP based on the registry URL.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR06
@@ -114,18 +122,25 @@ controls:
             text: >
                 Registry URLs with http:// scheme must enable plainHTTP on the
                 OCI client for functional compatibility.
+            applicability:
+                - complyctl CLI
+            state: Active
           - id: CT.COMPLYCTL.CTRL05.AR02
             text: >
                 Registry URLs with https:// scheme must not enable plainHTTP.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL06
       title: Assessment Result Audit Trail
-      family: Audit and Accountability
+      group: audit-accountability
       objective: >
           Reduce the risk of unverified plugin assessment results
           by preserving all raw plugin assessment results
           in the evaluation log for downstream provenance verification.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR07
@@ -134,19 +149,26 @@ controls:
             text: >
                 Scan must produce an EvaluationLog JSON file containing every
                 assessment returned by plugins, including step-level results.
+            applicability:
+                - complyctl CLI
+            state: Active
           - id: CT.COMPLYCTL.CTRL06.AR02
             text: >
                 Plugin errors during scan must be recorded as RESULT_ERROR
                 assessments in the evaluation log, not silently dropped.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL07
       title: Plugin Binary Integrity Verification
-      family: Plugin Security
+      group: plugin-security
       objective: >
           Reduce the risk of plugin binary substitution by verifying the integrity
           of discovered provider binaries before execution. Until code-signing is
           implemented, this control documents the gap and requires expected failure.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR04
@@ -156,15 +178,19 @@ controls:
                 The plugin discovery process must verify binary integrity (e.g., via
                 digest or code-signing) before launching a provider subprocess.
                 NOT IMPLEMENTED — expected to fail until code-signing support is added.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL08
       title: Plugin Subprocess Isolation
-      family: Plugin Security
+      group: plugin-security
       objective: >
           Reduce the risk of plugin subprocess privilege escalation by constraining
           the capabilities available to provider processes. Until OS-level sandboxing
           is implemented, this control documents the gap and requires expected failure.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR05
@@ -175,15 +201,19 @@ controls:
                 parent process (e.g., dropped capabilities, namespace isolation, or
                 seccomp profile). NOT IMPLEMENTED — expected to fail until sandboxing
                 support is added.
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
 
     - id: CT.COMPLYCTL.CTRL09
       title: Log File Credential Redaction
-      family: Credential Protection
+      group: credential-protection
       objective: >
           Reduce the risk of log file information disclosure by ensuring that
           credentials and sensitive target variables are never written to the
           log file in plaintext.
-      threat-mappings:
+      threats:
           - reference-id: CT.COMPLYCTL
             entries:
                 - reference-id: CT.COMPLYCTL.THR08
@@ -192,3 +222,51 @@ controls:
             text: >
                 The log file must not contain plaintext values of target variables
                 that were resolved from environment variable references (${VAR} syntax).
+            applicability:
+                - complyctl CLI
+            state: Active
+      state: Active
+groups:
+    - id: supply-chain-integrity
+      title: Supply Chain Integrity
+      description: >
+          Controls ensuring the integrity and authenticity of artifacts
+          consumed by the compliance workflow.
+    - id: credential-protection
+      title: Credential Protection
+      description: >
+          Controls protecting authentication credentials and sensitive
+          configuration values from unauthorized disclosure.
+    - id: plugin-security
+      title: Plugin Security
+      description: >
+          Controls governing the secure discovery, verification, execution,
+          and isolation of provider plugin subprocesses.
+    - id: transport-security
+      title: Transport Security
+      description: >
+          Controls ensuring secure communication channels for registry
+          interaction.
+    - id: audit-accountability
+      title: Audit and Accountability
+      description: >
+          Controls establishing audit trails for compliance assessment
+          results and operational events.
+metadata:
+    id: CT.COMPLYCTL.CTRL
+    type: ControlCatalog
+    gemara-version: 1.0.0-rc.0
+    description: >
+        Security controls mitigating threats identified in the CT.COMPLYCTL threat
+        catalog for the complytime CLI redesign.
+    version: 0.1.0
+    author:
+        id: complytime-team
+        name: ComplyTime
+        type: Software Assisted
+    mapping-references:
+        - id: CT.COMPLYCTL
+          title: ComplyTime Threat Catalog
+          version: 0.1.0
+          url: https://github.com/complytime/complytime
+          description: Threat catalog for the Gemara-native workflow redesign.

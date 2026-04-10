@@ -61,7 +61,7 @@ func mockGemaraEvalLog() *gemara.EvaluationLog {
 						Applicability:   []string{"default"},
 						Start:           "2026-01-01T00:00:00Z",
 						StepsExecuted:   1,
-						ConfidenceLevel: gemara.NotSet,
+						ConfidenceLevel: gemara.Undetermined,
 					},
 				},
 			},
