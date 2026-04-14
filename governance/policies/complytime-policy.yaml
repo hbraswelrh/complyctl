@@ -2,7 +2,7 @@ title: ComplyTime CLI Security Policy
 metadata:
     id: CT.COMPLYCTL.POL01
     type: Policy
-    gemara-version: 1.0.0-rc.2
+    gemara-version: 1.0.0
     description: >
         Security policy for the complytime CLI establishing control import
         requirements, risk decisions, and assessment plans for the Gemara-native

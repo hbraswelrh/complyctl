@@ -255,7 +255,7 @@ groups:
 metadata:
     id: CT.COMPLYCTL.CTRL
     type: ControlCatalog
-    gemara-version: 1.0.0-rc.2
+    gemara-version: 1.0.0
     description: >
         Security controls mitigating threats identified in the CT.COMPLYCTL threat
         catalog for the complytime CLI redesign.

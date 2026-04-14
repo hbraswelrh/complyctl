@@ -2,7 +2,7 @@ title: ComplyTime Gemara-Native Threat Catalog
 metadata:
     id: CT.COMPLYCTL
     type: ThreatCatalog
-    gemara-version: 1.0.0-rc.2
+    gemara-version: 1.0.0
     description: >
         Threat catalog for the complytime CLI redesign covering the Gemara-native
         workflow: OCI registry interaction, hashicorp/go-plugin subprocess execution,

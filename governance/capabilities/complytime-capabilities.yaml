@@ -2,7 +2,7 @@ title: ComplyTime Capability Catalog
 metadata:
     id: CT.COMPLYCTL.CAP
     type: CapabilityCatalog
-    gemara-version: 1.0.0-rc.2
+    gemara-version: 1.0.0
     description: >
         Internal capability definitions for the complyctl compliance runtime
         covering OCI retrieval, plugin execution, gRPC communication,
