@@ -1,0 +1,333 @@
+[
+  {
+    "timestamp": "2026-04-20T14:51:05Z",
+    "sha": "40cfba575a7d27c086cf39bf428e9d2bd1835b8a",
+    "ref": "main",
+    "total_functions": 364,
+    "avg_complexity": 3.7774725274725274,
+    "avg_line_coverage": 27.422556465873054,
+    "avg_crap": 20.559691543308073,
+    "crapload": 95,
+    "crap_threshold": 15,
+    "gaze_crapload": 5,
+    "gaze_crap_threshold": 15,
+    "avg_gaze_crap": 5.6116327595200834,
+    "avg_contract_coverage": 84.50704225352112,
+    "quadrant_counts": {
+      "Q1_Safe": 65,
+      "Q2_ComplexButTested": 1,
+      "Q4_Dangerous": 5
+    },
+    "fix_strategy_counts": {
+      "add_tests": 87,
+      "decompose": 4,
+      "decompose_and_test": 4
+    },
+    "worst_crap": [
+      {
+        "package": "cli",
+        "function": "(*scanOptions).run",
+        "file": "cmd/complyctl/cli/scan.go",
+        "line": 100,
+        "complexity": 35,
+        "line_coverage": 0,
+        "crap": 1260,
+        "fix_strategy": "decompose_and_test"
+      },
+      {
+        "package": "behavioral",
+        "function": "StartMockRegistry",
+        "file": "tests/behavioral/registry.go",
+        "line": 44,
+        "complexity": 19,
+        "line_coverage": 0,
+        "crap": 380,
+        "fix_strategy": "decompose_and_test"
+      },
+      {
+        "package": "server",
+        "function": "(*PluginServer).Scan",
+        "file": "cmd/openscap-plugin/server/server.go",
+        "line": 116,
+        "complexity": 18,
+        "line_coverage": 0,
+        "crap": 342,
+        "contract_coverage": 100,
+        "gaze_crap": 18,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose_and_test"
+      },
+      {
+        "package": "cli",
+        "function": "(*generateOptions).run",
+        "file": "cmd/complyctl/cli/generate.go",
+        "line": 73,
+        "complexity": 18,
+        "line_coverage": 0,
+        "crap": 342,
+        "fix_strategy": "decompose_and_test"
+      },
+      {
+        "package": "cli",
+        "function": "runDoctor",
+        "file": "cmd/complyctl/cli/doctor.go",
+        "line": 57,
+        "complexity": 11,
+        "line_coverage": 0,
+        "crap": 132,
+        "fix_strategy": "add_tests"
+      }
+    ],
+    "worst_gaze_crap": [
+      {
+        "package": "doctor",
+        "function": "CheckVariables",
+        "file": "internal/doctor/doctor.go",
+        "line": 344,
+        "complexity": 34,
+        "line_coverage": 87.65432098765432,
+        "crap": 36.17521794517172,
+        "contract_coverage": 100,
+        "gaze_crap": 34,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose"
+      },
+      {
+        "package": "server",
+        "function": "(*PluginServer).Scan",
+        "file": "cmd/openscap-plugin/server/server.go",
+        "line": 116,
+        "complexity": 18,
+        "line_coverage": 0,
+        "crap": 342,
+        "contract_coverage": 100,
+        "gaze_crap": 18,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose_and_test"
+      },
+      {
+        "package": "server",
+        "function": "(*PluginServer).Scan",
+        "file": "cmd/ampel-plugin/server/server.go",
+        "line": 118,
+        "complexity": 17,
+        "line_coverage": 83.05084745762711,
+        "crap": 18.40715457763452,
+        "contract_coverage": 100,
+        "gaze_crap": 17,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose"
+      },
+      {
+        "package": "results",
+        "function": "ParseAmpelOutput",
+        "file": "cmd/ampel-plugin/results/results.go",
+        "line": 90,
+        "complexity": 16,
+        "line_coverage": 97.43589743589743,
+        "crap": 16.004315649286063,
+        "contract_coverage": 100,
+        "gaze_crap": 16,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose"
+      },
+      {
+        "package": "complytime",
+        "function": "Validate",
+        "file": "internal/complytime/config.go",
+        "line": 226,
+        "complexity": 15,
+        "line_coverage": 94.11764705882354,
+        "crap": 15.045796865458986,
+        "contract_coverage": 100,
+        "gaze_crap": 15,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose"
+      }
+    ],
+    "recommended_actions": [
+      {
+        "function": "runDoctor",
+        "package": "cli",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/complyctl/cli/doctor.go",
+        "line": 57,
+        "fix_strategy": "add_tests",
+        "crap": 132,
+        "complexity": 11
+      },
+      {
+        "function": "promptTargets",
+        "package": "cli",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/complyctl/cli/init.go",
+        "line": 149,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "GetDsVariablesValues",
+        "package": "xccdf",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/xccdf/datastream.go",
+        "line": 264,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "findMatchingDatastream",
+        "package": "config",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/config/config.go",
+        "line": 196,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "(*MockPolicySource).CopyPolicy",
+        "package": "cachetest",
+        "file": "/home/runner/work/complyctl/complyctl/internal/cache/cachetest/mock_source.go",
+        "line": 62,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "ShowPlainTable",
+        "package": "terminal",
+        "file": "/home/runner/work/complyctl/complyctl/internal/terminal/table.go",
+        "line": 19,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "(*PluginServer).Generate",
+        "package": "server",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/server/server.go",
+        "line": 47,
+        "fix_strategy": "add_tests",
+        "crap": 90,
+        "gaze_crap": 9,
+        "complexity": 9,
+        "quadrant": "Q2_ComplexButTested"
+      },
+      {
+        "function": "main",
+        "package": "main",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/behavioral-report/main.go",
+        "line": 28,
+        "fix_strategy": "add_tests",
+        "crap": 90,
+        "complexity": 9
+      },
+      {
+        "function": "GetDsRules",
+        "package": "xccdf",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/xccdf/datastream.go",
+        "line": 344,
+        "fix_strategy": "add_tests",
+        "crap": 90,
+        "complexity": 9
+      },
+      {
+        "function": "getDistroIdsAndVersions",
+        "package": "config",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/config/config.go",
+        "line": 158,
+        "fix_strategy": "add_tests",
+        "crap": 90,
+        "complexity": 9
+      },
+      {
+        "function": "(*getOptions).run",
+        "package": "cli",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/complyctl/cli/get.go",
+        "line": 62,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "(*providersOptions).run",
+        "package": "cli",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/complyctl/cli/providers.go",
+        "line": 51,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "ruleResultMessage",
+        "package": "server",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/server/server.go",
+        "line": 249,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "DigestRecordedInState",
+        "package": "behavioral",
+        "file": "/home/runner/work/complyctl/complyctl/tests/behavioral/supply_chain.go",
+        "line": 50,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "updateTailoringValues",
+        "package": "xccdf",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/xccdf/tailoring.go",
+        "line": 157,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "CheckProviders",
+        "package": "doctor",
+        "file": "/home/runner/work/complyctl/complyctl/internal/doctor/doctor.go",
+        "line": 127,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "(*Manager).RouteGenerate",
+        "package": "plugin",
+        "file": "/home/runner/work/complyctl/complyctl/pkg/plugin/manager.go",
+        "line": 128,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "(*Cache).ListPolicies",
+        "package": "cache",
+        "file": "/home/runner/work/complyctl/complyctl/internal/cache/cache.go",
+        "line": 50,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "InstallTestPlugin",
+        "package": "behavioral",
+        "file": "/home/runner/work/complyctl/complyctl/tests/behavioral/reusable_steps.go",
+        "line": 57,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "populateProfileRules",
+        "package": "xccdf",
+        "file": "/home/runner/work/complyctl/complyctl/cmd/openscap-plugin/xccdf/datastream.go",
+        "line": 186,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      }
+    ]
+  }
+]
