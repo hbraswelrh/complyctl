@@ -24,7 +24,7 @@ jobs:
     name: Compliance Evaluation
     permissions:
       contents: read
-    uses: complytime/org-infra/.github/workflows/reusable_compliance.yml@main
+    uses: complytime/org-infra/.github/workflows/reusable_compliance.yml@baf5b2e21e61581b4a3a129795286e8592e6afbb # v0.1.0
     with:
       complytime_config_path: ${{ inputs.complytime_config_path || 'complytime.yaml' }}
       policy_id: ${{ inputs.policy_id || 'ampel-bp' }}
