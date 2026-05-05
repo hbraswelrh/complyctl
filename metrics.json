@@ -976,5 +976,327 @@
         "complexity": 5
       }
     ]
+  },
+  {
+    "timestamp": "2026-05-05T12:30:28Z",
+    "sha": "086c0d68c7890352c45ce2c670527bfcaf0cfed0",
+    "ref": "main",
+    "total_functions": 309,
+    "avg_complexity": 3.372168284789644,
+    "avg_line_coverage": 28.289123306529003,
+    "avg_crap": 12.985851545837546,
+    "crapload": 65,
+    "crap_threshold": 15,
+    "gaze_crapload": 2,
+    "gaze_crap_threshold": 15,
+    "avg_gaze_crap": 5.51984126984127,
+    "avg_contract_coverage": 80.15873015873015,
+    "quadrant_counts": {
+      "Q1_Safe": 40,
+      "Q4_Dangerous": 2
+    },
+    "fix_strategy_counts": {
+      "add_tests": 62,
+      "decompose": 2,
+      "decompose_and_test": 1
+    },
+    "worst_crap": [
+      {
+        "package": "behavioral",
+        "function": "StartMockRegistry",
+        "file": "tests/behavioral/registry.go",
+        "line": 44,
+        "complexity": 19,
+        "line_coverage": 0,
+        "crap": 380,
+        "fix_strategy": "decompose_and_test"
+      },
+      {
+        "package": "cli",
+        "function": "runDoctor",
+        "file": "cmd/complyctl/cli/doctor.go",
+        "line": 57,
+        "complexity": 11,
+        "line_coverage": 0,
+        "crap": 132,
+        "fix_strategy": "add_tests"
+      },
+      {
+        "package": "cli",
+        "function": "promptTargets",
+        "file": "cmd/complyctl/cli/init.go",
+        "line": 149,
+        "complexity": 10,
+        "line_coverage": 0,
+        "crap": 110,
+        "fix_strategy": "add_tests"
+      },
+      {
+        "package": "cachetest",
+        "function": "(*MockPolicySource).CopyPolicy",
+        "file": "internal/cache/cachetest/mock_source.go",
+        "line": 62,
+        "complexity": 10,
+        "line_coverage": 0,
+        "crap": 110,
+        "fix_strategy": "add_tests"
+      },
+      {
+        "package": "terminal",
+        "function": "ShowPlainTable",
+        "file": "internal/terminal/table.go",
+        "line": 19,
+        "complexity": 10,
+        "line_coverage": 0,
+        "crap": 110,
+        "fix_strategy": "add_tests"
+      }
+    ],
+    "worst_gaze_crap": [
+      {
+        "package": "doctor",
+        "function": "CheckVariables",
+        "file": "internal/doctor/doctor.go",
+        "line": 345,
+        "complexity": 34,
+        "line_coverage": 87.65432098765432,
+        "crap": 36.17521794517172,
+        "contract_coverage": 100,
+        "gaze_crap": 34,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose"
+      },
+      {
+        "package": "complytime",
+        "function": "Validate",
+        "file": "internal/complytime/config.go",
+        "line": 260,
+        "complexity": 15,
+        "line_coverage": 94.11764705882354,
+        "crap": 15.045796865458986,
+        "contract_coverage": 100,
+        "gaze_crap": 15,
+        "quadrant": "Q4_Dangerous",
+        "fix_strategy": "decompose"
+      },
+      {
+        "package": "policy",
+        "function": "(*Loader).LoadLayerByMediaType",
+        "file": "internal/policy/loader.go",
+        "line": 56,
+        "complexity": 13,
+        "line_coverage": 82.3529411764706,
+        "crap": 13.928760431508243,
+        "contract_coverage": 100,
+        "gaze_crap": 13,
+        "quadrant": "Q1_Safe"
+      },
+      {
+        "package": "doctor",
+        "function": "CheckPolicyActivePeriod",
+        "file": "internal/doctor/doctor.go",
+        "line": 511,
+        "complexity": 11,
+        "line_coverage": 92.85714285714286,
+        "crap": 11.044096209912537,
+        "contract_coverage": 100,
+        "gaze_crap": 11,
+        "quadrant": "Q1_Safe"
+      },
+      {
+        "package": "cache",
+        "function": "(*Sync).SyncPolicy",
+        "file": "internal/cache/sync.go",
+        "line": 28,
+        "complexity": 11,
+        "line_coverage": 85,
+        "crap": 11.408375,
+        "contract_coverage": 100,
+        "gaze_crap": 11,
+        "quadrant": "Q1_Safe"
+      }
+    ],
+    "recommended_actions": [
+      {
+        "function": "runDoctor",
+        "package": "cli",
+        "file": "cmd/complyctl/cli/doctor.go",
+        "line": 57,
+        "fix_strategy": "add_tests",
+        "crap": 132,
+        "complexity": 11
+      },
+      {
+        "function": "promptTargets",
+        "package": "cli",
+        "file": "cmd/complyctl/cli/init.go",
+        "line": 149,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "ShowPlainTable",
+        "package": "terminal",
+        "file": "internal/terminal/table.go",
+        "line": 19,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "(*MockPolicySource).CopyPolicy",
+        "package": "cachetest",
+        "file": "internal/cache/cachetest/mock_source.go",
+        "line": 62,
+        "fix_strategy": "add_tests",
+        "crap": 110,
+        "complexity": 10
+      },
+      {
+        "function": "main",
+        "package": "main",
+        "file": "cmd/behavioral-report/main.go",
+        "line": 28,
+        "fix_strategy": "add_tests",
+        "crap": 90,
+        "complexity": 9
+      },
+      {
+        "function": "CheckProviders",
+        "package": "doctor",
+        "file": "internal/doctor/doctor.go",
+        "line": 128,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "DigestRecordedInState",
+        "package": "behavioral",
+        "file": "tests/behavioral/supply_chain.go",
+        "line": 50,
+        "fix_strategy": "add_tests",
+        "crap": 72,
+        "complexity": 8
+      },
+      {
+        "function": "promptPolicies",
+        "package": "cli",
+        "file": "cmd/complyctl/cli/init.go",
+        "line": 106,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "OSCALResultProduced",
+        "package": "behavioral",
+        "file": "tests/behavioral/audit.go",
+        "line": 48,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "PluginBinaryIntegrityCheck",
+        "package": "behavioral",
+        "file": "tests/behavioral/plugin_security.go",
+        "line": 67,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "SignatureVerified",
+        "package": "behavioral",
+        "file": "tests/behavioral/supply_chain.go",
+        "line": 19,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "(*Cache).ListPolicies",
+        "package": "cache",
+        "file": "internal/cache/cache.go",
+        "line": 50,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "InstallTestPlugin",
+        "package": "behavioral",
+        "file": "tests/behavioral/reusable_steps.go",
+        "line": 57,
+        "fix_strategy": "add_tests",
+        "crap": 56,
+        "complexity": 7
+      },
+      {
+        "function": "HTTPSchemeRejected",
+        "package": "behavioral",
+        "file": "tests/behavioral/transport_security.go",
+        "line": 17,
+        "fix_strategy": "add_tests",
+        "crap": 42,
+        "complexity": 6
+      },
+      {
+        "function": "suggestCachedPolicyIDs",
+        "package": "cli",
+        "file": "cmd/complyctl/cli/get.go",
+        "line": 145,
+        "fix_strategy": "add_tests",
+        "crap": 42,
+        "complexity": 6
+      },
+      {
+        "function": "scanCmd",
+        "package": "cli",
+        "file": "cmd/complyctl/cli/scan.go",
+        "line": 34,
+        "fix_strategy": "add_tests",
+        "crap": 42,
+        "complexity": 6
+      },
+      {
+        "function": "serveManifest",
+        "package": "main",
+        "file": "cmd/mock-oci-registry/main.go",
+        "line": 148,
+        "fix_strategy": "add_tests",
+        "crap": 42,
+        "complexity": 6
+      },
+      {
+        "function": "registerOCIRoutes",
+        "package": "main",
+        "file": "cmd/mock-oci-registry/main.go",
+        "line": 70,
+        "fix_strategy": "add_tests",
+        "crap": 42,
+        "complexity": 6
+      },
+      {
+        "function": "EvaluationLogProduced",
+        "package": "behavioral",
+        "file": "tests/behavioral/audit.go",
+        "line": 17,
+        "fix_strategy": "add_tests",
+        "crap": 42,
+        "complexity": 6
+      },
+      {
+        "function": "EnvVarResolution",
+        "package": "behavioral",
+        "file": "tests/behavioral/credential_protection.go",
+        "line": 54,
+        "fix_strategy": "add_tests",
+        "crap": 30,
+        "complexity": 5
+      }
+    ]
   }
 ]
