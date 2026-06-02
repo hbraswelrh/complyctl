@@ -722,3 +722,139 @@ targets:
 	assert.NotContains(t, out, "nist-800-53-r5",
 		"filter must exclude non-matching policies")
 }
+
+// TestE2E_LocalOCILayoutSync exercises syncing from a local OCI Layout
+// directory via the oci-layout:// scheme.
+func TestE2E_LocalOCILayoutSync(t *testing.T) {
+	binary := locateBinary(t)
+	homeDir := t.TempDir()
+	workDir := t.TempDir()
+
+	// Create a local OCI Layout with a test policy.
+	localLayoutDir := filepath.Join(t.TempDir(), "test-local-policy")
+	seedLocalOCILayout(t, localLayoutDir, "latest")
+
+	// Write complytime.yaml pointing at the local layout.
+	configYAML := fmt.Sprintf(`policies:
+  - url: oci-layout://%s
+    id: local-test-policy
+targets:
+  - id: local-target
+    policies:
+      - local-test-policy
+    variables:
+      env: test
+`, localLayoutDir)
+	require.NoError(t, os.WriteFile(filepath.Join(workDir, "complytime.yaml"), []byte(configYAML), 0644))
+
+	env := buildEnv(homeDir)
+
+	// Run get — should sync from local layout.
+	out := runComplytime(t, binary, workDir, env, "get")
+	t.Log(out)
+	assert.Contains(t, out, "Synchronization completed.")
+
+	// Verify cache is populated.
+	cacheDir := filepath.Join(homeDir, ".complytime", "policies", "local-test-policy")
+	assert.DirExists(t, cacheDir, "policy cache directory must exist after get")
+	assert.FileExists(t, filepath.Join(cacheDir, "oci-layout"), "OCI layout marker required")
+
+	// Verify state.json tracks the policy.
+	stateFile := filepath.Join(homeDir, ".complytime", "state.json")
+	assert.FileExists(t, stateFile)
+	stateData, err := os.ReadFile(stateFile)
+	require.NoError(t, err)
+	assert.Contains(t, string(stateData), "local-test-policy")
+}
+
+// TestE2E_LocalOCILayoutMixedSources exercises syncing with both local and
+// registry-based policy sources in the same config.
+func TestE2E_LocalOCILayoutMixedSources(t *testing.T) {
+	binary := locateBinary(t)
+	srv := startMockRegistry(t)
+	defer srv.Close()
+
+	homeDir := t.TempDir()
+	workDir := t.TempDir()
+
+	// Create a local OCI Layout.
+	localLayoutDir := filepath.Join(t.TempDir(), "local-policy")
+	seedLocalOCILayout(t, localLayoutDir, "latest")
+
+	// Write config with both local and remote sources.
+	configYAML := fmt.Sprintf(`policies:
+  - url: %s/nist-800-53-r5
+    id: nist-800-53-r5
+  - url: oci-layout://%s
+    id: local-policy
+targets:
+  - id: mixed-target
+    policies:
+      - nist-800-53-r5
+      - local-policy
+    variables:
+      env: test
+`, srv.URL, localLayoutDir)
+	require.NoError(t, os.WriteFile(filepath.Join(workDir, "complytime.yaml"), []byte(configYAML), 0644))
+
+	env := buildEnv(homeDir)
+
+	out := runComplytime(t, binary, workDir, env, "get")
+	t.Log(out)
+	assert.Contains(t, out, "Synchronization completed.")
+
+	// Verify both policies are cached.
+	assert.DirExists(t, filepath.Join(homeDir, ".complytime", "policies", "nist-800-53-r5"))
+	assert.DirExists(t, filepath.Join(homeDir, ".complytime", "policies", "local-policy"))
+}
+
+// TestE2E_LocalOCILayoutIncrementalSync verifies that a second get with an
+// unchanged local layout skips the sync.
+func TestE2E_LocalOCILayoutIncrementalSync(t *testing.T) {
+	binary := locateBinary(t)
+	homeDir := t.TempDir()
+	workDir := t.TempDir()
+
+	localLayoutDir := filepath.Join(t.TempDir(), "incr-policy")
+	seedLocalOCILayout(t, localLayoutDir, "latest")
+
+	configYAML := fmt.Sprintf(`policies:
+  - url: oci-layout://%s
+    id: incr-policy
+targets:
+  - id: incr-target
+    policies:
+      - incr-policy
+    variables:
+      env: test
+`, localLayoutDir)
+	require.NoError(t, os.WriteFile(filepath.Join(workDir, "complytime.yaml"), []byte(configYAML), 0644))
+
+	env := buildEnv(homeDir)
+
+	// First sync.
+	out1 := runComplytime(t, binary, workDir, env, "get")
+	assert.Contains(t, out1, "Synchronization completed.")
+
+	// Read state after first sync.
+	stateFile := filepath.Join(homeDir, ".complytime", "state.json")
+	stateData1, err := os.ReadFile(stateFile)
+	require.NoError(t, err)
+
+	// Second sync — should complete (incremental skip is internal).
+	out2 := runComplytime(t, binary, workDir, env, "get")
+	assert.Contains(t, out2, "Synchronization completed.")
+
+	// State digest should remain the same.
+	stateData2, err := os.ReadFile(stateFile)
+	require.NoError(t, err)
+
+	var state1, state2 map[string]interface{}
+	require.NoError(t, json.Unmarshal(stateData1, &state1))
+	require.NoError(t, json.Unmarshal(stateData2, &state2))
+
+	policies1 := state1["policies"].(map[string]interface{})["incr-policy"].(map[string]interface{})
+	policies2 := state2["policies"].(map[string]interface{})["incr-policy"].(map[string]interface{})
+	assert.Equal(t, policies1["digest"], policies2["digest"],
+		"digest must remain the same across incremental syncs")
+}

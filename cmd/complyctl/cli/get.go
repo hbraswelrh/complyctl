@@ -109,21 +109,33 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 	ref := complytime.ParsePolicyRef(entry.URL)
 	version := ref.Version
 
-	client := registry.NewClient(ref.Registry, credFunc)
-	source := cache.NewRegistrySource(client)
-	sync := cache.NewSync(cacheMgr, state, source)
+	// Dispatch based on scheme: local OCI Layout vs. remote registry.
+	// For local sources, the cache key is the effective ID (not the path).
+	// For remote sources, the cache key is the repository path.
+	var source cache.PolicySource
+	var syncPolicyID string
+	if ref.Registry == complytime.OCILayoutScheme {
+		source = cache.NewLocalSource(ref.Repository)
+		syncPolicyID = entry.EffectiveID()
+	} else {
+		client := registry.NewClient(ref.Registry, credFunc)
+		source = cache.NewRegistrySource(client)
+		syncPolicyID = ref.Repository
 
-	if version == "" {
-		version = resolveLatestVersion(ctx, client, ref.Repository, entry.EffectiveID())
+		if version == "" {
+			version = resolveLatestVersion(ctx, client, ref.Repository, entry.EffectiveID())
+		}
 	}
 
+	sync := cache.NewSync(cacheMgr, state, source)
+
 	fmt.Fprintf(os.Stderr, "Syncing policy %d/%d: %s... ", index, total, entry.EffectiveID())
-	logger.Info("Syncing policy", "policy", ref.Repository, "version", version)
-	if err := sync.SyncPolicy(ctx, ref.Repository, version); err != nil {
+	logger.Info("Syncing policy", "policy", syncPolicyID, "version", version)
+	if err := sync.SyncPolicy(ctx, syncPolicyID, version); err != nil {
 		fmt.Fprintln(os.Stderr, "failed")
-		suggestMsg := suggestCachedPolicyIDs(cacheDir, ref.Repository)
-		logger.Error("Policy sync failed", "policy", ref.Repository, "error", err)
-		return fmt.Errorf("failed to sync policy %s: %w%s", ref.Repository, err, suggestMsg)
+		suggestMsg := suggestCachedPolicyIDs(cacheDir, syncPolicyID)
+		logger.Error("Policy sync failed", "policy", syncPolicyID, "error", err)
+		return fmt.Errorf("failed to sync policy %s: %w%s", syncPolicyID, err, suggestMsg)
 	}
 	fmt.Fprintln(os.Stderr, "done")
 	logger.Info("Policy synced", "policy", entry.EffectiveID())

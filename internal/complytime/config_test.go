@@ -505,6 +505,80 @@ func TestValidateOCIRef_RejectNoRegistryHost(t *testing.T) {
 	assert.Contains(t, err.Error(), "must include a registry host")
 }
 
+// oci-layout:// scheme tests
+
+func TestValidateOCIRef_ValidOCILayout(t *testing.T) {
+	assert.NoError(t, complytime.ValidateOCIRef("oci-layout:///home/user/bundles/my-policy"))
+}
+
+func TestValidateOCIRef_ValidOCILayoutWithVersion(t *testing.T) {
+	assert.NoError(t, complytime.ValidateOCIRef("oci-layout:///home/user/bundles/my-policy@v1.0.0"))
+}
+
+func TestValidateOCIRef_RejectOCILayoutEmptyPath(t *testing.T) {
+	err := complytime.ValidateOCIRef("oci-layout://")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must include a path")
+}
+
+func TestValidateOCIRef_RejectOCILayoutMetachars(t *testing.T) {
+	err := complytime.ValidateOCIRef("oci-layout:///path/with;semicolon")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid characters")
+}
+
+func TestParsePolicyRef_OCILayout(t *testing.T) {
+	ref := complytime.ParsePolicyRef("oci-layout:///home/user/bundles/my-policy")
+	assert.Equal(t, "oci-layout://", ref.Registry)
+	assert.Equal(t, "/home/user/bundles/my-policy", ref.Repository)
+	assert.Empty(t, ref.Version)
+}
+
+func TestParsePolicyRef_OCILayoutWithVersion(t *testing.T) {
+	ref := complytime.ParsePolicyRef("oci-layout:///home/user/bundles/my-policy@v1.0.0")
+	assert.Equal(t, "oci-layout://", ref.Registry)
+	assert.Equal(t, "/home/user/bundles/my-policy", ref.Repository)
+	assert.Equal(t, "v1.0.0", ref.Version)
+}
+
+func TestParsePolicyRef_OCILayoutRelativePath(t *testing.T) {
+	ref := complytime.ParsePolicyRef("oci-layout://bundles/my-policy@v2.0")
+	assert.Equal(t, "oci-layout://", ref.Registry)
+	assert.Equal(t, "bundles/my-policy", ref.Repository)
+	assert.Equal(t, "v2.0", ref.Version)
+}
+
+func TestPolicyEntry_EffectiveID_OCILayout(t *testing.T) {
+	p := complytime.PolicyEntry{URL: "oci-layout:///home/user/bundles/my-policy", ID: "my-policy"}
+	assert.Equal(t, "my-policy", p.EffectiveID())
+}
+
+func TestPolicyEntry_EffectiveID_OCILayoutDerived(t *testing.T) {
+	p := complytime.PolicyEntry{URL: "oci-layout:///home/user/bundles/my-policy"}
+	assert.Equal(t, "my-policy", p.EffectiveID())
+}
+
+func TestPolicyEntry_EffectiveID_OCILayoutTrailingSlash(t *testing.T) {
+	p := complytime.PolicyEntry{URL: "oci-layout:///home/user/bundles/my-policy/"}
+	// Trailing slash produces an empty last segment, so EffectiveID returns "".
+	// Users should always provide an explicit ID for oci-layout:// paths with
+	// trailing slashes, or avoid trailing slashes.
+	assert.Equal(t, "", p.EffectiveID())
+}
+
+func TestValidate_OCILayoutPolicy(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "oci-layout:///tmp/bundles/test-policy", ID: "test-local"},
+		},
+		Targets: []complytime.TargetConfig{{
+			ID:       "local",
+			Policies: []string{"test-local"},
+		}},
+	}
+	assert.NoError(t, complytime.Validate(cfg))
+}
+
 // T256: Validate catches duplicate URLs (already tested above, but verify
 // the OCI validation runs first for malformed entries)
 

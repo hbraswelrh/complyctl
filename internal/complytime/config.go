@@ -17,9 +17,13 @@ var envVarPattern = regexp.MustCompile(`\$\{([^}]+)\}`)
 // and are commonly used for shell injection.
 var unsafeRefChars = regexp.MustCompile("[;|&$`!><(){}\\[\\]\\\\]")
 
+// OCILayoutScheme is the URL scheme for local OCI Layout directory references.
+const OCILayoutScheme = "oci-layout://"
+
 // ValidateOCIRef checks that raw looks like a valid OCI reference
-// (registry/repository with optional :tag or @version). It rejects empty
-// strings, shell metacharacters, and bare names without a registry component.
+// (registry/repository with optional :tag or @version) or a local OCI Layout
+// reference (oci-layout:///path). It rejects empty strings, shell
+// metacharacters, and bare names without a registry component.
 func ValidateOCIRef(raw string) error {
 	s := strings.TrimSpace(raw)
 	if s == "" {
@@ -27,6 +31,19 @@ func ValidateOCIRef(raw string) error {
 	}
 	if unsafeRefChars.MatchString(s) {
 		return fmt.Errorf("policy URL contains invalid characters: %s", s)
+	}
+
+	// Local OCI Layout references bypass registry host validation.
+	if strings.HasPrefix(s, OCILayoutScheme) {
+		path := strings.TrimPrefix(s, OCILayoutScheme)
+		// Strip @version suffix before checking path.
+		if idx := strings.LastIndex(path, "@"); idx > 0 {
+			path = path[:idx]
+		}
+		if path == "" {
+			return fmt.Errorf("oci-layout:// URL must include a path")
+		}
+		return nil
 	}
 
 	stripped := strings.TrimPrefix(strings.TrimPrefix(s, "https://"), "http://")
@@ -106,11 +123,23 @@ type PolicyRef struct {
 }
 
 // ParsePolicyRef parses a full OCI reference into its components.
-// Handles optional scheme (http://, https://), registry host detection,
-// and @version suffix.
+// Handles optional scheme (http://, https://, oci-layout://), registry host
+// detection, and @version suffix.
 func ParsePolicyRef(raw string) PolicyRef {
 	ref := PolicyRef{Raw: raw}
 	s := strings.TrimSpace(raw)
+
+	// Local OCI Layout: path is the "repository", no registry host.
+	if strings.HasPrefix(s, OCILayoutScheme) {
+		path := strings.TrimPrefix(s, OCILayoutScheme)
+		if idx := strings.LastIndex(path, "@"); idx > 0 && idx < len(path)-1 {
+			ref.Version = path[idx+1:]
+			path = path[:idx]
+		}
+		ref.Registry = OCILayoutScheme
+		ref.Repository = path
+		return ref
+	}
 
 	var scheme string
 	if strings.HasPrefix(s, "http://") {

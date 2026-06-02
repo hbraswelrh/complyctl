@@ -5,6 +5,8 @@
 package e2e
 
 import (
+	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -17,8 +19,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opencontainers/go-digest"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	ocistore "oras.land/oras-go/v2/content/oci"
 )
 
 // testPolicyYAML is a valid Gemara Policy with two assessment-plans bound to
@@ -485,4 +490,69 @@ func assertOutputFile(t *testing.T, dir, prefix, suffix string) string {
 	}
 	t.Fatalf("no file matching %s*%s found in %s (contents: %v)", prefix, suffix, dir, entries)
 	return ""
+}
+
+// seedLocalOCILayout creates a minimal OCI Layout directory at layoutPath
+// with a catalog and policy layer, matching the structure produced by the
+// mock registry. The manifest is tagged with the given tag.
+func seedLocalOCILayout(t *testing.T, layoutPath, tag string) {
+	t.Helper()
+	ctx := context.Background()
+
+	store, err := ocistore.New(layoutPath)
+	require.NoError(t, err)
+
+	// Push empty config.
+	configData := []byte("{}")
+	configDesc := ocispec.Descriptor{
+		MediaType: ocispec.MediaTypeEmptyJSON,
+		Digest:    digest.FromBytes(configData),
+		Size:      int64(len(configData)),
+	}
+	require.NoError(t, store.Push(ctx, configDesc, bytes.NewReader(configData)))
+
+	// Push catalog layer.
+	catalogData := []byte(`id: local-test-catalog
+title: Local Test Catalog
+controls:
+  - id: LC-1
+    title: Local Control 1
+`)
+	catalogDesc := ocispec.Descriptor{
+		MediaType: "application/vnd.gemara.catalog.v1+yaml",
+		Digest:    digest.FromBytes(catalogData),
+		Size:      int64(len(catalogData)),
+	}
+	require.NoError(t, store.Push(ctx, catalogDesc, bytes.NewReader(catalogData)))
+
+	// Push policy layer.
+	policyData := []byte(`title: Local Test Policy
+metadata:
+  id: local-test-policy
+  version: "1.0.0"
+`)
+	policyDesc := ocispec.Descriptor{
+		MediaType: "application/vnd.gemara.policy.v1+yaml",
+		Digest:    digest.FromBytes(policyData),
+		Size:      int64(len(policyData)),
+	}
+	require.NoError(t, store.Push(ctx, policyDesc, bytes.NewReader(policyData)))
+
+	// Build and push manifest.
+	manifest := ocispec.Manifest{
+		MediaType: ocispec.MediaTypeImageManifest,
+		Config:    configDesc,
+		Layers:    []ocispec.Descriptor{catalogDesc, policyDesc},
+	}
+	manifest.SchemaVersion = 2
+	manifestData, err := json.Marshal(manifest)
+	require.NoError(t, err)
+
+	manifestDesc := ocispec.Descriptor{
+		MediaType: ocispec.MediaTypeImageManifest,
+		Digest:    digest.FromBytes(manifestData),
+		Size:      int64(len(manifestData)),
+	}
+	require.NoError(t, store.Push(ctx, manifestDesc, bytes.NewReader(manifestData)))
+	require.NoError(t, store.Tag(ctx, manifestDesc, tag))
 }
