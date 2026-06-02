@@ -220,6 +220,79 @@ GITHUB_TOKEN=<your-token> complyctl scan \
 # Expected: Scan results with requirement status
 ```
 
+## Private Bundles
+
+The devcontainer can use private OCI Layout policy bundles
+without pushing them to a registry or committing them to the
+repository. Bundles are pre-populated into the local cache at
+container creation time, enabling `complyctl generate` and
+`complyctl scan` to work without `complyctl get`.
+
+### Setup
+
+Place your OCI Layout bundles in a directory and mount it
+into the devcontainer at `/bundles/` (or set
+`COMPLYCTL_BUNDLES_DIR` to a custom path):
+
+```
+/bundles/
+└── my-private-policy/
+    ├── oci-layout
+    ├── index.json
+    └── blobs/
+        └── sha256/
+            └── ...
+```
+
+Each subdirectory under `/bundles/` containing an `oci-layout`
+marker file is automatically discovered and cached during
+container setup.
+
+### Mounting bundles with DevPod
+
+Use the `--workspace-env` flag to set the bundles path, and
+configure a volume mount in `devcontainer.json`:
+
+```bash
+devpod up github.com/complytime/complyctl \
+    --ide none \
+    --dotfiles none
+```
+
+Or add a `mounts` entry to `.devcontainer/devcontainer.json`:
+
+```json
+"mounts": [
+    "source=/path/to/local/bundles,target=/bundles,type=bind,readonly"
+]
+```
+
+### Using bundles
+
+After the devcontainer starts, pre-populated bundles are
+available for `generate` and `scan` immediately:
+
+```bash
+cd ~/test-workspace
+
+# Skip 'complyctl get' — cache is already populated
+complyctl generate --policy-id my-private-policy
+complyctl scan --policy-id my-private-policy
+```
+
+Note: `complyctl get` will fail for pre-populated policies
+because the dummy registry URL is not reachable. This is
+expected. Use `generate` and `scan` directly.
+
+### How it works
+
+The post-create script discovers bundles, copies them into
+`~/.complytime/policies/policies/{name}/`, updates
+`state.json` with manifest digests, and appends policy
+entries to the test workspace `complytime.yaml` using dummy
+URLs (`localhost:0/policies/{name}`) that pass validation
+but are never contacted.
+
 ## Troubleshooting
 
 ### Mock registry not running
