@@ -1,4 +1,21 @@
 title: Test Container Security Controls
+metadata:
+    id: test-opa-controls
+    type: ControlCatalog
+    gemara-version: 1.0.0
+    description: Minimal container security catalog for OPA provider integration testing
+    author:
+        id: complytime
+        name: ComplyTime
+        type: Software Assisted
+    applicability-groups:
+        - id: k8s-deployments
+          title: Kubernetes Deployments
+          description: Kubernetes Deployment workloads
+groups:
+    - id: container-security
+      title: Container Security
+      description: Controls for securing container workloads on Kubernetes
 controls:
     - id: container-run-as-nonroot
       title: Containers Must Run as Non-Root
@@ -8,7 +25,7 @@ controls:
           - id: check-run-as-nonroot
             text: Container security context must set runAsNonRoot to true
             applicability:
-                - Kubernetes deployments
+                - k8s-deployments
             state: Active
       state: Active
     - id: container-resource-limits
@@ -19,19 +36,6 @@ controls:
           - id: check-resource-limits
             text: Container spec must include resource limits for CPU and memory
             applicability:
-                - Kubernetes deployments
+                - k8s-deployments
             state: Active
       state: Active
-groups:
-    - id: container-security
-      title: Container Security
-      description: Controls for securing container workloads on Kubernetes
-metadata:
-    id: test-opa-controls
-    type: ControlCatalog
-    gemara-version: 1.0.0
-    description: Minimal container security catalog for OPA provider integration testing
-    author:
-        id: complytime
-        name: ComplyTime
-        type: Software Assisted
