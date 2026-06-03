@@ -459,6 +459,11 @@ func (s *contentStore) seedDefaults() {
 		content:     buildDummyTarGz("policy.json", []byte(`{"name":"ampel-branch-protection","version":"1.0.0"}`)),
 	})
 
+	// policies/test-opa-policy — OPA container security controls
+	s.seedPolicyFromFiles("policies/test-opa-policy",
+		"testdata/test-opa-catalog.yaml",
+		"testdata/test-opa-policy.yaml",
+		[]string{"v1.0.0", "latest"})
 }
 
 const defaultContentDir = "/bundles"

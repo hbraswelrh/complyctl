@@ -1,0 +1,12 @@
+{
+  "mappings": [
+    {
+      "requirement-id": "check-run-as-nonroot",
+      "namespace": "kubernetes.run_as_nonroot"
+    },
+    {
+      "requirement-id": "check-resource-limits",
+      "namespace": "kubernetes.resource_limits"
+    }
+  ]
+}

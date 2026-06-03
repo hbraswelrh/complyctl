@@ -1,0 +1,50 @@
+title: Test OPA Container Security Policy
+metadata:
+    id: test-opa-container-security-policy
+    description: Minimal policy for OPA provider integration testing in the devcontainer
+    author:
+        id: complytime
+        name: ComplyTime
+        type: Software Assisted
+    mapping-references:
+        - id: test-opa-controls
+          title: Test Container Security Controls
+          version: 1.0.0
+          description: Minimal container security catalog for OPA provider integration testing
+contacts:
+    responsible:
+        - name: Platform Engineering
+    accountable:
+        - name: Security Team
+scope:
+    in:
+        technologies:
+            - Kubernetes
+        users:
+            - Cluster operators
+imports:
+    catalogs:
+        - reference-id: test-opa-controls
+adherence:
+    evaluation-methods:
+        - type: Behavioral
+          description: OPA automated container security evaluation
+          executor:
+              id: opa
+              name: OPA
+              type: Software
+    assessment-plans:
+        - id: check-run-as-nonroot
+          requirement-id: check-run-as-nonroot
+          frequency: on-demand
+          evaluation-methods:
+              - type: Behavioral
+                executor:
+                    id: opa
+        - id: check-resource-limits
+          requirement-id: check-resource-limits
+          frequency: on-demand
+          evaluation-methods:
+              - type: Behavioral
+                executor:
+                    id: opa

@@ -203,6 +203,8 @@ for details and the recommended testing path.
 These are the primary commands for testing `complyctl` inside
 the devcontainer:
 
+### Ampel Provider (branch protection)
+
 ```bash
 cd ~/test-workspace
 
@@ -219,6 +221,28 @@ GITHUB_TOKEN=<your-token> complyctl scan \
   --policy-id test-ampel-bp
 # Expected: Scan results with requirement status
 ```
+
+### OPA Provider (container security)
+
+```bash
+cd ~/test-workspace
+
+# Fetch policies and complypacks from the mock registry
+complyctl get
+# Expected: "Synchronization completed."
+
+# Generate for the OPA provider
+complyctl generate --policy-id test-opa-bp
+# Expected: "Generation completed."
+
+# Run a scan against the test deployment
+complyctl scan --policy-id test-opa-bp
+# Expected: Scan results for container security requirements
+```
+
+Note: The OPA provider requires the `complyctl-provider-opa`
+binary in `~/.complytime/providers/` (installed by the
+post-create script from `complytime-providers`).
 
 ## Private Bundles
 

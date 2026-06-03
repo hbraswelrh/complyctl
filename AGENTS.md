@@ -285,6 +285,7 @@ packages organized by domain responsibility.
 <!-- MANUAL ADDITIONS END -->
 
 ## Recent Changes
+- opa-devcontainer-content: Added OPA provider test content to devcontainer; OPA Gemara testdata (catalog + policy with `executor.id: opa`) seeded in mock registry; Rego policies + `complytime-mapping.json` for complypack; `test-opa-bp` policy-id and `test-k8s-deployment` target in `complytime.yaml`; `docs/TESTING_ENVIRONMENT.md` OPA command reference
 - devcontainer-bundle-cache: Mock OCI registry gains `seedFromDirectory()` to serve mounted Gemara YAML policies from `/bundles/` (or `COMPLYCTL_BUNDLES_DIR`); post-create script adds policy entries to `complytime.yaml`; `docs/TESTING_ENVIRONMENT.md` Private Bundles section added
 - dev-testing-environment: Added `.devcontainer/` with Fedora-based devcontainer for interactive CLI testing; `docs/TESTING_ENVIRONMENT.md` documentation; `make test-devcontainer` CI smoke target; post-create script with GITHUB_TOKEN least-privilege handling
 - scan-error-exit-codes: `complyctl scan` exits non-zero on operational errors; `ScanResponse.errors` proto field added; `ScanResult`/`RouteScanResult()` in `pkg/provider/manager.go`; `FormatOperationalWarnings` in `internal/output/scan_summary.go`; `processScanOutput`/`checkOperationalErrors`/`reportOperationalWarnings` in `cmd/complyctl/cli/scan.go`
