@@ -31,6 +31,9 @@ import (
 //go:embed testdata/*.yaml
 var seedData embed.FS
 
+//go:embed testdata/opa-complypack/*
+var opaComplypackData embed.FS
+
 const defaultPort = "8765"
 
 const (
@@ -419,6 +422,39 @@ func buildDummyTarGz(name string, content []byte) []byte {
 	return buf.Bytes()
 }
 
+// buildTarGzFromFS creates an in-memory tar.gz archive from all files in an
+// embed.FS under the given root directory. Used to produce complypack content
+// blobs containing multiple policy files.
+func buildTarGzFromFS(fsys embed.FS, root string) []byte {
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+
+	entries, err := fsys.ReadDir(root)
+	if err != nil {
+		log.Fatalf("failed to read embedded dir %s: %v", root, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		data, err := fsys.ReadFile(root + "/" + entry.Name())
+		if err != nil {
+			log.Fatalf("failed to read embedded file %s/%s: %v", root, entry.Name(), err)
+		}
+		_ = tw.WriteHeader(&tar.Header{
+			Name: entry.Name(),
+			Size: int64(len(data)),
+			Mode: 0o644,
+		})
+		_, _ = tw.Write(data)
+	}
+
+	_ = tw.Close()
+	_ = gw.Close()
+	return buf.Bytes()
+}
+
 // --- Seed Data ---
 
 // seedPolicyFromFiles loads a catalog and policy YAML from embedded testdata
@@ -464,6 +500,14 @@ func (s *contentStore) seedDefaults() {
 		"testdata/test-opa-catalog.yaml",
 		"testdata/test-opa-policy.yaml",
 		[]string{"v1.0.0", "latest"})
+
+	// complypacks/test-opa-complypack — ComplyPack artifact for OPA container security evaluator
+	// Contains Rego policies and complytime-mapping.json from testdata/opa-complypack/
+	s.addComplypackArtifact("complypacks/test-opa-complypack", []string{"v1.0.0", "latest"}, complypackDef{
+		evaluatorID: "opa",
+		version:     "1.0.0",
+		content:     buildTarGzFromFS(opaComplypackData, "testdata/opa-complypack"),
+	})
 }
 
 const defaultContentDir = "/bundles"

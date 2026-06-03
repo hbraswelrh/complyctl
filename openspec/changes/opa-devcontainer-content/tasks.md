@@ -8,13 +8,13 @@
 
 - [x] 2.1 Create minimal Rego policy file(s) that evaluate the assessment requirements defined in the OPA catalog
 - [x] 2.2 Create `complytime-mapping.json` mapping Gemara requirement IDs to Rego namespaces
-- [ ] 2.3 Package Rego + mapping as a `content.tar.gz` payload embedded in the mock registry testdata (BLOCKED: requires PR #536 `addComplypackArtifact()`)
-- [ ] 2.4 Add `seedDefaults()` entry to seed the OPA complypack via `addComplypackArtifact()` under `complypacks/test-opa-complypack` with evaluator-id `opa` (BLOCKED: requires PR #536)
+- [x] 2.3 Package Rego + mapping as a `content.tar.gz` payload embedded in the mock registry testdata
+- [x] 2.4 Add `seedDefaults()` entry to seed the OPA complypack via `addComplypackArtifact()` under `complypacks/test-opa-complypack` with evaluator-id `opa`
 
 ## 3. Workspace Configuration
 
 - [x] 3.1 Add OPA policy entry to `tests/cross-repo/testdata/complytime.yaml` with `id: test-opa-bp` pointing at `http://localhost:8765/policies/test-opa-policy`
-- [ ] 3.2 Add `complypacks:` entry to `tests/cross-repo/testdata/complytime.yaml` pointing at `http://localhost:8765/complypacks/test-opa-complypack` (BLOCKED: requires PR #536 `complypacks:` config schema)
+- [x] 3.2 Add `complypacks:` entry to `tests/cross-repo/testdata/complytime.yaml` pointing at `http://localhost:8765/complypacks/test-opa-complypack`
 - [x] 3.3 Add a target entry with variables appropriate for OPA evaluation (e.g., input file path or repository URL)
 
 ## 4. Post-create Script Updates
