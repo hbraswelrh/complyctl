@@ -177,6 +177,7 @@ export GITHUB_TOKEN=<your-token>
 | `mock-oci-registry` | `./bin/` |
 | `snappy` | `$GOPATH/bin` |
 | `ampel` | `$GOPATH/bin` |
+| `conftest` | `$GOPATH/bin` |
 | `complyctl-provider-ampel` | `~/.complytime/providers/` |
 | `complyctl-provider-openscap` | `~/.complytime/providers/` |
 | `complyctl-provider-opa` | `~/.complytime/providers/` |

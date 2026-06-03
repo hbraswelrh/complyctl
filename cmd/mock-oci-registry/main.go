@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -438,7 +439,7 @@ func buildTarGzFromFS(fsys embed.FS, root string) []byte {
 		if entry.IsDir() {
 			continue
 		}
-		data, err := fsys.ReadFile(root + "/" + entry.Name())
+		data, err := fsys.ReadFile(path.Join(root, entry.Name()))
 		if err != nil {
 			log.Fatalf("failed to read embedded file %s/%s: %v", root, entry.Name(), err)
 		}

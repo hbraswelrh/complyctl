@@ -15,3 +15,8 @@
   scan pipeline with real snappy and ampel binaries.
 - Minimal test Gemara policy (`policies/test-branch-protection`) seeded in the
   mock OCI registry for integration testing.
+- OPA provider test content in devcontainer: Gemara testdata (catalog +
+  policy with `executor.id: opa`), OPA complypack artifact (Rego policies
+  + `complytime-mapping.json`), `test-opa-bp` policy-id and
+  `test-k8s-deployment` target in workspace configuration. OPA command
+  reference added to `docs/TESTING_ENVIRONMENT.md`.
