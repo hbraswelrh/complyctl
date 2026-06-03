@@ -97,12 +97,36 @@ cp tests/cross-repo/testdata/complytime.yaml \
 cp tests/cross-repo/testdata/granular-policies/block-force-push.json \
     "${HOME}/test-workspace/.complytime/ampel/granular-policies/"
 
-# Copy OPA test deployment input file for the test-k8s-deployment target
-if [[ -f tests/cross-repo/testdata/test-deployment.yaml ]]; then
-    cp tests/cross-repo/testdata/test-deployment.yaml \
-        "${HOME}/test-workspace/"
-    echo "    Copied OPA test deployment input"
-fi
+# Generate OPA test deployment input for the test-k8s-deployment target.
+# Created inline to avoid shipping a K8s manifest in the repo testdata
+# (which triggers Trivy/security scanner false positives).
+cat > "${HOME}/test-workspace/test-deployment.yaml" << 'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "128Mi"
+EOF
+echo "    Generated OPA test deployment input"
 
 echo "    Test workspace ready at ~/test-workspace/"
 
