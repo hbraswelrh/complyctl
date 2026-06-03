@@ -14,9 +14,12 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -42,6 +45,7 @@ func main() {
 
 	store := newContentStore()
 	store.seedDefaults()
+	store.seedFromDirectory(resolveContentDir())
 
 	mux := http.NewServeMux()
 	registerOCIRoutes(mux, store)
@@ -343,4 +347,86 @@ func (s *contentStore) seedDefaults() {
 		"testdata/test-branch-protection-catalog.yaml",
 		"testdata/test-branch-protection-policy.yaml",
 		[]string{"v1.0.0", "latest"})
+}
+
+const defaultContentDir = "/bundles"
+
+// resolveContentDir returns the directory to scan for mounted policy
+// files. Uses MOCK_REGISTRY_CONTENT_DIR if set, otherwise /bundles.
+func resolveContentDir() string {
+	if dir := os.Getenv("MOCK_REGISTRY_CONTENT_DIR"); dir != "" {
+		return dir
+	}
+	return defaultContentDir
+}
+
+// validBundleName restricts directory names to alphanumeric, hyphens,
+// and underscores — matching the shell-side validation in post-create.sh.
+var validBundleName = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+// maxPolicyFileSize caps individual policy file reads at 10 MB to
+// prevent resource exhaustion from oversized or adversarial files.
+const maxPolicyFileSize = 10 * 1024 * 1024
+
+// seedFromDirectory discovers Gemara policy files from a filesystem
+// directory and registers them in the content store, exactly like
+// the embedded testdata in seedDefaults(). Each subdirectory must
+// contain catalog.yaml and policy.yaml files.
+//
+// Trust model: the directory is operator-controlled (bind-mounted
+// by the developer who owns the devcontainer). Symlinks are
+// rejected to prevent unintended reads outside the bundles tree.
+func (s *contentStore) seedFromDirectory(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		// No directory or unreadable — nothing to seed.
+		return
+	}
+	for _, entry := range entries {
+		// Skip non-directories and symlinks.
+		if !entry.IsDir() || entry.Type()&fs.ModeSymlink != 0 {
+			continue
+		}
+		name := entry.Name()
+
+		if !validBundleName.MatchString(name) {
+			log.Printf("WARNING: skipping directory with invalid name")
+			continue
+		}
+
+		policyDir := filepath.Join(dir, name)
+
+		catalog, err := readFileLimited(filepath.Join(policyDir, "catalog.yaml"), maxPolicyFileSize)
+		if err != nil {
+			log.Printf("WARNING: skipping %s: catalog.yaml: %v", name, err) //nolint:gosec // G706: name is validated against validBundleName regex
+			continue
+		}
+		policy, err := readFileLimited(filepath.Join(policyDir, "policy.yaml"), maxPolicyFileSize)
+		if err != nil {
+			log.Printf("WARNING: skipping %s: policy.yaml: %v", name, err) //nolint:gosec // G706: name is validated against validBundleName regex
+			continue
+		}
+
+		s.addArtifact("policies/"+name, []string{"latest"}, []layerDef{
+			{mediaType: gemaraCatalogType, data: catalog},
+			{mediaType: gemaraPolicyType, data: policy},
+		})
+		log.Printf("Seeded policy from directory: policies/%s", name) //nolint:gosec // G706: name is validated against validBundleName regex
+	}
+}
+
+// readFileLimited reads a file up to maxSize bytes. Returns an error
+// if the file exceeds the limit or is a symlink.
+func readFileLimited(path string, maxSize int64) ([]byte, error) {
+	info, err := os.Lstat(path) //nolint:gosec // G703: path is constructed from validated directory name + hardcoded filename
+	if err != nil {
+		return nil, err
+	}
+	if info.Mode()&fs.ModeSymlink != 0 {
+		return nil, fmt.Errorf("refusing to follow symlink")
+	}
+	if info.Size() > maxSize {
+		return nil, fmt.Errorf("file size %d exceeds limit %d", info.Size(), maxSize)
+	}
+	return os.ReadFile(path) //nolint:gosec // G304: path is constructed from validated directory name + hardcoded filename
 }
