@@ -105,7 +105,7 @@ func TestManager_RouteGenerate_SpecificProvider(t *testing.T) {
 
 	err = mgr.RouteGenerate(context.Background(), "test-eval", nil, nil, []provider.AssessmentConfiguration{
 		{RequirementID: "req-1"},
-	})
+	}, "")
 	require.NoError(t, err)
 }
 
@@ -113,7 +113,7 @@ func TestManager_RouteGenerate_UnknownEvaluator(t *testing.T) {
 	mgr, err := provider.NewManager(t.TempDir(), nil)
 	require.NoError(t, err)
 
-	err = mgr.RouteGenerate(context.Background(), "nonexistent", nil, nil, nil)
+	err = mgr.RouteGenerate(context.Background(), "nonexistent", nil, nil, nil, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no provider registered")
 }
@@ -126,7 +126,7 @@ func TestManager_RouteGenerate_Broadcast(t *testing.T) {
 	lp := provider.NewMockLoadedProvider("test-provider", "test-eval", mock)
 	mgr.RegisterProviderForTest("test-eval", lp)
 
-	err = mgr.RouteGenerate(context.Background(), "", nil, nil, nil)
+	err = mgr.RouteGenerate(context.Background(), "", nil, nil, nil, "")
 	require.NoError(t, err)
 }
 
@@ -138,9 +138,28 @@ func TestManager_RouteGenerate_ProviderReturnsFailure(t *testing.T) {
 	lp := provider.NewMockLoadedProvider("fail-provider", "fail-eval", fm)
 	mgr.RegisterProviderForTest("fail-eval", lp)
 
-	err = mgr.RouteGenerate(context.Background(), "fail-eval", nil, nil, nil)
+	err = mgr.RouteGenerate(context.Background(), "fail-eval", nil, nil, nil, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "generate RPC failed")
+}
+
+func TestManager_RouteGenerate_WithComplypackPath(t *testing.T) {
+	mgr, err := provider.NewManager(t.TempDir(), nil)
+	require.NoError(t, err)
+
+	mock := newMockClient()
+	lp := provider.NewMockLoadedProvider("test-provider", "test-eval", mock)
+	mgr.RegisterProviderForTest("test-eval", lp)
+
+	complypackPath := "/cache/complypacks/test-eval/1.0.0/content.tar.gz"
+	err = mgr.RouteGenerate(context.Background(), "test-eval", nil, nil, []provider.AssessmentConfiguration{
+		{RequirementID: "req-1"},
+	}, complypackPath)
+	require.NoError(t, err)
+
+	// Verify the mock client received the complypack content path.
+	assert.Equal(t, complypackPath, mock.complypackContentPath,
+		"ComplypackContentPath should be forwarded to the provider")
 }
 
 func TestManager_RouteScan_SpecificProvider(t *testing.T) {

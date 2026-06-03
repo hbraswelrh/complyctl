@@ -350,7 +350,7 @@ func ensureGenerated(ctx context.Context, cacheDir string, mgr *provider.Manager
 	if !needsGenerate {
 		return nil
 	}
-	return runGeneration(ctx, mgr, groups, policyTargets, globalVars, repository, policyDigest, evaluatorIDs)
+	return runGeneration(ctx, cacheDir, mgr, groups, policyTargets, globalVars, repository, policyDigest, evaluatorIDs)
 }
 
 // runScanAndReport executes the scan across all targets and processes the
@@ -488,12 +488,12 @@ func evaluatorArtifactsExist(evaluatorIDs []string) bool {
 	return true
 }
 
-func runGeneration(ctx context.Context, mgr *provider.Manager, groups map[string]policy.EvaluatorGroup, policyTargets []complytime.TargetConfig, globalVars map[string]string, repository, policyDigest string, evaluatorIDs []string) error {
+func runGeneration(ctx context.Context, cacheDir string, mgr *provider.Manager, groups map[string]policy.EvaluatorGroup, policyTargets []complytime.TargetConfig, globalVars map[string]string, repository, policyDigest string, evaluatorIDs []string) error {
 	genSpin := terminal.NewSpinner("Generating policy artifacts...")
 	genSpin.Start()
 	defer genSpin.Stop()
 
-	if err := generateForAllTargets(ctx, mgr, groups, policyTargets, globalVars); err != nil {
+	if err := generateForAllTargets(ctx, cacheDir, mgr, groups, policyTargets, globalVars); err != nil {
 		return err
 	}
 
@@ -504,10 +504,17 @@ func runGeneration(ctx context.Context, mgr *provider.Manager, groups map[string
 	return nil
 }
 
-func generateForAllTargets(ctx context.Context, mgr *provider.Manager, groups map[string]policy.EvaluatorGroup, policyTargets []complytime.TargetConfig, globalVars map[string]string) error {
+func generateForAllTargets(ctx context.Context, cacheDir string, mgr *provider.Manager, groups map[string]policy.EvaluatorGroup, policyTargets []complytime.TargetConfig, globalVars map[string]string) error {
+	complypackCache := cache.NewComplypackCache(cacheDir)
 	for evalID, group := range groups {
+		// Look up cached complypack content for this evaluator-id.
+		// If no complypack is cached, contentPath is "" (backward compatible).
+		contentPath, _, err := complypackCache.LookupByEvaluatorID(evalID)
+		if err != nil {
+			return fmt.Errorf("failed to look up complypack for evaluator %s: %w", evalID, err)
+		}
 		for _, target := range policyTargets {
-			if err := mgr.RouteGenerate(ctx, evalID, globalVars, target.Variables, group.Configs); err != nil {
+			if err := mgr.RouteGenerate(ctx, evalID, globalVars, target.Variables, group.Configs, contentPath); err != nil {
 				return err
 			}
 		}

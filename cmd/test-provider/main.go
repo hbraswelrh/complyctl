@@ -18,6 +18,8 @@ package main
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/complytime/complyctl/pkg/provider"
 )
 
@@ -46,7 +48,20 @@ func (t *testEvaluator) Generate(_ context.Context, req *provider.GenerateReques
 	for _, cfg := range req.Configuration {
 		t.requirementIDs = append(t.requirementIDs, cfg.RequirementID)
 	}
+
+	// Log complypack content path receipt for E2E test observability.
+	logComplypackPath(req.ComplypackContentPath)
+
 	return &provider.GenerateResponse{Success: true}, nil
+}
+
+// logComplypackPath logs the complypack content path when non-empty.
+// Extracted to keep Generate's cyclomatic complexity low.
+func logComplypackPath(path string) {
+	if path != "" {
+		hclog.Default().Info("complypack content path received",
+			"complypack_content_path", path)
+	}
 }
 
 func (t *testEvaluator) Scan(_ context.Context, req *provider.ScanRequest) (*provider.ScanResponse, error) {

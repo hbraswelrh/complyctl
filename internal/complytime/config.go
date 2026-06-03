@@ -51,11 +51,12 @@ func ValidateOCIRef(raw string) error {
 // per-target credentials). Place environment-dependent values in
 // targets[].variables instead.
 type WorkspaceConfig struct {
-	Version   int               `yaml:"version,omitempty"`
-	Policies  []PolicyEntry     `yaml:"policies"`
-	Targets   []TargetConfig    `yaml:"targets"`
-	Variables map[string]string `yaml:"variables,omitempty"`
-	Collector *CollectorConfig  `yaml:"collector,omitempty"`
+	Version     int               `yaml:"version,omitempty"`
+	Policies    []PolicyEntry     `yaml:"policies"`
+	Complypacks []PolicyEntry     `yaml:"complypacks,omitempty"`
+	Targets     []TargetConfig    `yaml:"targets"`
+	Variables   map[string]string `yaml:"variables,omitempty"`
+	Collector   *CollectorConfig  `yaml:"collector,omitempty"`
 }
 
 // CollectorConfig holds the Beacon collector endpoint and OIDC credentials.
@@ -269,22 +270,11 @@ func Validate(config *WorkspaceConfig) error {
 		return fmt.Errorf("policies: at least one policy is required")
 	}
 
-	seenURL := make(map[string]bool)
-	seenID := make(map[string]bool)
-	for _, p := range config.Policies {
-		if err := ValidateOCIRef(p.URL); err != nil {
-			return fmt.Errorf("policies[]: %w", err)
-		}
-		if seenURL[p.URL] {
-			return fmt.Errorf("policies: duplicate url %s", p.URL)
-		}
-		seenURL[p.URL] = true
-
-		eid := p.EffectiveID()
-		if seenID[eid] {
-			return fmt.Errorf("policies: duplicate id %s", eid)
-		}
-		seenID[eid] = true
+	if err := validateEntries("policies", config.Policies); err != nil {
+		return err
+	}
+	if err := validateEntries("complypacks", config.Complypacks); err != nil {
+		return err
 	}
 
 	policyLookup := PolicyIDs(config.Policies)
@@ -311,6 +301,36 @@ func Validate(config *WorkspaceConfig) error {
 			}
 			seenTargetPolicies[pid] = true
 		}
+	}
+	return nil
+}
+
+// validateEntries checks uniqueness and OCI reference validity for a
+// list of policy or complypack entries. An empty or nil list is valid.
+// The label parameter (e.g., "policies", "complypacks") is used in
+// error messages. Extracted from Validate to keep its cyclomatic
+// complexity stable as new entry lists are added.
+func validateEntries(label string, entries []PolicyEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	seenURL := make(map[string]bool)
+	seenID := make(map[string]bool)
+	for _, entry := range entries {
+		if err := ValidateOCIRef(entry.URL); err != nil {
+			return fmt.Errorf("%s[]: %w", label, err)
+		}
+		if seenURL[entry.URL] {
+			return fmt.Errorf("%s: duplicate url %s", label, entry.URL)
+		}
+		seenURL[entry.URL] = true
+
+		eid := entry.EffectiveID()
+		if seenID[eid] {
+			return fmt.Errorf("%s: duplicate id %s", label, eid)
+		}
+		seenID[eid] = true
 	}
 	return nil
 }

@@ -2,6 +2,10 @@ policies:
   - url: http://localhost:8765/policies/test-branch-protection
     id: test-ampel-bp
 
+complypacks:
+  - url: http://localhost:8765/complypacks/ampel-bp@v1.0.0
+    id: ampel-bp-pack
+
 targets:
   - id: complyctl-repo
     policies:

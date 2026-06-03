@@ -84,6 +84,7 @@ func Run(cfg *complytime.WorkspaceConfig, configPath, providerDir, cacheDir stri
 	results = append(results, CheckPolicyVersions(cfg, cacheDir, versionResolver)...)
 	results = append(results, CheckPolicyActivePeriod(cfg, resolver, verbose)...)
 	results = append(results, CheckVariables(cfg, healthData, resolver, verbose)...)
+	results = append(results, CheckComplypacks(cfg, cacheDir, resolver)...)
 	results = append(results, CheckCollector(cfg)...)
 	return results
 }
@@ -700,6 +701,83 @@ func CheckCollector(cfg *complytime.WorkspaceConfig) []CheckResult {
 	if result, ok := checkExportEnabled(); ok {
 		results = append(results, result)
 	}
+	return results
+}
+
+// CheckComplypacks verifies that cached complypacks exist for every evaluator-id
+// referenced by the workspace's policies. The check only runs when the config
+// contains a non-empty complypacks section — workspaces without complypacks
+// skip this check entirely.
+//
+// For each policy, the evaluator-id(s) are resolved via PolicyGraphResolver
+// (same pattern as CheckVariables). Each unique evaluator-id is then checked
+// against the ComplypackCache via LookupByEvaluatorID. Missing complypacks
+// produce a non-blocking warning suggesting `complyctl get`.
+func CheckComplypacks(cfg *complytime.WorkspaceConfig, cacheDir string, resolver PolicyGraphResolver) []CheckResult {
+	if cfg == nil || len(cfg.Complypacks) == 0 {
+		return nil
+	}
+
+	if resolver == nil {
+		return nil
+	}
+
+	cpCache := cache.NewComplypackCache(cacheDir)
+
+	// Collect unique evaluator-ids from all policies via the dependency graph,
+	// following the same resolution pattern as CheckVariables.
+	evaluatorIDs := make(map[string]bool)
+	for _, p := range cfg.Policies {
+		ref := complytime.ParsePolicyRef(p.URL)
+		version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
+		if err != nil {
+			continue
+		}
+		graph, err := resolver.ResolvePolicyGraph(ref.Repository, version)
+		if err != nil {
+			continue
+		}
+		configs := policy.ExtractAssessmentConfigs(ref.Repository, graph)
+		groups := policy.GroupByEvaluator(configs, graph)
+		for evalID := range groups {
+			evaluatorIDs[evalID] = true
+		}
+	}
+
+	var results []CheckResult
+	allPresent := true
+	for evalID := range evaluatorIDs {
+		contentPath, _, err := cpCache.LookupByEvaluatorID(evalID)
+		if err != nil {
+			results = append(results, CheckResult{
+				Name:     fmt.Sprintf("complypacks/%s", evalID),
+				Status:   StatusWarn,
+				Message:  fmt.Sprintf("error checking complypack cache for %s: %v", evalID, err),
+				Blocking: false,
+			})
+			allPresent = false
+			continue
+		}
+		if contentPath == "" {
+			results = append(results, CheckResult{
+				Name:     fmt.Sprintf("complypacks/%s", evalID),
+				Status:   StatusWarn,
+				Message:  fmt.Sprintf("complypack not cached for evaluator %s — run complyctl get to download", evalID),
+				Blocking: false,
+			})
+			allPresent = false
+		}
+	}
+
+	if allPresent {
+		results = append(results, CheckResult{
+			Name:     "complypacks",
+			Status:   StatusPass,
+			Message:  fmt.Sprintf("%d complypack(s) cached", len(evaluatorIDs)),
+			Blocking: false,
+		})
+	}
+
 	return results
 }
 

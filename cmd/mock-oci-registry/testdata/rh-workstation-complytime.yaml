@@ -1,0 +1,9 @@
+policies:
+  - url: http://localhost:8765/policies/rh-workstation-audit
+    id: rh-audit
+targets:
+  - id: local
+    policies:
+      - rh-audit
+    variables:
+      profile: standard

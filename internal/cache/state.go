@@ -12,10 +12,12 @@ import (
 	"github.com/complytime/complyctl/internal/complytime"
 )
 
-// State tracks sync metadata for all cached policies, persisted as state.json.
+// State tracks sync metadata for all cached policies and complypacks,
+// persisted as state.json.
 type State struct {
-	LastSync time.Time              `json:"last_sync"`
-	Policies map[string]PolicyState `json:"policies"`
+	LastSync    time.Time              `json:"last_sync"`
+	Policies    map[string]PolicyState `json:"policies"`
+	Complypacks map[string]PolicyState `json:"complypacks,omitempty"`
 }
 
 // PolicyState holds version, digest, and timestamp for a single cached policy.
@@ -32,8 +34,9 @@ func LoadState(cacheDir string) (*State, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &State{
-				LastSync: time.Time{},
-				Policies: make(map[string]PolicyState),
+				LastSync:    time.Time{},
+				Policies:    make(map[string]PolicyState),
+				Complypacks: make(map[string]PolicyState),
 			}, nil
 		}
 		return nil, fmt.Errorf("failed to read state file %s: %w", statePath, err)
@@ -44,11 +47,21 @@ func LoadState(cacheDir string) (*State, error) {
 		return nil, fmt.Errorf("failed to parse state file %s: %w", statePath, err)
 	}
 
-	if state.Policies == nil {
-		state.Policies = make(map[string]PolicyState)
-	}
+	initStateMaps(&state)
 
 	return &state, nil
+}
+
+// initStateMaps ensures Policies and Complypacks maps are non-nil.
+// Extracted to keep LoadState's cyclomatic complexity stable when new
+// map fields are added to State.
+func initStateMaps(s *State) {
+	if s.Policies == nil {
+		s.Policies = make(map[string]PolicyState)
+	}
+	if s.Complypacks == nil {
+		s.Complypacks = make(map[string]PolicyState)
+	}
 }
 
 func SaveState(state *State, cacheDir string) error {
@@ -87,5 +100,29 @@ func (s *State) GetPolicyState(policyID string) (PolicyState, bool) {
 		return PolicyState{}, false
 	}
 	state, exists := s.Policies[policyID]
+	return state, exists
+}
+
+// UpdateComplypackState records the version, digest, and current timestamp for
+// a cached complypack, keyed by repository (e.g., "example.com/complypacks/opa-bundle").
+func (s *State) UpdateComplypackState(evaluatorID, version, digest string) {
+	if s.Complypacks == nil {
+		s.Complypacks = make(map[string]PolicyState)
+	}
+	s.Complypacks[evaluatorID] = PolicyState{
+		Version:     version,
+		Digest:      digest,
+		LastUpdated: time.Now(),
+	}
+	s.LastSync = time.Now()
+}
+
+// GetComplypackState returns the cached state for a complypack, keyed by
+// repository (e.g., "example.com/complypacks/opa-bundle").
+func (s *State) GetComplypackState(evaluatorID string) (PolicyState, bool) {
+	if s.Complypacks == nil {
+		return PolicyState{}, false
+	}
+	state, exists := s.Complypacks[evaluatorID]
 	return state, exists
 }

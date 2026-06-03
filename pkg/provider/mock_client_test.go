@@ -15,7 +15,8 @@ var _ provider.Provider = (*mockClient)(nil)
 // Like real providers, it stores requirement IDs during Generate and uses
 // them during Scan (R47).
 type mockClient struct {
-	requirementIDs []string
+	requirementIDs        []string
+	complypackContentPath string
 }
 
 // newMockClient creates a new mockClient instance for tests.
@@ -35,6 +36,7 @@ func (m *mockClient) Generate(_ context.Context, req *provider.GenerateRequest) 
 	for _, cfg := range req.Configuration {
 		m.requirementIDs = append(m.requirementIDs, cfg.RequirementID)
 	}
+	m.complypackContentPath = req.ComplypackContentPath
 	return &provider.GenerateResponse{Success: true}, nil
 }
 

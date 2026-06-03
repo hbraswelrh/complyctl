@@ -133,12 +133,15 @@ func (m *Manager) Cleanup() {
 
 // RouteGenerate dispatches a GenerateRequest to the provider matching evaluatorID.
 // globalVars carries workspace-level variables; targetVars carries per-target
-// variables from the three-tier model (R48).
-func (m *Manager) RouteGenerate(ctx context.Context, evaluatorID string, globalVars, targetVars map[string]string, configs []AssessmentConfiguration) error {
+// variables from the three-tier model (R48). complypackContentPath is the path
+// to a cached complypack content archive for the evaluator; pass "" when no
+// complypack is available (backward compatible).
+func (m *Manager) RouteGenerate(ctx context.Context, evaluatorID string, globalVars, targetVars map[string]string, configs []AssessmentConfiguration, complypackContentPath string) error {
 	req := &GenerateRequest{
-		GlobalVariables: globalVars,
-		Configuration:   configs,
-		TargetVariables: targetVars,
+		GlobalVariables:       globalVars,
+		Configuration:         configs,
+		TargetVariables:       targetVars,
+		ComplypackContentPath: complypackContentPath,
 	}
 
 	if evaluatorID != "" {

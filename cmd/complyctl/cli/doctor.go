@@ -20,8 +20,14 @@ func doctorCmd(common *Common) *cobra.Command {
 	_ = common
 	var verbose bool
 	cmd := &cobra.Command{
-		Use:               "doctor",
-		Short:             "Run pre-flight diagnostics on the workspace",
+		Use:   "doctor",
+		Short: "Run pre-flight diagnostics on the workspace",
+		Long: `Run pre-flight diagnostics on the workspace.
+
+Checks include provider discovery, policy cache integrity, workspace
+configuration validation, and complypack availability. When complypacks are
+configured, the doctor verifies that each referenced complypack is cached
+and reports missing entries.`,
 		Args:              cobra.NoArgs,
 		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE: func(_ *cobra.Command, _ []string) error {

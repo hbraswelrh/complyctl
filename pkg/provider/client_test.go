@@ -79,6 +79,43 @@ func TestMockClient_Scan_NoGenerate(t *testing.T) {
 	assert.Empty(t, resp.Assessments)
 }
 
+func TestClient_Generate_ComplypackPathPopulated(t *testing.T) {
+	mock := newMockClient()
+
+	complypackPath := "/home/user/.complytime/complypacks/io.complytime.opa/1.0.0/content.tar.gz"
+	req := &provider.GenerateRequest{
+		Configuration: []provider.AssessmentConfiguration{
+			{PlanID: "plan-1", RequirementID: "req-1", Parameters: map[string]string{"key": "value"}},
+		},
+		ComplypackContentPath: complypackPath,
+	}
+
+	resp, err := mock.Generate(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Empty(t, resp.ErrorMessage)
+	assert.Equal(t, complypackPath, mock.complypackContentPath,
+		"ComplypackContentPath should propagate through GenerateRequest to the provider")
+}
+
+func TestClient_Generate_ComplypackPathEmpty(t *testing.T) {
+	mock := newMockClient()
+
+	req := &provider.GenerateRequest{
+		Configuration: []provider.AssessmentConfiguration{
+			{PlanID: "plan-1", RequirementID: "req-1", Parameters: map[string]string{"key": "value"}},
+		},
+		// ComplypackContentPath intentionally omitted — backward compatibility
+	}
+
+	resp, err := mock.Generate(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Empty(t, resp.ErrorMessage)
+	assert.Empty(t, mock.complypackContentPath,
+		"ComplypackContentPath should default to empty string for backward compatibility")
+}
+
 func TestMockClient_Scan_ResponseMapping(t *testing.T) {
 	mock := newMockClient()
 

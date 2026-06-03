@@ -32,6 +32,9 @@ Create `complytime.yaml` in your working directory. This is the runtime configur
 policies:
   - url: <oci-reference>
     id: <short-alias>
+complypacks:  # optional — provider-specific content bundles
+  - url: <oci-reference>
+    id: <short-alias>
 
 variables:
   key: value
@@ -47,6 +50,7 @@ targets:
 | Section | Purpose |
 |---------|---------|
 | `policies` | OCI references to Gemara policy bundles. `id` is a short alias used by targets and for provider routing. |
+| `complypacks` | Optional OCI references to provider-specific content bundles (policies, data files, scripts). Fetched alongside policies during `complyctl get`. |
 | `variables` | Workspace-scoped constants passed to all providers (e.g., custom policy directories). |
 | `targets` | Systems to evaluate. Each target selects one or more policies and provides provider-specific variables. |
 
@@ -95,13 +99,13 @@ complyctl init
 
 Available policy bundles are listed in the [complytime-policies usage guide](https://github.com/complytime/complytime-policies/blob/main/docs/usage.md).
 
-## Step 4: Fetch policies
+## Step 4: Fetch policies and complypacks
 
 ```bash
 complyctl get
 ```
 
-Downloads Gemara policies from the OCI registry into the local cache (`~/.complytime/policies/`). Incremental — only fetches new or modified content.
+Downloads Gemara policies from the OCI registry into the local cache (`~/.complytime/policies/`). If `complypacks:` entries are configured in `complytime.yaml`, their artifacts are also fetched into `~/.complytime/complypacks/`. Incremental — only fetches new or modified content.
 
 ## Step 5: Verify cache
 

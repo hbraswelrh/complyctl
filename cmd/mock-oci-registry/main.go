@@ -10,6 +10,9 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"embed"
 	"encoding/json"
@@ -35,6 +38,13 @@ const (
 	ociEmptyConfigType   = "application/vnd.oci.empty.v1+json"
 	gemaraCatalogType    = "application/vnd.gemara.catalog.v1+yaml"
 	gemaraPolicyType     = "application/vnd.gemara.policy.v1+yaml"
+)
+
+// ComplyPack media types — hardcoded to avoid importing the complypack package.
+const (
+	complypackArtifactType = "application/vnd.complypack.artifact.v1"
+	complypackConfigType   = "application/vnd.complypack.config.v1+json"
+	complypackContentType  = "application/vnd.complypack.content.v1.tar+gzip"
 )
 
 func main() {
@@ -231,10 +241,12 @@ type ociDescriptor struct {
 }
 
 type ociManifest struct {
-	SchemaVersion int             `json:"schemaVersion"`
-	MediaType     string          `json:"mediaType"`
-	Config        ociDescriptor   `json:"config"`
-	Layers        []ociDescriptor `json:"layers"`
+	SchemaVersion int               `json:"schemaVersion"`
+	MediaType     string            `json:"mediaType"`
+	ArtifactType  string            `json:"artifactType,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
+	Config        ociDescriptor     `json:"config"`
+	Layers        []ociDescriptor   `json:"layers"`
 }
 
 func (r *repository) resolve(reference string) (*artifact, bool) {
@@ -251,7 +263,9 @@ func (r *repository) resolve(reference string) (*artifact, bool) {
 }
 
 func newContentStore() *contentStore {
-	return &contentStore{repos: make(map[string]*repository)}
+	return &contentStore{
+		repos: make(map[string]*repository),
+	}
 }
 
 func (s *contentStore) listRepositories() []string {
@@ -316,9 +330,93 @@ func (s *contentStore) addArtifact(repoName string, tags []string, layers []laye
 	s.repos[repoName] = repo
 }
 
+// complypackDef defines a ComplyPack artifact to seed into the registry.
+type complypackDef struct {
+	evaluatorID string
+	version     string
+	content     []byte // opaque content (tar.gz bytes)
+}
+
+// addComplypackArtifact creates a ComplyPack OCI artifact with config and content layers.
+// The manifest uses artifactType to identify it as a ComplyPack and stores the
+// complypack config blob (evaluator-id + version) as the manifest config descriptor,
+// matching the real complypack push layout.
+func (s *contentStore) addComplypackArtifact(repoName string, tags []string, def complypackDef) {
+	repo := &repository{
+		tags:  make(map[string]*artifact),
+		blobs: make(map[string]*blob),
+	}
+
+	// Config blob — JSON with evaluator-id and version.
+	configJSON, _ := json.Marshal(map[string]string{
+		"evaluator-id": def.evaluatorID,
+		"version":      def.version,
+	})
+	configDigest := computeDigest(configJSON)
+	repo.blobs[configDigest] = &blob{data: configJSON, mediaType: complypackConfigType}
+
+	// Content blob — opaque tar.gz payload.
+	contentDigest := computeDigest(def.content)
+	repo.blobs[contentDigest] = &blob{data: def.content, mediaType: complypackContentType}
+
+	manifest := ociManifest{
+		SchemaVersion: 2,
+		MediaType:     ociManifestMediaType,
+		ArtifactType:  complypackArtifactType,
+		Annotations: map[string]string{
+			"complypack.evaluator-id": def.evaluatorID,
+		},
+		Config: ociDescriptor{
+			MediaType: complypackConfigType,
+			Digest:    configDigest,
+			Size:      int64(len(configJSON)),
+		},
+		Layers: []ociDescriptor{
+			{
+				MediaType: complypackContentType,
+				Digest:    contentDigest,
+				Size:      int64(len(def.content)),
+			},
+		},
+	}
+
+	manifestBytes, _ := json.Marshal(manifest)
+	manifestDigest := computeDigest(manifestBytes)
+
+	art := &artifact{
+		manifestBytes:  manifestBytes,
+		manifestDigest: manifestDigest,
+	}
+
+	for _, tag := range tags {
+		repo.tags[tag] = art
+	}
+
+	s.repos[repoName] = repo
+}
+
 func computeDigest(data []byte) string {
 	hash := sha256.Sum256(data)
 	return fmt.Sprintf("sha256:%x", hash)
+}
+
+// buildDummyTarGz creates a minimal in-memory tar.gz archive containing a single file.
+// Used to produce valid complypack content blobs for demo/testing.
+func buildDummyTarGz(name string, content []byte) []byte {
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+
+	_ = tw.WriteHeader(&tar.Header{
+		Name: name,
+		Size: int64(len(content)),
+		Mode: 0o644,
+	})
+	_, _ = tw.Write(content)
+
+	_ = tw.Close()
+	_ = gw.Close()
+	return buf.Bytes()
 }
 
 // --- Seed Data ---
@@ -347,6 +445,20 @@ func (s *contentStore) seedDefaults() {
 		"testdata/test-branch-protection-catalog.yaml",
 		"testdata/test-branch-protection-policy.yaml",
 		[]string{"v1.0.0", "latest"})
+
+	// policies/ampel-branch-protection — AMPEL branch protection controls
+	s.seedPolicyFromFiles("policies/ampel-branch-protection",
+		"testdata/ampel-branch-protection-catalog.yaml",
+		"testdata/ampel-branch-protection-policy.yaml",
+		[]string{"v1.0.0", "latest"})
+
+	// complypacks/ampel-bp — ComplyPack artifact for AMPEL branch protection evaluator
+	s.addComplypackArtifact("complypacks/ampel-bp", []string{"v1.0.0", "latest"}, complypackDef{
+		evaluatorID: "ampel",
+		version:     "1.0.0",
+		content:     buildDummyTarGz("policy.json", []byte(`{"name":"ampel-branch-protection","version":"1.0.0"}`)),
+	})
+
 }
 
 const defaultContentDir = "/bundles"

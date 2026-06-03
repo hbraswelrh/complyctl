@@ -18,9 +18,10 @@ var (
 // GenerateRequest carries assessment plan configuration to a provider.
 // See R48: three-tier variable model.
 type GenerateRequest struct {
-	GlobalVariables map[string]string
-	Configuration   []AssessmentConfiguration
-	TargetVariables map[string]string
+	GlobalVariables       map[string]string
+	Configuration         []AssessmentConfiguration
+	TargetVariables       map[string]string
+	ComplypackContentPath string
 }
 
 // AssessmentConfiguration binds a requirement ID to its plan and parameters.
@@ -174,9 +175,10 @@ func (c *Client) Generate(ctx context.Context, req *GenerateRequest) (*GenerateR
 	}
 
 	protoResp, err := c.grpcClient.Generate(ctx, &pluginv2.GenerateRequest{
-		GlobalVariables: req.GlobalVariables,
-		Configurations:  protoConfigs,
-		TargetVariables: req.TargetVariables,
+		GlobalVariables:       req.GlobalVariables,
+		Configurations:        protoConfigs,
+		TargetVariables:       req.TargetVariables,
+		ComplypackContentPath: req.ComplypackContentPath,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("Generate RPC failed: %w", err)

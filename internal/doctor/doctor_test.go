@@ -3,6 +3,7 @@
 package doctor
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -1080,5 +1081,122 @@ func TestJoinNames(t *testing.T) {
 		if got != tt.expected {
 			t.Errorf("joinNames(%v) = %q, want %q", tt.input, got, tt.expected)
 		}
+	}
+}
+
+// --- CheckComplypacks Tests ---
+
+// seedComplypackCache creates a fake complypack cache entry at
+// {cacheDir}/complypacks/{evaluatorID}/{version}/ with both content.tar.gz
+// and config.json so that LookupByEvaluatorID finds and parses it.
+func seedComplypackCache(t *testing.T, cacheDir, evaluatorID, version string) {
+	t.Helper()
+	dir := filepath.Join(cacheDir, complytime.ComplypacksSubdir, evaluatorID, version)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	contentPath := filepath.Join(dir, "content.tar.gz")
+	if err := os.WriteFile(contentPath, []byte("fake-content"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// Write config.json — LookupByEvaluatorID now parses this alongside
+	// content.tar.gz to return the complypack config.
+	cfg := map[string]string{
+		"evaluator-id": evaluatorID,
+		"version":      version,
+	}
+	cfgData, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(configPath, cfgData, 0600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCheckComplypacks_AllPresent(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "reg.io/policies/nist@v1.0.0"},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: "reg.io/complypacks/openscap@v1.0.0"},
+		},
+	}
+
+	resolver := newMockPolicyGraphResolver()
+	resolver.versions["policies/nist@v1.0.0"] = "v1.0.0"
+	resolver.graphs["policies/nist@v1.0.0"] = &policy.DependencyGraph{
+		PolicyID:    "policies/nist",
+		EvaluatorID: "openscap",
+	}
+
+	// Seed the complypack cache so LookupByEvaluatorID finds it.
+	seedComplypackCache(t, tmpDir, "openscap", "v1.0.0")
+
+	results := CheckComplypacks(cfg, tmpDir, resolver)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d: %+v", len(results), results)
+	}
+	if results[0].Status != StatusPass {
+		t.Errorf("expected pass, got %s: %s", results[0].Status, results[0].Message)
+	}
+}
+
+func TestCheckComplypacks_Missing(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "reg.io/policies/nist@v1.0.0"},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: "reg.io/complypacks/openscap@v1.0.0"},
+		},
+	}
+
+	resolver := newMockPolicyGraphResolver()
+	resolver.versions["policies/nist@v1.0.0"] = "v1.0.0"
+	resolver.graphs["policies/nist@v1.0.0"] = &policy.DependencyGraph{
+		PolicyID:    "policies/nist",
+		EvaluatorID: "openscap",
+	}
+
+	// Do NOT seed the cache — complypack is missing.
+	results := CheckComplypacks(cfg, tmpDir, resolver)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d: %+v", len(results), results)
+	}
+	if results[0].Status != StatusWarn {
+		t.Errorf("expected warn, got %s: %s", results[0].Status, results[0].Message)
+	}
+	if !strings.Contains(results[0].Message, "openscap") {
+		t.Errorf("expected evaluator-id 'openscap' in message, got %q", results[0].Message)
+	}
+	if !strings.Contains(results[0].Message, "complyctl get") {
+		t.Errorf("expected 'complyctl get' suggestion in message, got %q", results[0].Message)
+	}
+}
+
+func TestCheckComplypacks_NilConfig(t *testing.T) {
+	results := CheckComplypacks(nil, "/tmp", newMockPolicyGraphResolver())
+	if results != nil {
+		t.Errorf("expected nil results for nil config, got %d", len(results))
+	}
+}
+
+func TestCheckComplypacks_NoComplypacks(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "reg.io/policies/nist@v1.0.0"},
+		},
+		// Complypacks is nil/empty — check should be skipped.
+	}
+	results := CheckComplypacks(cfg, "/tmp", newMockPolicyGraphResolver())
+	if results != nil {
+		t.Errorf("expected nil results for empty complypacks, got %d", len(results))
 	}
 }

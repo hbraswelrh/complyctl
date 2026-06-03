@@ -3,6 +3,8 @@
 package complytime_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -528,4 +530,193 @@ func TestValidate_ShellInjectionInURL(t *testing.T) {
 	err := complytime.Validate(cfg)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid characters")
+}
+
+// Complypack validation tests
+
+func TestValidate_ComplypackDuplicateURL(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "registry.com/policies/nist@v1.0", ID: "nist"},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: "ghcr.io/org/pack-a@v1"},
+			{URL: "ghcr.io/org/pack-a@v1"},
+		},
+	}
+	err := complytime.Validate(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate url")
+}
+
+func TestValidate_ComplypackDuplicateEffectiveID(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "registry.com/policies/nist@v1.0", ID: "nist"},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: "registry.com/org/mypack@v1"},
+			{URL: "ghcr.io/other/mypack@v2"},
+		},
+	}
+	err := complytime.Validate(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate id mypack")
+}
+
+func TestValidate_ComplypackAndPolicySameURL_Allowed(t *testing.T) {
+	// Cross-list independence: the same URL can appear in both
+	// policies and complypacks without conflict.
+	sharedURL := "ghcr.io/org/shared-artifact@v1.0"
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: sharedURL, ID: "shared-policy"},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: sharedURL, ID: "shared-pack"},
+		},
+		Targets: []complytime.TargetConfig{{
+			ID:       "local",
+			Policies: []string{"shared-policy"},
+		}},
+	}
+	assert.NoError(t, complytime.Validate(cfg))
+}
+
+func TestValidate_ComplypackInvalidOCIRef(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		wantErr string
+	}{
+		{
+			name:    "shell injection semicolon",
+			url:     "ls;pwd",
+			wantErr: "invalid characters",
+		},
+		{
+			name:    "bare word without registry",
+			url:     "just-a-name",
+			wantErr: "must include a registry",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &complytime.WorkspaceConfig{
+				Policies: []complytime.PolicyEntry{
+					{URL: "registry.com/policies/nist@v1.0", ID: "nist"},
+				},
+				Complypacks: []complytime.PolicyEntry{
+					{URL: tt.url},
+				},
+			}
+			err := complytime.Validate(cfg)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+		})
+	}
+}
+
+func TestValidate_ComplypackEmptyURL(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: "registry.com/policies/nist@v1.0", ID: "nist"},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: ""},
+		},
+	}
+	err := complytime.Validate(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot be empty")
+}
+
+func TestValidate_ComplypackEmpty_Allowed(t *testing.T) {
+	// No complypacks section is valid — complypacks are optional.
+	tests := []struct {
+		name        string
+		complypacks []complytime.PolicyEntry
+	}{
+		{name: "nil slice", complypacks: nil},
+		{name: "empty slice", complypacks: []complytime.PolicyEntry{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &complytime.WorkspaceConfig{
+				Policies: []complytime.PolicyEntry{
+					{URL: "registry.com/policies/nist@v1.0", ID: "nist"},
+				},
+				Complypacks: tt.complypacks,
+				Targets: []complytime.TargetConfig{{
+					ID:       "local",
+					Policies: []string{"nist"},
+				}},
+			}
+			assert.NoError(t, complytime.Validate(cfg))
+		})
+	}
+}
+
+func TestLoadFrom_WithComplypacks(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: registry.com/policies/nist@v1.0
+    id: nist
+complypacks:
+  - url: ghcr.io/org/complypack-rhel9@v1.0
+    id: rhel9
+  - url: ghcr.io/org/complypack-ubuntu@v2.0
+targets:
+  - id: local
+    policies:
+      - nist
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	cfg, err := complytime.LoadFrom(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify policies parsed correctly
+	require.Len(t, cfg.Policies, 1)
+	assert.Equal(t, "registry.com/policies/nist@v1.0", cfg.Policies[0].URL)
+
+	// Verify complypacks parsed correctly
+	require.Len(t, cfg.Complypacks, 2)
+	assert.Equal(t, "ghcr.io/org/complypack-rhel9@v1.0", cfg.Complypacks[0].URL)
+	assert.Equal(t, "rhel9", cfg.Complypacks[0].ID)
+	assert.Equal(t, "ghcr.io/org/complypack-ubuntu@v2.0", cfg.Complypacks[1].URL)
+	assert.Empty(t, cfg.Complypacks[1].ID)
+
+	// Verify EffectiveID derivation works for the entry without explicit ID
+	assert.Equal(t, "complypack-ubuntu", cfg.Complypacks[1].EffectiveID())
+}
+
+func TestLoadFrom_WithoutComplypacks(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	// Existing config format without complypacks — must still work unchanged.
+	yamlContent := `policies:
+  - url: registry.com/policies/nist@v1.0
+    id: nist
+targets:
+  - id: local
+    policies:
+      - nist
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	cfg, err := complytime.LoadFrom(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Policies load as before
+	require.Len(t, cfg.Policies, 1)
+	assert.Equal(t, "registry.com/policies/nist@v1.0", cfg.Policies[0].URL)
+
+	// Complypacks is nil/empty when not present in YAML
+	assert.Empty(t, cfg.Complypacks)
 }

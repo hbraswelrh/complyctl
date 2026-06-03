@@ -43,9 +43,10 @@ func (s *grpcServer) Generate(ctx context.Context, req *proto.GenerateRequest) (
 	}
 
 	resp, err := s.impl.Generate(ctx, &GenerateRequest{
-		GlobalVariables: req.GetGlobalVariables(),
-		Configuration:   configs,
-		TargetVariables: req.GetTargetVariables(),
+		GlobalVariables:       req.GetGlobalVariables(),
+		Configuration:         configs,
+		TargetVariables:       req.GetTargetVariables(),
+		ComplypackContentPath: req.GetComplypackContentPath(),
 	})
 	if err != nil {
 		return nil, err

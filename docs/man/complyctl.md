@@ -34,8 +34,17 @@ Complyctl is built on https://github.com/oscal-compass/compliance-to-policy-go w
 **completion**
 Generate the autocompletion script for the specified shell.
 
+**doctor**
+Run pre-flight diagnostics on the workspace. Checks provider discovery, policy
+cache integrity, configuration validation, and complypack availability.
+
 **generate**
 Generate PVP policy from an assessment plan.
+
+**get**
+Fetch policies and complypacks from OCI registries into the local cache. When
+complypacks are configured in complytime.yaml, their artifacts are fetched
+alongside policies.
 
 **help**
 Display help about any command.
@@ -48,6 +57,10 @@ Display information about a framework's controls and rules.
 
 **plan**
 Generate a new assessment plan for a given compliance framework ID.
+
+**providers**
+List discovered scanning providers and their health status. Includes a
+COMPLYPACK column showing cached complypack versions per provider.
 
 **scan**
 Scan environment with assessment plan.

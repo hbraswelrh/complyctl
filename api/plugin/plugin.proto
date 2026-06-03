@@ -48,6 +48,11 @@ message GenerateRequest {
   // Generate is invoked per (evaluator, target) pair so each call
   // carries the variables for exactly one target.
   map<string, string> target_variables = 3;
+
+  // Filesystem path to the complypack content archive (content.tar.gz).
+  // Populated when a complypack has been pulled for this target's evaluator,
+  // allowing the plugin to access bundled policies, data files, and scripts.
+  string complypack_content_path = 4;
 }
 
 // AssessmentConfiguration defines general policy

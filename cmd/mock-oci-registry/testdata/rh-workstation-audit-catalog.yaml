@@ -1,0 +1,59 @@
+title: Red Hat Workstation Security Audit
+metadata:
+  id: rh-workstation-audit
+  type: ControlCatalog
+  gemara-version: 1.0.0-rc.0
+  description: Security baseline verification for Red Hat provided workstations
+  version: "1.0.0"
+  author:
+    id: redhat-infosec
+    name: Red Hat Information Security
+    type: Human
+  mapping-references:
+    - id: cis-controls-v8-workstation
+      title: CIS Controls v8 - Workstation Security Baseline
+      version: "8.0"
+  applicability-groups:
+    - id: rhel
+      title: Red Hat Enterprise Linux
+      description: Red Hat Enterprise Linux operating system
+    - id: fedora
+      title: Fedora
+      description: Fedora Linux operating system
+groups:
+  - id: system-security
+    title: System Security
+    description: Core system security controls
+controls:
+  - id: RH-AUDIT-1
+    title: SELinux Enforcement
+    objective: Ensure SELinux is enabled and in enforcing mode
+    group: system-security
+    guidelines:
+      - reference-id: cis-controls-v8-workstation
+        entries:
+          - reference-id: cis-control-4
+    assessment-requirements:
+      - id: RH-AUDIT-1-ar
+        text: SELinux MUST be enabled and configured in enforcing mode
+        applicability:
+          - rhel
+          - fedora
+        state: Active
+    state: Active
+  - id: RH-AUDIT-2
+    title: Vendor Supported Operating System
+    objective: Ensure system is running a vendor-supported operating system
+    group: system-security
+    guidelines:
+      - reference-id: cis-controls-v8-workstation
+        entries:
+          - reference-id: cis-control-7
+    assessment-requirements:
+      - id: RH-AUDIT-2-ar
+        text: System MUST run a vendor-supported operating system maintained by Red Hat
+        applicability:
+          - rhel
+          - fedora
+        state: Active
+    state: Active

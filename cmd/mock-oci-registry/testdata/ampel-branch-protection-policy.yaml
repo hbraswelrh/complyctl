@@ -1,0 +1,43 @@
+title: AMPEL Branch Protection Policy
+metadata:
+    id: ampel-branch-protection-policy
+    description: AMPEL policy for integration testing with complypack support
+    author:
+        id: complytime
+        name: ComplyTime
+        type: Software Assisted
+    mapping-references:
+        - id: ampel-branch-protection
+          title: AMPEL Branch Protection Controls
+          version: 1.0.0
+          description: AMPEL control catalog for integration testing
+contacts:
+    responsible:
+        - name: Repository Administrator
+    accountable:
+        - name: Security Team
+scope:
+    in:
+        technologies:
+            - GitHub
+        users:
+            - Repository maintainers
+imports:
+    catalogs:
+        - reference-id: ampel-branch-protection
+adherence:
+    evaluation-methods:
+        - type: Behavioral
+          description: Ampel automated branch protection evaluation
+          executor:
+              id: ampel
+              name: AMPEL
+              type: Software
+    assessment-plans:
+        - id: block-force-push
+          requirement-id: block-force-push
+          frequency: on-demand
+          evaluation-methods:
+              - type: Behavioral
+                executor:
+                    id: ampel

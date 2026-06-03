@@ -1,0 +1,30 @@
+title: CIS Controls v8 - Workstation Security Baseline
+metadata:
+  id: cis-controls-v8-workstation
+  type: GuidanceCatalog
+  gemara-version: 1.0.0-rc.0
+  description: CIS Controls v8 guidance for workstation security configuration
+  version: "8.0"
+  author:
+    id: cis
+    name: Center for Internet Security
+    type: Human
+type: Standard
+groups:
+  - id: secure-configuration
+    title: Secure Configuration
+    description: Secure configuration of enterprise assets and software
+  - id: vulnerability-management
+    title: Continuous Vulnerability Management
+    description: Continuous acquisition, assessment, and remediation of vulnerabilities
+guidelines:
+  - id: cis-control-4
+    title: Secure Configuration of Enterprise Assets and Software
+    objective: Establish and maintain the secure configuration of enterprise assets to reduce attack surface and prevent exploitation of vulnerable services
+    group: secure-configuration
+    state: Active
+  - id: cis-control-7
+    title: Continuous Vulnerability Management
+    objective: Continuously assess and track vulnerabilities on enterprise assets to ensure systems run supported versions with available security patches
+    group: vulnerability-management
+    state: Active

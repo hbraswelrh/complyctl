@@ -1,0 +1,101 @@
+title: Red Hat Workstation Security Audit Policy
+metadata:
+  id: rh-workstation-audit-policy
+  type: Policy
+  gemara-version: 1.0.0-rc.0
+  description: Automated evaluation policy for Red Hat workstation security baseline
+  version: "1.0.0"
+  author:
+    id: redhat-infosec
+    name: Red Hat Information Security
+    type: Software Assisted
+  mapping-references:
+    - id: rh-workstation-audit
+      title: Red Hat Workstation Security Audit
+      version: "1.0.0"
+      description: Control catalog for Red Hat workstation security baseline
+    - id: cis-controls-v8-workstation
+      title: CIS Controls v8 - Workstation Security Baseline
+      version: "8.0"
+contacts:
+  responsible:
+    - name: System Administrator
+  accountable:
+    - name: Security Team
+scope:
+  in:
+    technologies:
+      - Red Hat Enterprise Linux
+      - Fedora
+    users:
+      - Workstation users
+imports:
+  catalogs:
+    - reference-id: rh-workstation-audit
+  guidance:
+    - reference-id: cis-controls-v8-workstation
+adherence:
+  evaluation-methods:
+    - id: openscap-eval
+      type: Behavioral
+      mode: Automated
+      description: OpenSCAP automated compliance evaluation
+      executor:
+        id: openscap
+        name: OpenSCAP
+        type: Software
+  assessment-plans:
+    - id: selinux_state
+      requirement-id: RH-AUDIT-1-ar
+      frequency: on-demand
+      evaluation-methods:
+        - id: openscap-eval
+          type: Behavioral
+          mode: Automated
+          executor:
+            id: openscap
+            name: OpenSCAP
+            type: Software
+      parameters:
+        - id: workspace
+          label: Workspace
+          description: Path to the workspace directory
+        - id: profile
+          label: Profile
+          description: SCAP profile to apply
+        - id: policy
+          label: Policy
+          description: Tailoring file name
+        - id: arf
+          label: ARF
+          description: ARF results file name
+        - id: results
+          label: Results
+          description: XCCDF results file name
+    - id: installed_OS_is_vendor_supported
+      requirement-id: RH-AUDIT-2-ar
+      frequency: on-demand
+      evaluation-methods:
+        - id: openscap-eval
+          type: Behavioral
+          mode: Automated
+          executor:
+            id: openscap
+            name: OpenSCAP
+            type: Software
+      parameters:
+        - id: workspace
+          label: Workspace
+          description: Path to the workspace directory
+        - id: profile
+          label: Profile
+          description: SCAP profile to apply
+        - id: policy
+          label: Policy
+          description: Tailoring file name
+        - id: arf
+          label: ARF
+          description: ARF results file name
+        - id: results
+          label: Results
+          description: XCCDF results file name

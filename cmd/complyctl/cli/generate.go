@@ -107,7 +107,7 @@ func (o *generateOptions) generatePolicy(ctx context.Context, cfg *complytime.Wo
 	groups := policy.GroupByEvaluator(configs, graph)
 	policyTargets := filterTargetsForPolicy(cfg.Targets, eid)
 
-	evaluatorIDs, planRows, err := invokeGenerate(ctx, mgr, groups, policyTargets, cfg.Variables)
+	evaluatorIDs, planRows, err := invokeGenerate(ctx, o.cacheDir, mgr, groups, policyTargets, cfg.Variables)
 	if err != nil {
 		return err
 	}
@@ -115,12 +115,12 @@ func (o *generateOptions) generatePolicy(ctx context.Context, cfg *complytime.Wo
 	return saveGenerationAndPrint(o.cacheDir, ref.Repository, eid, evaluatorIDs, planRows)
 }
 
-func invokeGenerate(ctx context.Context, mgr *provider.Manager, groups map[string]policy.EvaluatorGroup, policyTargets []complytime.TargetConfig, globalVars map[string]string) ([]string, []output.ExecutionPlanRow, error) {
+func invokeGenerate(ctx context.Context, cacheDir string, mgr *provider.Manager, groups map[string]policy.EvaluatorGroup, policyTargets []complytime.TargetConfig, globalVars map[string]string) ([]string, []output.ExecutionPlanRow, error) {
 	spin := terminal.NewSpinner("Generating policy artifacts...")
 	spin.Start()
 	defer spin.Stop()
 
-	if err := generateForAllTargets(ctx, mgr, groups, policyTargets, globalVars); err != nil {
+	if err := generateForAllTargets(ctx, cacheDir, mgr, groups, policyTargets, globalVars); err != nil {
 		return nil, nil, err
 	}
 

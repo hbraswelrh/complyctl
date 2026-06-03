@@ -35,6 +35,9 @@ github.com/clipperhouse/stringish
 # github.com/clipperhouse/uax29/v2 v2.5.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
+# github.com/complytime/complypack v0.0.0-20260601135746-d34556b3038f
+## explicit; go 1.25.0
+github.com/complytime/complypack/pkg/complypack
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -331,6 +334,7 @@ gopkg.in/yaml.v3
 ## explicit; go 1.23.0
 oras.land/oras-go/v2
 oras.land/oras-go/v2/content
+oras.land/oras-go/v2/content/memory
 oras.land/oras-go/v2/content/oci
 oras.land/oras-go/v2/errdef
 oras.land/oras-go/v2/internal/cas

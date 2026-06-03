@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,9 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/complytime/complyctl/internal/cache"
 	"github.com/complytime/complyctl/internal/complytime"
 	"github.com/complytime/complyctl/internal/policy"
+	"github.com/complytime/complyctl/internal/terminal"
 	"github.com/complytime/complyctl/pkg/provider"
+	"github.com/complytime/complypack/pkg/complypack"
 )
 
 func chdirTemp(t *testing.T) {
@@ -610,6 +614,41 @@ func TestGenerateOptions_Run_PolicyNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found in config")
 }
 
+// --- providersOptions tests (complete) ---
+
+// TestProvidersOptions_Complete verifies that complete() populates cacheDir
+// and providerDir from the user's home directory.
+func TestProvidersOptions_Complete(t *testing.T) {
+	o := &providersOptions{Common: &Common{}}
+	err := o.complete()
+	require.NoError(t, err)
+	assert.NotEmpty(t, o.providerDir, "providerDir should be populated")
+	assert.NotEmpty(t, o.cacheDir, "cacheDir should be populated")
+}
+
+// TestProvidersOptions_Complete_CacheDirPreset verifies that complete() does
+// not overwrite cacheDir when it is already set.
+func TestProvidersOptions_Complete_CacheDirPreset(t *testing.T) {
+	preset := t.TempDir()
+	o := &providersOptions{Common: &Common{}, cacheDir: preset}
+	err := o.complete()
+	require.NoError(t, err)
+	assert.Equal(t, preset, o.cacheDir, "cacheDir should not be overwritten when preset")
+	assert.NotEmpty(t, o.providerDir, "providerDir should be populated")
+}
+
+// --- generateForAllTargets tests ---
+
+// TestGenerateForAllTargets_EmptyGroups verifies that generateForAllTargets
+// returns nil when no evaluator groups are provided.
+func TestGenerateForAllTargets_EmptyGroups(t *testing.T) {
+	cacheDir := t.TempDir()
+	groups := map[string]policy.EvaluatorGroup{}
+	targets := []complytime.TargetConfig{{ID: "local"}}
+	err := generateForAllTargets(context.Background(), cacheDir, nil, groups, targets, nil)
+	assert.NoError(t, err)
+}
+
 // --- getOptions tests ---
 
 func TestGetOptions_Run_NoWorkspace(t *testing.T) {
@@ -622,6 +661,35 @@ func TestGetOptions_Run_NoWorkspace(t *testing.T) {
 	err := o.run(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to load workspace config")
+}
+
+// TestGetOptions_Run_WithComplypacks verifies that run() exercises the
+// syncComplypacks code path when complypacks are configured. The sync
+// itself fails (no registry) but the code path through run() is covered.
+func TestGetOptions_Run_WithComplypacks(t *testing.T) {
+	chdirTemp(t)
+	writeWorkspaceConfig(t, `policies:
+  - url: registry.example.com/policies/test-policy@v1.0
+    id: test-policy
+complypacks:
+  - url: registry.example.com/packs/test-pack@v1.0
+    id: test-pack
+targets:
+  - id: local
+    policies:
+      - test-policy
+`)
+	o := &getOptions{
+		Common:   &Common{},
+		timeout:  5 * time.Second,
+		cacheDir: t.TempDir(),
+	}
+	// The run will fail during policy sync (no registry), but the code
+	// path through run() including the syncComplypacks call is exercised.
+	err := o.run(context.Background())
+	require.Error(t, err)
+	// Verify it fails on sync, not on config loading or complypacks parsing.
+	assert.Contains(t, err.Error(), "sync")
 }
 
 // --- listOptions tests ---
@@ -667,9 +735,66 @@ func TestProvidersOptions_Run_EmptyProviderDir(t *testing.T) {
 	o := &providersOptions{
 		Common:      &Common{},
 		providerDir: t.TempDir(),
+		cacheDir:    t.TempDir(),
 	}
 	err := o.run(context.Background())
 	require.NoError(t, err)
+}
+
+// TestProviders_WithComplypack verifies that the providers table shows the
+// cached complypack version when a complypack is stored for a provider's
+// evaluator-id.
+func TestProviders_WithComplypack(t *testing.T) {
+	cacheDir := t.TempDir()
+	cc := cache.NewComplypackCache(cacheDir)
+
+	// Store a complypack for the evaluator-id.
+	cfg := complypack.Config{
+		EvaluatorID: "io.complytime.opa",
+		Version:     "1.2.3",
+	}
+	_, err := cc.Store(cfg, strings.NewReader("test content"))
+	require.NoError(t, err)
+
+	// Verify lookupComplypackVersion returns the stored version.
+	version := lookupComplypackVersion(cc, "io.complytime.opa")
+	assert.Equal(t, "1.2.3", version)
+
+	// Verify the version appears in a rendered table row.
+	// Build a row manually (simulating what buildProviderRows produces)
+	// and render it through ShowPlainTable to confirm the COMPLYPACK column.
+	headers := []string{"PROVIDER ID", "PATH", "STATUS", "VERSION", "COMPLYPACK"}
+	rows := [][]string{
+		{"io.complytime.opa", "complyctl-provider-opa", "healthy", "0.1.0", version},
+	}
+	var buf bytes.Buffer
+	terminal.ShowPlainTable(&buf, headers, rows)
+	output := buf.String()
+	assert.Contains(t, output, "COMPLYPACK")
+	assert.Contains(t, output, "1.2.3")
+}
+
+// TestProviders_WithoutComplypack verifies that the providers table shows
+// "none" in the COMPLYPACK column when no complypack is cached for a
+// provider's evaluator-id.
+func TestProviders_WithoutComplypack(t *testing.T) {
+	cacheDir := t.TempDir()
+	cc := cache.NewComplypackCache(cacheDir)
+
+	// No complypack stored — lookupComplypackVersion should return "none".
+	version := lookupComplypackVersion(cc, "io.complytime.opa")
+	assert.Equal(t, "none", version)
+
+	// Verify "none" appears in a rendered table row.
+	headers := []string{"PROVIDER ID", "PATH", "STATUS", "VERSION", "COMPLYPACK"}
+	rows := [][]string{
+		{"io.complytime.opa", "complyctl-provider-opa", "healthy", "0.1.0", version},
+	}
+	var buf bytes.Buffer
+	terminal.ShowPlainTable(&buf, headers, rows)
+	output := buf.String()
+	assert.Contains(t, output, "COMPLYPACK")
+	assert.Contains(t, output, "none")
 }
 
 // --- helper tests ---

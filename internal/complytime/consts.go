@@ -19,6 +19,7 @@ const WorkspaceDir = ".complytime"
 
 const StateFileName = "state.json"
 const PoliciesSubdir = "policies"
+const ComplypacksSubdir = "complypacks"
 const WorkspaceConfigFile = "complytime.yaml"
 
 const CurrentWorkspaceVersion = 1
