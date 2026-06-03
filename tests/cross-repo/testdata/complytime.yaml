@@ -21,4 +21,4 @@ targets:
     policies:
       - test-opa-bp
     variables:
-      input: test-deployment.yaml
+      input_path: test-deployment.yaml
