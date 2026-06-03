@@ -289,7 +289,7 @@ catalog and policy YAML files from the mounted bundles
 directory and serves them as OCI artifacts, exactly like
 the embedded test content. The post-create script adds
 policy entries to `complytime.yaml` pointing at the mock
-registry (`localhost:8765/policies/{name}`), so `complyctl
+registry (`http://localhost:8765/policies/{name}`), so `complyctl
 get` populates the cache through normal code paths.
 
 ## Troubleshooting

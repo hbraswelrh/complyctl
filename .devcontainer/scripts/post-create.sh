@@ -150,19 +150,19 @@ if [[ -d "${BUNDLES_DIR}" ]]; then
         # Insert policy entry into complytime.yaml if not already present.
         # Points at the mock registry (localhost:8765) which serves files
         # from the bundles directory via seedFromDirectory().
-        if ! grep -q "localhost:8765/policies/${bundle_name}" "${CONFIG_FILE}" 2>/dev/null; then
+        if ! grep -q "http://localhost:8765/policies/${bundle_name}" "${CONFIG_FILE}" 2>/dev/null; then
             # Insert before the first 'targets:' line to stay in policies block.
             if grep -q "^targets:" "${CONFIG_FILE}" 2>/dev/null; then
                 awk -v name="${bundle_name}" '
                     /^targets:/ {
-                        print "  - url: localhost:8765/policies/" name
+                        print "  - url: http://localhost:8765/policies/" name
                         print "    id: " name
                     }
                     { print }
                 ' "${CONFIG_FILE}" > "${CONFIG_FILE}.tmp"
                 mv "${CONFIG_FILE}.tmp" "${CONFIG_FILE}"
             else
-                printf '  - url: localhost:8765/policies/%s\n    id: %s\n' \
+                printf '  - url: http://localhost:8765/policies/%s\n    id: %s\n' \
                     "${bundle_name}" "${bundle_name}" >> "${CONFIG_FILE}"
             fi
             echo "    Added ${bundle_name} to complytime.yaml"

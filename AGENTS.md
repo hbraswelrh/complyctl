@@ -285,7 +285,7 @@ packages organized by domain responsibility.
 <!-- MANUAL ADDITIONS END -->
 
 ## Recent Changes
-- devcontainer-bundle-cache: Post-create script discovers OCI Layout bundles from `/bundles/` (or `COMPLYCTL_BUNDLES_DIR`) and pre-populates `~/.complytime/policies/` cache for private policy testing without a registry; `docs/TESTING_ENVIRONMENT.md` Private Bundles section added
+- devcontainer-bundle-cache: Mock OCI registry gains `seedFromDirectory()` to serve mounted Gemara YAML policies from `/bundles/` (or `COMPLYCTL_BUNDLES_DIR`); post-create script adds policy entries to `complytime.yaml`; `docs/TESTING_ENVIRONMENT.md` Private Bundles section added
 - dev-testing-environment: Added `.devcontainer/` with Fedora-based devcontainer for interactive CLI testing; `docs/TESTING_ENVIRONMENT.md` documentation; `make test-devcontainer` CI smoke target; post-create script with GITHUB_TOKEN least-privilege handling
 - scan-error-exit-codes: `complyctl scan` exits non-zero on operational errors; `ScanResponse.errors` proto field added; `ScanResult`/`RouteScanResult()` in `pkg/provider/manager.go`; `FormatOperationalWarnings` in `internal/output/scan_summary.go`; `processScanOutput`/`checkOperationalErrors`/`reportOperationalWarnings` in `cmd/complyctl/cli/scan.go`
 - 005-bundle-resolver-alignment: Policy resolver supports both split-layer and Gemara bundle-format OCI artifacts; `internal/policy/loader.go` gained `LoadBundleFiles()`, `DetectManifestShape()`, `resolveManifest()`; `PolicyLoader` interface extended with bundle methods; `MockBundlePolicySource` added to `internal/cache/cachetest/`

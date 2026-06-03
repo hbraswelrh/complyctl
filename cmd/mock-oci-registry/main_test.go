@@ -240,7 +240,7 @@ func TestReadFileLimited_RejectsSymlink(t *testing.T) {
 	assert.Contains(t, err.Error(), "symlink")
 }
 
-func TestSeedFromDirectory_DoesNotOverrideDefaults(t *testing.T) {
+func TestSeedFromDirectory_OverwritesExistingRepo(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create a policy with the same name as the default

@@ -2,61 +2,59 @@
 
 The devcontainer post-create script (`.devcontainer/scripts/post-create.sh`) currently builds `complyctl`, installs providers, starts a mock OCI registry on port 8765, and sets up a test workspace that syncs policies from the mock registry via `complyctl get`. This works for the embedded test policies but requires content to be compiled into the mock registry binary or fetched from a remote registry.
 
-`complyctl generate` and `complyctl scan` read policies entirely from the local OCI Layout cache at `~/.complytime/policies/{repository}/` via `oci.New()` (`internal/policy/loader.go`). They never contact the registry. The cache directory name must match `ref.Repository` from `ParsePolicyRef(url)` -- for URL `localhost:0/policies/foo`, the directory is `policies/foo`. The `state.json` file tracks digest per policy for generation freshness but is optional -- if missing, `generate` always runs and `scan` always re-generates.
-
-The `Validate()` function in `internal/complytime/config.go` calls `ValidateOCIRef()` on every policy URL at config load time, even in `generate` and `scan`. The URL must have a host containing `.` or `:` to pass validation, but it is never fetched by these commands.
+The mock OCI registry already has all the machinery needed to serve additional policies. `seedPolicyFromFiles()` reads raw Gemara YAML files and `addArtifact()` wraps them into OCI artifacts with proper manifests, digests, and tags. The only difference between the embedded testdata and user-provided policies is the data source: `embed.FS` vs the filesystem.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Enable private OCI Layout bundles to be used in the devcontainer without committing them to the repository or pushing to a registry
-- Pre-populate the `~/.complytime/policies/` cache so `generate` and `scan` work without `complyctl get`
+- Enable private Gemara YAML policy files to be served by the mock OCI registry in the devcontainer without committing them to the repository
+- Provide a standard workflow where `complyctl get` -> `generate` -> `scan` works for all policies (both embedded and mounted)
 - Make bundle discovery automatic via a well-known directory with an environment variable override
-- Require no changes to `complyctl` source code
+- Require no changes to `complyctl` core source code
 
 **Non-Goals:**
 - Modifying `complyctl get` or `ValidateOCIRef` to support local file paths
-- Supporting bundle hot-reload (bundles are copied at container creation time)
-- Providing a bundle creation tool (users bring their own OCI Layouts)
-- Changing the mock OCI registry behavior
+- Supporting bundle hot-reload (bundles are served from directory contents at registry startup)
+- Providing a bundle creation tool (users bring their own Gemara YAML files)
+- Supporting pre-built OCI Layout bundles as input (users provide raw `catalog.yaml` + `policy.yaml`)
 
 ## Decisions
 
-### 1. Use a well-known directory with env var override for bundle discovery
+### 1. Extend the mock registry to serve mounted policy files
 
-Bundles are discovered from `/bundles/` by default, configurable via `COMPLYCTL_BUNDLES_DIR`. Each subdirectory containing an `oci-layout` marker file is treated as a bundle.
+The mock registry's `seedFromDirectory()` reads raw Gemara YAML files from a filesystem directory and registers them in the content store using the existing `addArtifact()` machinery -- exactly like the embedded testdata in `seedDefaults()`. This avoids coupling the shell script to cache internals (`state.json` schema, directory layout conventions) and ensures `complyctl get` works for all policies.
+
+**Alternatives considered:**
+- Direct cache pre-population via shell script -- Couples to `state.json` schema + directory layout. Breaks silently if cache internals change. Makes `complyctl get` fail for pre-populated policies. 125 lines of shell vs ~80 lines of Go.
+- `jq`-based JSON manipulation -- Requires `jq` in the container. Fragile for managing OCI Layout digests.
+
+### 2. Use `http://localhost:8765/policies/{name}` as the registry URL in complytime.yaml
+
+Policy entries point at the mock registry's actual address with the `http://` scheme prefix. The `internal/registry/client.go` uses `strings.HasPrefix(registryURL, "http://")` to determine `plainHTTP` mode. Without the scheme prefix, the client defaults to HTTPS, which fails against the plainHTTP mock registry.
+
+**Alternatives considered:**
+- `localhost:0/policies/{name}` (dummy URL) -- Passes `ValidateOCIRef` but makes `complyctl get` fail. Creates a split workflow where some policies use `get` and some don't.
+- `localhost:8765/policies/{name}` (no scheme) -- Fails because the registry client defaults to HTTPS without the `http://` prefix.
+
+### 3. Use a well-known directory with env var override for bundle discovery
+
+Bundles are discovered from `/bundles/` by default, configurable via `COMPLYCTL_BUNDLES_DIR` (shell side) / `MOCK_REGISTRY_CONTENT_DIR` (registry side). Each subdirectory containing `catalog.yaml` and `policy.yaml` is treated as a Gemara policy.
 
 **Alternatives considered:**
 - Explicit manifest file listing bundles -- Adds a configuration file that must be maintained. Auto-discovery from directory structure is simpler and self-documenting.
 - Environment variable per bundle -- Does not scale. A single directory with named subdirectories is cleaner.
 
-### 2. Use `localhost:0/policies/{name}` as the dummy URL in complytime.yaml
+### 4. Security hardening for directory seeding
 
-The `ValidateOCIRef` check requires URLs to have a host with `.` or `:`. Using `localhost:0` satisfies this (`:` present) while being clearly non-functional (port 0 is never bound). The `policies/` prefix ensures `ParsePolicyRef` produces `ref.Repository = "policies/{name}"`, matching the cache directory structure.
-
-**Alternatives considered:**
-- `example.com/policies/{name}` -- Works but could be confused with a real registry. `localhost:0` is unambiguous.
-- `file:///path` -- Fails `ValidateOCIRef` and would require complyctl code changes.
-
-### 3. Use python3 for JSON manipulation in the shell script
-
-The post-create script needs to read `index.json` (extract manifest digest) and update `state.json` (add policy entries). Python3 is already available in the Fedora base image and handles JSON reliably. The alternative (`jq`) would require an additional package install.
-
-**Alternatives considered:**
-- `jq` -- Not installed by default. Adding it to the Containerfile is possible but adds a dependency for a single use.
-- Pure bash with `grep`/`sed` -- Fragile for JSON manipulation. Not worth the risk.
-
-### 4. Copy bundles into cache rather than symlink
-
-Bundles are copied from `/bundles/` into `~/.complytime/policies/` rather than symlinked. This decouples the cache from the mount lifecycle and matches the behavior of `complyctl get` (which uses `oras.Copy` to create an independent OCI Layout in the cache).
-
-**Alternatives considered:**
-- Symlinks -- Would break if the mount is removed or changes. Introduces unexpected behavior if the source is modified after setup.
-- Bind mount directly to cache path -- Fragile, couples container mount structure to internal cache layout.
+- **Name validation**: Directory names validated against `^[a-zA-Z0-9_-]+$` in both Go and shell (consistent)
+- **Symlink rejection**: `entry.Type()` skips symlinked directories; `os.Lstat` rejects symlinked files
+- **Resource exhaustion**: `readFileLimited()` caps file reads at 10 MB to prevent OOM from oversized files
+- **No path traversal**: `os.ReadDir` returns base names only; paths constructed via `filepath.Join` with hardcoded filenames
+- **Trust model**: The directory is operator-controlled (bind-mounted by the developer who owns the devcontainer)
 
 ## Risks / Trade-offs
 
-- **[`complyctl get` will fail for pre-populated policies]** The dummy URL (`localhost:0/...`) is not a real registry, so `complyctl get` will error for these policies. Mitigation: this is expected and documented. Users run `generate` and `scan` directly. The mock registry policies (`test-ampel-bp`) still work via `get` as before.
-- **[Cache format coupling]** The pre-population script depends on the OCI Layout cache format (`oci-layout`, `index.json`, `blobs/sha256/`). If `complyctl` changes its cache format, the script will break. Mitigation: the OCI Layout format is a standard; `complyctl` uses `oras-go` which enforces it. Format changes are unlikely and would break other things first.
-- **[No incremental updates]** Bundles are copied once at container creation. If the source bundle is updated, the container must be rebuilt. Mitigation: acceptable for demo/test use. The post-create script runs on container creation, which is the natural rebuild trigger.
+- **[Cache format decoupling]** The registry-serving approach eliminates cache format coupling. `complyctl get` owns the cache population, so format changes in `state.json` or directory layout do not affect the script.
+- **[No incremental updates]** Bundles are served from directory contents at registry startup. If the source files change, the registry must be restarted. Mitigation: acceptable for demo/test use.
+- **[Split-layer format only]** `seedFromDirectory()` produces split-layer format artifacts (separate catalog + policy layers). If private policies need the Gemara bundle format (`DetectManifestShape()` in `internal/policy/loader.go`), a separate loading path would be needed. For standard Gemara catalog + policy pairs, the existing `addArtifact()` handles everything.
 - **[Targets must be configured manually]** The script appends policy entries to `complytime.yaml` but cannot auto-generate target configurations (which depend on the specific repository being evaluated). Mitigation: document that users should edit the targets section of `complytime.yaml` after setup.
