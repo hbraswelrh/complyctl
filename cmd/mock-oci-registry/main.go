@@ -35,6 +35,9 @@ var seedData embed.FS
 //go:embed testdata/opa-complypack/*
 var opaComplypackData embed.FS
 
+//go:embed testdata/ampel-complypack/*
+var ampelComplypackData embed.FS
+
 const defaultPort = "8765"
 
 const (
@@ -490,10 +493,11 @@ func (s *contentStore) seedDefaults() {
 		[]string{"v1.0.0", "latest"})
 
 	// complypacks/ampel-bp — ComplyPack artifact for AMPEL branch protection evaluator
+	// Contains granular policy JSON from testdata/ampel-complypack/
 	s.addComplypackArtifact("complypacks/ampel-bp", []string{"v1.0.0", "latest"}, complypackDef{
 		evaluatorID: "ampel",
 		version:     "1.0.0",
-		content:     buildDummyTarGz("policy.json", []byte(`{"name":"ampel-branch-protection","version":"1.0.0"}`)),
+		content:     buildTarGzFromFS(ampelComplypackData, "testdata/ampel-complypack"),
 	})
 
 	// policies/test-opa-policy — OPA container security controls

@@ -6,6 +6,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -65,6 +66,43 @@ func TestBuildTarGzFromFS_ContentReadable(t *testing.T) {
 	}
 }
 
+func TestBuildTarGzFromFS_AmpelFS(t *testing.T) {
+	data := buildTarGzFromFS(ampelComplypackData, "testdata/ampel-complypack")
+
+	gr, err := gzip.NewReader(bytes.NewReader(data))
+	require.NoError(t, err)
+	defer gr.Close()
+
+	tr := tar.NewReader(gr)
+	files := make(map[string]bool)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+		files[hdr.Name] = true
+		assert.Equal(t, int64(0o644), hdr.Mode)
+		assert.Greater(t, hdr.Size, int64(0))
+
+		// Verify each file is valid JSON with a non-empty "id" field.
+		content := make([]byte, hdr.Size)
+		_, readErr := io.ReadFull(tr, content)
+		require.NoError(t, readErr)
+
+		var policy struct {
+			ID string `json:"id"`
+		}
+		require.NoError(t, json.Unmarshal(content, &policy),
+			"file %s should be valid JSON", hdr.Name)
+		assert.NotEmpty(t, policy.ID,
+			"file %s should have a non-empty id field", hdr.Name)
+	}
+
+	assert.Contains(t, files, "block-force-push.json")
+	assert.Len(t, files, 1, "expected exactly 1 file in tar archive")
+}
+
 func TestBuildDummyTarGz_SingleFile(t *testing.T) {
 	content := []byte(`{"test": true}`)
 	data := buildDummyTarGz("test.json", content)
@@ -115,6 +153,54 @@ func TestSeedDefaults_AllReposSeeded(t *testing.T) {
 	require.NotNil(t, complypackRepo)
 	_, hasLatest = complypackRepo.tags["latest"]
 	assert.True(t, hasLatest, "OPA complypack should have 'latest' tag")
+
+	// Verify ampel complypack has expected tags and valid content
+	ampelRepo := store.repos["complypacks/ampel-bp"]
+	require.NotNil(t, ampelRepo)
+	_, hasLatest = ampelRepo.tags["latest"]
+	assert.True(t, hasLatest, "ampel complypack should have 'latest' tag")
+	_, hasV1 = ampelRepo.tags["v1.0.0"]
+	assert.True(t, hasV1, "ampel complypack should have 'v1.0.0' tag")
+
+	// Verify the ampel complypack content blob contains valid granular policy JSON.
+	ampelArt := ampelRepo.tags["latest"]
+	require.NotNil(t, ampelArt)
+	var ampelManifest ociManifest
+	require.NoError(t, json.Unmarshal(ampelArt.manifestBytes, &ampelManifest))
+	require.NotEmpty(t, ampelManifest.Layers, "ampel complypack should have at least one layer")
+
+	contentDigest := ampelManifest.Layers[0].Digest
+	contentBlob, ok := ampelRepo.blobs[contentDigest]
+	require.True(t, ok, "content blob should exist for digest %s", contentDigest)
+
+	gr, err := gzip.NewReader(bytes.NewReader(contentBlob.data))
+	require.NoError(t, err)
+	defer gr.Close()
+
+	tr := tar.NewReader(gr)
+	fileCount := 0
+	for {
+		hdr, tarErr := tr.Next()
+		if tarErr == io.EOF {
+			break
+		}
+		require.NoError(t, tarErr)
+		fileCount++
+
+		data := make([]byte, hdr.Size)
+		_, readErr := io.ReadFull(tr, data)
+		require.NoError(t, readErr)
+
+		var policy struct {
+			ID string `json:"id"`
+		}
+		require.NoError(t, json.Unmarshal(data, &policy),
+			"ampel complypack file %s should be valid JSON", hdr.Name)
+		assert.NotEmpty(t, policy.ID,
+			"ampel complypack file %s should have a non-empty id field", hdr.Name)
+	}
+	assert.GreaterOrEqual(t, fileCount, 1,
+		"ampel complypack should contain at least one file")
 }
 
 func TestResolveContentDir_Default(t *testing.T) {
