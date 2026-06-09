@@ -24,6 +24,7 @@ func TestGemaraLog_MetadataType(t *testing.T) {
 
 	log := eval.GemaraLog()
 	assert.Equal(t, gemara.EvaluationLogArtifact, log.Metadata.Type)
+	assert.Equal(t, gemara.SchemaVersion, log.Metadata.GemaraVersion)
 }
 
 func TestGemaraLog_AggregatesResult(t *testing.T) {

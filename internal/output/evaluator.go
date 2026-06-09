@@ -90,9 +90,10 @@ func (e *Evaluator) GemaraLog() *gemara.EvaluationLog {
 		Evaluations: evals,
 		Result:      result,
 		Metadata: gemara.Metadata{
-			Id:          e.policyID,
-			Type:        gemara.EvaluationLogArtifact,
-			Description: "Compliance scan evaluation log",
+			Id:            e.policyID,
+			Type:          gemara.EvaluationLogArtifact,
+			GemaraVersion: gemara.SchemaVersion,
+			Description:   "Compliance scan evaluation log",
 			Author: gemara.Actor{
 				Id:   "complytime",
 				Name: "complytime",
@@ -165,10 +166,35 @@ func (e *Evaluator) providerToGemaraAssessment(a *provider.AssessmentLog) *gemar
 		Result:          result,
 		Message:         msg,
 		Applicability:   []string{"default"},
+		Steps:           providerStepsToGemara(a.Steps, a.Confidence),
 		Start:           gemara.Datetime(time.Now().Format(time.RFC3339)),
 		StepsExecuted:   int64(len(a.Steps)),
 		ConfidenceLevel: providerConfidenceToGemara(a.Confidence),
 	}
+}
+
+// providerStepToGemara wraps a provider.Step into a gemara.AssessmentStep closure.
+// The closure ignores its payload argument and returns the step's pre-computed
+// result, message, and the assessment-level confidence.
+func providerStepToGemara(step provider.Step, confidence provider.ConfidenceLevel) gemara.AssessmentStep {
+	result := providerResultToGemara(step.Result)
+	conf := providerConfidenceToGemara(confidence)
+	return func(_ interface{}) (gemara.Result, string, gemara.ConfidenceLevel) {
+		return result, step.Message, conf
+	}
+}
+
+// providerStepsToGemara converts a slice of provider steps into gemara AssessmentStep closures.
+// Returns nil when the input slice is empty.
+func providerStepsToGemara(steps []provider.Step, confidence provider.ConfidenceLevel) []gemara.AssessmentStep {
+	if len(steps) == 0 {
+		return nil
+	}
+	gemaraSteps := make([]gemara.AssessmentStep, len(steps))
+	for i, s := range steps {
+		gemaraSteps[i] = providerStepToGemara(s, confidence)
+	}
+	return gemaraSteps
 }
 
 func providerConfidenceToGemara(c provider.ConfidenceLevel) gemara.ConfidenceLevel {

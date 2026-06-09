@@ -70,8 +70,9 @@ func main() {
 	evalLog := gemara.EvaluationLog{
 		Evaluations: controlEvals,
 		Metadata: gemara.Metadata{
-			Id:          policyID,
-			Description: "Behavioral test evaluation of CT.COMPLYCTL control catalog",
+			Id:            policyID,
+			GemaraVersion: gemara.SchemaVersion,
+			Description:   "Behavioral test evaluation of CT.COMPLYCTL control catalog",
 			Author: gemara.Actor{
 				Id:      toolName,
 				Name:    toolName,

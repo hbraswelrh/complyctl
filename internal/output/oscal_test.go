@@ -20,8 +20,9 @@ import (
 func mockGemaraEvalLog() *gemara.EvaluationLog {
 	return &gemara.EvaluationLog{
 		Metadata: gemara.Metadata{
-			Id:          "test-policy",
-			Description: "Test evaluation log",
+			Id:            "test-policy",
+			GemaraVersion: gemara.SchemaVersion,
+			Description:   "Test evaluation log",
 			Author: gemara.Actor{
 				Id:   "complytime",
 				Name: "complytime",
