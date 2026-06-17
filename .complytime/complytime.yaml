@@ -2,11 +2,11 @@ collector:
   endpoint: localhost:4317
 
 policies:
-  - url: quay.io/complytime/policies-ampel-branch-protection:latest
+  - url: quay.io/complytime/policies-ampel-branch-protection:v0.4.0
     id: ampel-bp
 
 complypacks:
-  - url: http://localhost:8765/complypacks/ampel-bp@v1.0.0
+  - url: quay.io/complytime/complypack-ampel-branch-protection:v0.4.0
     id: ampel-bp-pack
 
 targets:

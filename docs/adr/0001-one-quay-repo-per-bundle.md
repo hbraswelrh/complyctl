@@ -40,6 +40,19 @@ policies:
 - `docs/QUICK_START.md` — update OCI reference examples
 - README policy reference examples (if any)
 
+## Complypacks
+
+Complypacks follow the same convention. Each complypack gets its own
+Quay.io repository with a `complypack-` prefix (e.g.,
+`quay.io/complytime/complypack-ampel-branch-protection`). Version tags
+align with the corresponding policy bundle release.
+
+```yaml
+complypacks:
+  - id: ampel-bp-pack
+    url: quay.io/complytime/complypack-ampel-branch-protection:v0.4.0
+```
+
 ## Full Decision Record
 
 See the canonical ADR in

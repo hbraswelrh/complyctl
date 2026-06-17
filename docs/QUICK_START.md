@@ -60,8 +60,12 @@ targets:
 
 ```yaml
 policies:
-  - url: quay.io/complytime/policies-ampel-branch-protection:latest
+  - url: quay.io/complytime/policies-ampel-branch-protection:v0.4.0
     id: ampel-bp
+
+complypacks:
+  - url: quay.io/complytime/complypack-ampel-branch-protection:v0.4.0
+    id: ampel-bp-pack
 
 targets:
   - id: my-repo
