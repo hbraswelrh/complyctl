@@ -152,7 +152,7 @@ crapload-baseline: ensure-gaze test-unit ## generate baseline thresholds in .gaz
 	@mkdir -p .gaze
 	@REPO_ROOT=$$(pwd); \
 	gaze crap --format=json --coverprofile=$(GAZE_COVERPROFILE) ./... | \
-		jq --arg root "$$REPO_ROOT/" '(.scores[],.summary.worst_crap[]?,.summary.worst_gaze_crap[]?) |= (.file |= ltrimstr($$root))' > $(GAZE_BASELINE)
+		jq --arg root "$$REPO_ROOT/" '(.scores[],.summary.worst_crap[]?,.summary.worst_gaze_crap[]?,.summary.recommended_actions[]?) |= (.file |= ltrimstr($$root))' > $(GAZE_BASELINE)
 	@echo "Baseline written to $(GAZE_BASELINE)"
 .PHONY: crapload-baseline
 
@@ -163,7 +163,7 @@ crapload-check: ensure-gaze test-unit ## check for CRAP regressions against base
 	fi
 	@REPO_ROOT=$$(pwd); \
 	gaze crap --format=json --coverprofile=$(GAZE_COVERPROFILE) ./... | \
-		jq --arg root "$$REPO_ROOT/" '(.scores[],.summary.worst_crap[]?,.summary.worst_gaze_crap[]?) |= (.file |= ltrimstr($$root))' > /tmp/crapload-current.json
+		jq --arg root "$$REPO_ROOT/" '(.scores[],.summary.worst_crap[]?,.summary.worst_gaze_crap[]?,.summary.recommended_actions[]?) |= (.file |= ltrimstr($$root))' > /tmp/crapload-current.json
 	@echo "Comparing against baseline..."
 	@jq -r '.scores[] | "\(.file):\(.function) \(.crap) \(.gaze_crap // 0)"' $(GAZE_BASELINE) | sort > /tmp/crapload-baseline.txt
 	@jq -r '.scores[] | "\(.file):\(.function) \(.crap) \(.gaze_crap // 0)"' /tmp/crapload-current.json | sort > /tmp/crapload-current.txt
