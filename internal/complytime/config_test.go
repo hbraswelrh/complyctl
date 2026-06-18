@@ -14,52 +14,104 @@ import (
 )
 
 func TestParsePolicyRef_FullReference(t *testing.T) {
-	ref := complytime.ParsePolicyRef("registry.com/policies/nist-800-53-r5@v1.2.3")
+	ref, err := complytime.ParsePolicyRef("registry.com/policies/nist-800-53-r5@v1.2.3")
+	require.NoError(t, err)
 	assert.Equal(t, "registry.com", ref.Registry)
 	assert.Equal(t, "policies/nist-800-53-r5", ref.Repository)
 	assert.Equal(t, "v1.2.3", ref.Version)
 }
 
 func TestParsePolicyRef_NoVersion(t *testing.T) {
-	ref := complytime.ParsePolicyRef("registry.com/policies/nist-800-53-r5")
+	ref, err := complytime.ParsePolicyRef("registry.com/policies/nist-800-53-r5")
+	require.NoError(t, err)
 	assert.Equal(t, "registry.com", ref.Registry)
 	assert.Equal(t, "policies/nist-800-53-r5", ref.Repository)
 	assert.Empty(t, ref.Version)
 }
 
 func TestParsePolicyRef_WithHTTPScheme(t *testing.T) {
-	ref := complytime.ParsePolicyRef("http://localhost:5000/policies/test@v1.0")
+	ref, err := complytime.ParsePolicyRef("http://localhost:5000/policies/test@v1.0")
+	require.NoError(t, err)
 	assert.Equal(t, "http://localhost:5000", ref.Registry)
 	assert.Equal(t, "policies/test", ref.Repository)
 	assert.Equal(t, "v1.0", ref.Version)
 }
 
 func TestParsePolicyRef_WithHTTPSScheme(t *testing.T) {
-	ref := complytime.ParsePolicyRef("https://ghcr.io/org/policy@latest")
+	ref, err := complytime.ParsePolicyRef("https://ghcr.io/org/policy@latest")
+	require.NoError(t, err)
 	assert.Equal(t, "https://ghcr.io", ref.Registry)
 	assert.Equal(t, "org/policy", ref.Repository)
 	assert.Equal(t, "latest", ref.Version)
 }
 
 func TestParsePolicyRef_NoRegistry(t *testing.T) {
-	ref := complytime.ParsePolicyRef("nist-800-53-r5@v1.0")
+	ref, err := complytime.ParsePolicyRef("nist-800-53-r5@v1.0")
+	require.NoError(t, err)
 	assert.Empty(t, ref.Registry)
 	assert.Equal(t, "nist-800-53-r5", ref.Repository)
 	assert.Equal(t, "v1.0", ref.Version)
 }
 
 func TestParsePolicyRef_BareID(t *testing.T) {
-	ref := complytime.ParsePolicyRef("nist-800-53-r5")
+	ref, err := complytime.ParsePolicyRef("nist-800-53-r5")
+	require.NoError(t, err)
 	assert.Empty(t, ref.Registry)
 	assert.Equal(t, "nist-800-53-r5", ref.Repository)
 	assert.Empty(t, ref.Version)
 }
 
 func TestParsePolicyRef_PortInRegistry(t *testing.T) {
-	ref := complytime.ParsePolicyRef("localhost:5000/policy@v2")
+	ref, err := complytime.ParsePolicyRef("localhost:5000/policy@v2")
+	require.NoError(t, err)
 	assert.Equal(t, "localhost:5000", ref.Registry)
 	assert.Equal(t, "policy", ref.Repository)
 	assert.Equal(t, "v2", ref.Version)
+}
+
+func TestParsePolicyRef_ColonTag(t *testing.T) {
+	ref, err := complytime.ParsePolicyRef("quay.io/complytime/complypack-ampel-bp:v0.4.0")
+	require.NoError(t, err)
+	assert.Equal(t, "quay.io", ref.Registry)
+	assert.Equal(t, "complytime/complypack-ampel-bp", ref.Repository)
+	assert.Equal(t, "v0.4.0", ref.Version)
+}
+
+func TestParsePolicyRef_ColonLatest(t *testing.T) {
+	ref, err := complytime.ParsePolicyRef("quay.io/complytime/complypack-ampel-bp:latest")
+	require.NoError(t, err)
+	assert.Equal(t, "quay.io", ref.Registry)
+	assert.Equal(t, "complytime/complypack-ampel-bp", ref.Repository)
+	assert.Equal(t, "latest", ref.Version)
+}
+
+func TestParsePolicyRef_Digest(t *testing.T) {
+	digest := "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+	ref, err := complytime.ParsePolicyRef("quay.io/complytime/complypack-ampel-bp@" + digest)
+	require.NoError(t, err)
+	assert.Equal(t, "quay.io", ref.Registry)
+	assert.Equal(t, "complytime/complypack-ampel-bp", ref.Repository)
+	assert.Equal(t, digest, ref.Version)
+}
+
+func TestParsePolicyRef_HTTPSchemeWithColonTag(t *testing.T) {
+	ref, err := complytime.ParsePolicyRef("http://localhost:5000/policies/test:v1.0")
+	require.NoError(t, err)
+	assert.Equal(t, "http://localhost:5000", ref.Registry)
+	assert.Equal(t, "policies/test", ref.Repository)
+	assert.Equal(t, "v1.0", ref.Version)
+}
+
+func TestParsePolicyRef_ErrorOnEmpty(t *testing.T) {
+	_, err := complytime.ParsePolicyRef("")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot be empty")
+}
+
+func TestParsePolicyRef_ErrorOnWhitespace(t *testing.T) {
+	_, err := complytime.ParsePolicyRef("   ")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot be empty")
 }
 
 func TestPolicyEntry_EffectiveID_ExplicitID(t *testing.T) {
@@ -692,6 +744,71 @@ targets:
 
 	// Verify EffectiveID derivation works for the entry without explicit ID
 	assert.Equal(t, "complypack-ubuntu", cfg.Complypacks[1].EffectiveID())
+}
+
+func TestLoadFrom_InvalidPolicyURL(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: ""
+targets:
+  - id: local
+    policies:
+      - nist
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	_, err := complytime.LoadFrom(configPath)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid config")
+}
+
+func TestLoadFrom_InvalidComplypackURL(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: registry.com/policies/nist@v1.0
+    id: nist
+complypacks:
+  - url: "   "
+targets:
+  - id: local
+    policies:
+      - nist
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	_, err := complytime.LoadFrom(configPath)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid config")
+}
+
+// TestLoadFrom_ColonTagComplypack verifies the fix for issue #594:
+// complypack URLs using :tag syntax must load and parse correctly.
+func TestLoadFrom_ColonTagComplypack(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: quay.io/complytime/policies-ampel-bp:latest
+    id: ampel-bp
+complypacks:
+  - url: quay.io/complytime/complypack-ampel-bp:v0.4.0
+    id: ampel-bp-pack
+targets:
+  - id: local
+    policies:
+      - ampel-bp
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	cfg, err := complytime.LoadFrom(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	require.Len(t, cfg.Complypacks, 1)
+	assert.Equal(t, "quay.io/complytime/complypack-ampel-bp:v0.4.0", cfg.Complypacks[0].URL)
 }
 
 func TestLoadFrom_WithoutComplypacks(t *testing.T) {

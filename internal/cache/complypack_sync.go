@@ -44,10 +44,7 @@ func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version
 		return false, fmt.Errorf("complypack repository cannot be empty")
 	}
 
-	lookupRef := repository
-	if version != "" && version != "latest" {
-		lookupRef = repository + ":" + version
-	}
+	lookupRef := BuildLookupRef(repository, version)
 
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {

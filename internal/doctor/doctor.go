@@ -241,7 +241,16 @@ func CheckPolicyVersions(cfg *complytime.WorkspaceConfig, cacheDir string, versi
 	var results []CheckResult
 
 	for _, p := range cfg.Policies {
-		ref := complytime.ParsePolicyRef(p.URL)
+		ref, err := complytime.ParsePolicyRef(p.URL)
+		if err != nil {
+			results = append(results, CheckResult{
+				Name:     fmt.Sprintf("policy/%s", p.EffectiveID()),
+				Status:   StatusFail,
+				Message:  fmt.Sprintf("invalid policy reference: %v", err),
+				Blocking: true,
+			})
+			continue
+		}
 		eid := p.EffectiveID()
 
 		if unreachable[ref.Registry] {
@@ -435,7 +444,11 @@ func CheckVariables(cfg *complytime.WorkspaceConfig, healthData []ProviderHealth
 					resolveFailures++
 					continue
 				}
-				ref := complytime.ParsePolicyRef(entry.URL)
+				ref, refErr := complytime.ParsePolicyRef(entry.URL)
+				if refErr != nil {
+					resolveFailures++
+					continue
+				}
 				version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
 				if err != nil {
 					resolveFailures++
@@ -588,7 +601,10 @@ func CheckPolicyActivePeriod(cfg *complytime.WorkspaceConfig, resolver PolicyGra
 	var results []CheckResult
 
 	for _, p := range cfg.Policies {
-		ref := complytime.ParsePolicyRef(p.URL)
+		ref, refErr := complytime.ParsePolicyRef(p.URL)
+		if refErr != nil {
+			continue
+		}
 		eid := p.EffectiveID()
 
 		version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
@@ -770,7 +786,10 @@ func CheckComplypacks(cfg *complytime.WorkspaceConfig, cacheDir string, resolver
 	// following the same resolution pattern as CheckVariables.
 	evaluatorIDs := make(map[string]bool)
 	for _, p := range cfg.Policies {
-		ref := complytime.ParsePolicyRef(p.URL)
+		ref, refErr := complytime.ParsePolicyRef(p.URL)
+		if refErr != nil {
+			continue
+		}
 		version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
 		if err != nil {
 			continue

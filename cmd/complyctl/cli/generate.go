@@ -93,7 +93,10 @@ func (o *generateOptions) run(ctx context.Context) error {
 }
 
 func (o *generateOptions) generatePolicy(ctx context.Context, cfg *complytime.WorkspaceConfig, entry complytime.PolicyEntry, baseDir string) error {
-	ref := complytime.ParsePolicyRef(entry.URL)
+	ref, err := complytime.ParsePolicyRef(entry.URL)
+	if err != nil {
+		return fmt.Errorf("invalid policy reference %q: %w", entry.URL, err)
+	}
 	eid := entry.EffectiveID()
 
 	version, graph, err := resolveVersionAndGraph(o.cacheDir, ref)

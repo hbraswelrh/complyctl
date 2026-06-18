@@ -252,7 +252,10 @@ func loadWorkspaceConfig(baseDir string) (*complytime.WorkspaceConfig, error) {
 }
 
 func (o *scanOptions) scanPolicy(ctx context.Context, cfg *complytime.WorkspaceConfig, entry complytime.PolicyEntry, targetID, baseDir string) error {
-	ref := complytime.ParsePolicyRef(entry.URL)
+	ref, err := complytime.ParsePolicyRef(entry.URL)
+	if err != nil {
+		return fmt.Errorf("invalid policy reference %q: %w", entry.URL, err)
+	}
 	eid := entry.EffectiveID()
 
 	version, graph, err := resolveVersionAndGraph(o.cacheDir, ref)

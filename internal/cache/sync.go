@@ -6,9 +6,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/complytime/complyctl/internal/registry"
 )
+
+// BuildLookupRef constructs an OCI lookup reference from a repository and
+// version string. For digest versions (sha256:, sha512:) it uses "@" as
+// the separator; for tag versions it uses ":". If the version is empty or
+// "latest", the bare repository is returned so oras resolves the default tag.
+func BuildLookupRef(repository, version string) string {
+	if version == "" || version == "latest" {
+		return repository
+	}
+	if strings.HasPrefix(version, "sha256:") || strings.HasPrefix(version, "sha512:") {
+		return repository + "@" + version
+	}
+	return repository + ":" + version
+}
 
 // Sync provides incremental sync using oras.Copy() for remote-to-local transfer.
 type Sync struct {
@@ -33,10 +48,7 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) error {
 		return fmt.Errorf("policy ID cannot be empty")
 	}
 
-	lookupRef := policyID
-	if version != "" && version != "latest" {
-		lookupRef = policyID + ":" + version
-	}
+	lookupRef := BuildLookupRef(policyID, version)
 
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {

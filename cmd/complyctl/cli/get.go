@@ -151,7 +151,10 @@ func syncAllPolicies(ctx context.Context, cacheMgr *cache.Cache, state *cache.St
 }
 
 func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.State, credFunc auth.CredentialFunc, entry complytime.PolicyEntry, index, total int) error {
-	ref := complytime.ParsePolicyRef(entry.URL)
+	ref, err := complytime.ParsePolicyRef(entry.URL)
+	if err != nil {
+		return fmt.Errorf("invalid policy reference %q: %w", entry.URL, err)
+	}
 	version := ref.Version
 
 	client := registry.NewClient(ref.Registry, credFunc)
@@ -202,7 +205,10 @@ func syncAllComplypacks(ctx context.Context, state *cache.State, credFunc auth.C
 }
 
 func syncSingleComplypack(ctx context.Context, state *cache.State, credFunc auth.CredentialFunc, entry complytime.PolicyEntry, index, total int, cacheDir string) error {
-	ref := complytime.ParsePolicyRef(entry.URL)
+	ref, err := complytime.ParsePolicyRef(entry.URL)
+	if err != nil {
+		return fmt.Errorf("invalid complypack reference %q: %w", entry.URL, err)
+	}
 	version := ref.Version
 
 	client := registry.NewClient(ref.Registry, credFunc)

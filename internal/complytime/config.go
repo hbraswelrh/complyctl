@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
+	orasreg "oras.land/oras-go/v2/registry"
 )
 
 var envVarPattern = regexp.MustCompile(`\$\{([^}]+)\}`)
@@ -85,7 +86,9 @@ func (p PolicyEntry) EffectiveID() string {
 	if p.ID != "" {
 		return p.ID
 	}
-	ref := ParsePolicyRef(p.URL)
+	// Error ignored: LoadFrom validates all URLs via validatePolicyRefs
+	// at config load time, so ParsePolicyRef will not fail for loaded entries.
+	ref, _ := ParsePolicyRef(p.URL)
 	segments := strings.Split(ref.Repository, "/")
 	return segments[len(segments)-1]
 }
@@ -98,21 +101,45 @@ type TargetConfig struct {
 	Variables map[string]string `yaml:"variables,omitempty"`
 }
 
-// PolicyRef represents a parsed OCI policy reference.
+// PolicyRef represents a parsed OCI policy reference with its components
+// separated for downstream use (registry client construction, cache lookup,
+// version resolution).
 type PolicyRef struct {
-	Raw        string
-	Registry   string
+	// Raw is the original unparsed input string.
+	Raw string
+	// Registry is the registry host, optionally prefixed with http:// or
+	// https://. Empty for bare policy IDs (no slash in input).
+	Registry string
+	// Repository is the repository path within the registry (e.g.,
+	// "policies/nist-800-53-r5"). For bare policy IDs, this is the
+	// identifier itself.
 	Repository string
-	Version    string
+	// Version is the tag, digest, or empty string. For :tag and @version
+	// inputs it holds the version string (e.g., "v1.0"). For digest inputs
+	// it holds the full algorithm:hex string (e.g., "sha256:9f86d...").
+	// Empty when no version or tag was specified.
+	Version string
 }
 
 // ParsePolicyRef parses a full OCI reference into its components.
 // Handles optional scheme (http://, https://), registry host detection,
-// and @version suffix.
-func ParsePolicyRef(raw string) PolicyRef {
+// :tag, @version, @digest, and bare policy IDs (no slash). Delegates to
+// oras-go's registry.ParseReference for standard OCI references.
+//
+// The @version notation (e.g., "registry.com/repo@v1.0") is a complytime
+// convention that predates standard OCI tag syntax. ParsePolicyRef converts
+// @version to :tag before delegating to oras-go, preserving backwards
+// compatibility. Actual digests (e.g., "@sha256:...") are passed through
+// to oras-go directly.
+func ParsePolicyRef(raw string) (PolicyRef, error) {
 	ref := PolicyRef{Raw: raw}
 	s := strings.TrimSpace(raw)
 
+	if s == "" {
+		return ref, fmt.Errorf("policy reference cannot be empty")
+	}
+
+	// Strip URL scheme prefix; oras-go does not accept schemes.
 	var scheme string
 	if strings.HasPrefix(s, "http://") {
 		scheme = "http://"
@@ -122,20 +149,40 @@ func ParsePolicyRef(raw string) PolicyRef {
 		s = strings.TrimPrefix(s, "https://")
 	}
 
-	if idx := strings.LastIndex(s, "@"); idx > 0 && idx < len(s)-1 {
-		ref.Version = s[idx+1:]
-		s = s[:idx]
-	}
-
-	parts := strings.SplitN(s, "/", 2)
-	if len(parts) == 2 && (strings.Contains(parts[0], ".") || strings.Contains(parts[0], ":")) {
-		ref.Registry = scheme + parts[0]
-		ref.Repository = parts[1]
-	} else {
+	// Bare policy IDs (no slash) are convention-based identifiers, not OCI
+	// references. Handle them directly: extract an optional @version suffix
+	// and treat the rest as the repository.
+	if !strings.Contains(s, "/") {
+		if idx := strings.LastIndex(s, "@"); idx > 0 && idx < len(s)-1 {
+			ref.Version = s[idx+1:]
+			s = s[:idx]
+		}
 		ref.Repository = s
+		return ref, nil
 	}
 
-	return ref
+	// Convert complytime's @version notation to standard :tag syntax before
+	// delegating to oras-go. Actual digests (sha256:, sha512:) keep the @
+	// separator so oras-go parses them as digests.
+	if idx := strings.LastIndex(s, "@"); idx > 0 && idx < len(s)-1 {
+		suffix := s[idx+1:]
+		if !strings.HasPrefix(suffix, "sha256:") && !strings.HasPrefix(suffix, "sha512:") {
+			// Non-digest @version — convert to :tag for oras-go.
+			s = s[:idx] + ":" + suffix
+		}
+	}
+
+	// Delegate to oras-go for standard OCI references.
+	orasRef, err := orasreg.ParseReference(s)
+	if err != nil {
+		return ref, fmt.Errorf("invalid OCI reference %q: %w", raw, err)
+	}
+
+	ref.Registry = scheme + orasRef.Registry
+	ref.Repository = orasRef.Repository
+	ref.Version = orasRef.Reference
+
+	return ref, nil
 }
 
 // FindPolicy matches a policy identifier against the policies list by effective ID.
@@ -186,7 +233,30 @@ func LoadFrom(configPath string) (*WorkspaceConfig, error) {
 		return nil, err
 	}
 
+	if err := validatePolicyRefs(&config); err != nil {
+		return nil, fmt.Errorf("invalid config %s: %w", configPath, err)
+	}
+
 	return &config, nil
+}
+
+// validatePolicyRefs checks that all policy and complypack URLs are
+// parseable OCI references. Called by LoadFrom at load time; if any
+// entry fails parsing, LoadFrom returns an error and the config is not
+// returned. Downstream code can therefore assume ParsePolicyRef will
+// succeed for any URL in a loaded config.
+func validatePolicyRefs(config *WorkspaceConfig) error {
+	for _, entry := range config.Policies {
+		if _, err := ParsePolicyRef(entry.URL); err != nil {
+			return fmt.Errorf("policies[].url %q: %w", entry.URL, err)
+		}
+	}
+	for _, entry := range config.Complypacks {
+		if _, err := ParsePolicyRef(entry.URL); err != nil {
+			return fmt.Errorf("complypacks[].url %q: %w", entry.URL, err)
+		}
+	}
+	return nil
 }
 
 // resolveEnvVars expands ${VAR} references in target variable values

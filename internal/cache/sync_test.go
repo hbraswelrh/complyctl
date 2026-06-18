@@ -241,3 +241,36 @@ func TestSync_StressConcurrentFailures(t *testing.T) {
 			"OCI layout marker must exist after successful syncs")
 	}
 }
+
+func TestBuildLookupRef(t *testing.T) {
+	tests := []struct {
+		name       string
+		repository string
+		version    string
+		want       string
+	}{
+		{"tag version", "org/policy", "v1.0", "org/policy:v1.0"},
+		{"sha256 digest", "org/policy", "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "org/policy@sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"},
+		{"sha512 digest", "org/policy", "sha512:def456", "org/policy@sha512:def456"},
+		{"empty version", "org/policy", "", "org/policy"},
+		{"latest version", "org/policy", "latest", "org/policy"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := cache.BuildLookupRef(tt.repository, tt.version)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestBuildLookupRef_Regression_NoDoubleTag verifies that the original
+// bug (issue #594) is prevented: a :tag in the repository must not
+// produce a double-tagged reference like "repo:v0.4.0:v0.4.0".
+func TestBuildLookupRef_Regression_NoDoubleTag(t *testing.T) {
+	// When ParsePolicyRef correctly extracts the tag, Repository
+	// will be "complytime/complypack-ampel-bp" and Version "v0.4.0".
+	// BuildLookupRef should produce a single-tagged reference.
+	lookupRef := cache.BuildLookupRef("complytime/complypack-ampel-bp", "v0.4.0")
+	assert.Equal(t, "complytime/complypack-ampel-bp:v0.4.0", lookupRef)
+	assert.NotContains(t, lookupRef, ":v0.4.0:v0.4.0")
+}

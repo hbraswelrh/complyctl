@@ -88,7 +88,10 @@ func (o *listOptions) run(_ context.Context) error {
 			continue
 		}
 
-		ref := complytime.ParsePolicyRef(p.URL)
+		ref, err := complytime.ParsePolicyRef(p.URL)
+		if err != nil {
+			return fmt.Errorf("invalid policy reference %q: %w", p.URL, err)
+		}
 		versions, _ := loader.GetCachedVersions(ref.Repository)
 
 		var versionStr string
