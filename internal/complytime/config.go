@@ -7,8 +7,10 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/goccy/go-yaml"
+	godigest "github.com/opencontainers/go-digest"
 	orasreg "oras.land/oras-go/v2/registry"
 )
 
@@ -17,6 +19,13 @@ var envVarPattern = regexp.MustCompile(`\$\{([^}]+)\}`)
 // unsafeRefChars matches characters that should never appear in an OCI reference
 // and are commonly used for shell injection.
 var unsafeRefChars = regexp.MustCompile("[;|&$`!><(){}\\[\\]\\\\]")
+
+// deprecationWarned tracks which @version URLs have already emitted a
+// deprecation warning to avoid duplicating the message across callers.
+var (
+	deprecationWarned   = make(map[string]bool)
+	deprecationWarnedMu sync.Mutex
+)
 
 // ValidateOCIRef checks that raw looks like a valid OCI reference
 // (registry/repository with optional :tag or @version). It rejects empty
@@ -114,11 +123,24 @@ type PolicyRef struct {
 	// "policies/nist-800-53-r5"). For bare policy IDs, this is the
 	// identifier itself.
 	Repository string
-	// Version is the tag, digest, or empty string. For :tag and @version
-	// inputs it holds the version string (e.g., "v1.0"). For digest inputs
-	// it holds the full algorithm:hex string (e.g., "sha256:9f86d...").
-	// Empty when no version or tag was specified.
-	Version string
+	// Tag is the tag portion of the reference (e.g., "v1.0", "latest").
+	// Populated when the reference uses :tag or @version (complytime
+	// convention) syntax. Empty when a digest or no version was specified.
+	Tag string
+	// Digest is the digest portion of the reference (e.g.,
+	// "sha256:9f86d..."). Populated when the reference uses @algorithm:hex
+	// syntax. Empty when a tag or no version was specified.
+	Digest string
+}
+
+// VersionString returns the tag if non-empty, otherwise the digest.
+// Intended for APIs that accept an untyped version string (e.g.,
+// ResolveVersion). Returns an empty string when neither is set.
+func (r PolicyRef) VersionString() string {
+	if r.Tag != "" {
+		return r.Tag
+	}
+	return r.Digest
 }
 
 // ParsePolicyRef parses a full OCI reference into its components.
@@ -151,10 +173,17 @@ func ParsePolicyRef(raw string) (PolicyRef, error) {
 
 	// Bare policy IDs (no slash) are convention-based identifiers, not OCI
 	// references. Handle them directly: extract an optional @version suffix
-	// and treat the rest as the repository.
+	// and treat the rest as the repository. Classify the suffix as a digest
+	// when it matches the OCI digest format (sha256:, sha384:, sha512:);
+	// otherwise treat it as a tag (complytime convention for pinning).
 	if !strings.Contains(s, "/") {
 		if idx := strings.LastIndex(s, "@"); idx > 0 && idx < len(s)-1 {
-			ref.Version = s[idx+1:]
+			suffix := s[idx+1:]
+			if _, digestErr := godigest.Parse(suffix); digestErr == nil {
+				ref.Digest = suffix
+			} else {
+				ref.Tag = suffix
+			}
 			s = s[:idx]
 		}
 		ref.Repository = s
@@ -168,6 +197,17 @@ func ParsePolicyRef(raw string) (PolicyRef, error) {
 		suffix := s[idx+1:]
 		if !strings.HasPrefix(suffix, "sha256:") && !strings.HasPrefix(suffix, "sha512:") {
 			// Non-digest @version — convert to :tag for oras-go.
+			deprecationWarnedMu.Lock()
+			warned := deprecationWarned[raw]
+			if !warned {
+				deprecationWarned[raw] = true
+			}
+			deprecationWarnedMu.Unlock()
+			if !warned {
+				fmt.Fprintf(os.Stderr, "DEPRECATED: @version notation in policy URL %q. "+
+					"Use \":tag\" syntax instead (e.g., \"registry.com/repo:v1.0\"). "+
+					"@version support will be removed in a future release.\n", raw)
+			}
 			s = s[:idx] + ":" + suffix
 		}
 	}
@@ -180,7 +220,17 @@ func ParsePolicyRef(raw string) (PolicyRef, error) {
 
 	ref.Registry = scheme + orasRef.Registry
 	ref.Repository = orasRef.Repository
-	ref.Version = orasRef.Reference
+
+	// Classify the reference as tag or digest. oras-go's Digest() method
+	// returns a parsed digest when the reference is a valid digest string;
+	// otherwise it is a tag.
+	if orasRef.Reference != "" {
+		if _, digestErr := orasRef.Digest(); digestErr == nil {
+			ref.Digest = orasRef.Reference
+		} else {
+			ref.Tag = orasRef.Reference
+		}
+	}
 
 	return ref, nil
 }

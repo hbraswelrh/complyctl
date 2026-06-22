@@ -43,6 +43,15 @@
   `test-k8s-deployment` target in workspace configuration. OPA command
   reference added to `docs/TESTING_ENVIRONMENT.md`.
 
+### Deprecated
+
+- The `@version` notation for policy URLs (e.g., `registry.com/repo@v1.0`)
+  is deprecated. Use standard OCI `:tag` syntax instead (e.g.,
+  `registry.com/repo:v1.0`). In the OCI Distribution Spec, `@` is
+  exclusively a digest separator. A deprecation warning is now emitted
+  when `@version` syntax is detected. `@version` support will be removed
+  in a future release. (#600)
+
 ### Changed
 
 - All commands now accept `--workspace` flag to specify workspace directory
@@ -61,6 +70,11 @@
   (`@sha256:...`) are also supported. Invalid OCI references in
   `complytime.yaml` are now detected at config load time with clear
   error messages. (#594)
+- `complyctl doctor` now reports invalid policy references in
+  `CheckPolicyActivePeriod` and `CheckComplypacks` as explicit
+  failures instead of silently skipping them. `CheckVariables`
+  now surfaces per-policy resolution errors with specific messages
+  instead of a silent counter. (#600)
 - Scan reports now resolve assessment plan IDs to requirement IDs,
   ensuring output displays meaningful identifiers instead of internal
   plan references. Affects EvaluationLog, OSCAL, SARIF, and Markdown

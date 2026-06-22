@@ -320,7 +320,7 @@ func resolveVersionAndGraph(cacheDir string, ref complytime.PolicyRef) (string, 
 	loader := policy.NewLoader(cacheMgr)
 	resolver := policy.NewResolver(loader)
 
-	version, err := loader.ResolveVersion(ref.Repository, ref.Version)
+	version, err := loader.ResolveVersion(ref.Repository, ref.VersionString())
 	if err != nil {
 		return "", nil, err
 	}
