@@ -280,8 +280,9 @@ func CheckPolicyVersions(cfg *complytime.WorkspaceConfig, cacheDir string, versi
 
 		cachedVersion := cachedState.Version
 
-		if ref.Version != "" {
-			if cachedVersion == ref.Version {
+		pinnedVersion := ref.VersionString()
+		if pinnedVersion != "" {
+			if cachedVersion == pinnedVersion {
 				msg := fmt.Sprintf("%s (pinned)", cachedVersion)
 				if latestVersion != cachedVersion {
 					msg = fmt.Sprintf("%s (pinned — latest available: %s)", cachedVersion, latestVersion)
@@ -296,7 +297,7 @@ func CheckPolicyVersions(cfg *complytime.WorkspaceConfig, cacheDir string, versi
 				results = append(results, CheckResult{
 					Name:     fmt.Sprintf("policy/%s", eid),
 					Status:   StatusWarn,
-					Message:  fmt.Sprintf("cached %s does not match configured pin @%s — run complyctl get", cachedVersion, ref.Version),
+					Message:  fmt.Sprintf("cached %s does not match configured pin @%s — run complyctl get", cachedVersion, pinnedVersion),
 					Blocking: false,
 				})
 			}
@@ -329,8 +330,9 @@ func resolvePinnedFallback(
 	eid, cachedVersion string,
 	latestErr error,
 ) CheckResult {
-	if ref.Version != "" {
-		_, pinnedErr := resolver.ResolveVersion(ref.Registry, ref.Repository, ref.Version)
+	pinnedVersion := ref.VersionString()
+	if pinnedVersion != "" {
+		_, pinnedErr := resolver.ResolveVersion(ref.Registry, ref.Repository, pinnedVersion)
 		if pinnedErr == nil {
 			return CheckResult{
 				Name:     fmt.Sprintf("policy/%s", eid),
@@ -343,8 +345,8 @@ func resolvePinnedFallback(
 
 	if errors.Is(latestErr, registry.ErrVersionNotFound) {
 		msg := "latest tag not found — pin a specific version with @<tag>"
-		if ref.Version != "" {
-			msg = fmt.Sprintf("version %q not found in registry", ref.Version)
+		if pinnedVersion != "" {
+			msg = fmt.Sprintf("version %q not found in registry", pinnedVersion)
 		}
 		return CheckResult{
 			Name:     fmt.Sprintf("policy/%s", eid),
@@ -436,27 +438,52 @@ func CheckVariables(cfg *complytime.WorkspaceConfig, healthData []ProviderHealth
 
 	evaluatorTargets := make(map[string][]complytime.TargetConfig)
 	resolveFailures := 0
+	var resolveResults []CheckResult
 	if resolver != nil {
 		for _, target := range cfg.Targets {
 			for _, pid := range target.Policies {
 				entry, found := complytime.FindPolicy(cfg.Policies, pid)
 				if !found {
 					resolveFailures++
+					resolveResults = append(resolveResults, CheckResult{
+						Name:     fmt.Sprintf("variables/resolve/%s", pid),
+						Status:   StatusWarn,
+						Message:  fmt.Sprintf("policy %q referenced by target %q not found in config", pid, target.ID),
+						Blocking: false,
+					})
 					continue
 				}
 				ref, refErr := complytime.ParsePolicyRef(entry.URL)
 				if refErr != nil {
 					resolveFailures++
+					resolveResults = append(resolveResults, CheckResult{
+						Name:     fmt.Sprintf("variables/resolve/%s", entry.EffectiveID()),
+						Status:   StatusWarn,
+						Message:  fmt.Sprintf("invalid policy reference for %q: %v", entry.EffectiveID(), refErr),
+						Blocking: false,
+					})
 					continue
 				}
-				version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
+				version, err := resolver.ResolveVersion(ref.Repository, ref.VersionString())
 				if err != nil {
 					resolveFailures++
+					resolveResults = append(resolveResults, CheckResult{
+						Name:     fmt.Sprintf("variables/resolve/%s", entry.EffectiveID()),
+						Status:   StatusWarn,
+						Message:  fmt.Sprintf("cannot resolve version for policy %q: %v", entry.EffectiveID(), err),
+						Blocking: false,
+					})
 					continue
 				}
 				graph, err := resolver.ResolvePolicyGraph(ref.Repository, version)
 				if err != nil {
 					resolveFailures++
+					resolveResults = append(resolveResults, CheckResult{
+						Name:     fmt.Sprintf("variables/resolve/%s", entry.EffectiveID()),
+						Status:   StatusWarn,
+						Message:  fmt.Sprintf("cannot resolve policy graph for %q: %v", entry.EffectiveID(), err),
+						Blocking: false,
+					})
 					continue
 				}
 				configs := policy.ExtractAssessmentConfigs(ref.Repository, graph)
@@ -471,6 +498,7 @@ func CheckVariables(cfg *complytime.WorkspaceConfig, healthData []ProviderHealth
 	effectiveGlobalVars := effectiveGlobals(cfg.Variables)
 
 	var results []CheckResult
+	results = append(results, resolveResults...)
 
 	for _, ph := range healthData {
 		globalResolved, globalTotal := countResolved(ph.RequiredGlobalVariables, effectiveGlobalVars)
@@ -603,11 +631,17 @@ func CheckPolicyActivePeriod(cfg *complytime.WorkspaceConfig, resolver PolicyGra
 	for _, p := range cfg.Policies {
 		ref, refErr := complytime.ParsePolicyRef(p.URL)
 		if refErr != nil {
+			results = append(results, CheckResult{
+				Name:     fmt.Sprintf("policy/%s/active-period", p.EffectiveID()),
+				Status:   StatusFail,
+				Message:  fmt.Sprintf("invalid policy reference: %v", refErr),
+				Blocking: true,
+			})
 			continue
 		}
 		eid := p.EffectiveID()
 
-		version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
+		version, err := resolver.ResolveVersion(ref.Repository, ref.VersionString())
 		if err != nil {
 			continue
 		}
@@ -785,12 +819,19 @@ func CheckComplypacks(cfg *complytime.WorkspaceConfig, cacheDir string, resolver
 	// Collect unique evaluator-ids from all policies via the dependency graph,
 	// following the same resolution pattern as CheckVariables.
 	evaluatorIDs := make(map[string]bool)
+	var results []CheckResult
 	for _, p := range cfg.Policies {
 		ref, refErr := complytime.ParsePolicyRef(p.URL)
 		if refErr != nil {
+			results = append(results, CheckResult{
+				Name:     fmt.Sprintf("complypacks/%s", p.EffectiveID()),
+				Status:   StatusFail,
+				Message:  fmt.Sprintf("invalid policy reference: %v", refErr),
+				Blocking: true,
+			})
 			continue
 		}
-		version, err := resolver.ResolveVersion(ref.Repository, ref.Version)
+		version, err := resolver.ResolveVersion(ref.Repository, ref.VersionString())
 		if err != nil {
 			continue
 		}
@@ -805,7 +846,6 @@ func CheckComplypacks(cfg *complytime.WorkspaceConfig, cacheDir string, resolver
 		}
 	}
 
-	var results []CheckResult
 	allPresent := true
 	for evalID := range evaluatorIDs {
 		contentPath, _, err := cpCache.LookupByEvaluatorID(evalID)

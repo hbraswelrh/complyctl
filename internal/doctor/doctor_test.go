@@ -753,17 +753,32 @@ func TestCheckVariables_UnmappedTargetVars_ResolverFails(t *testing.T) {
 	resolver := newMockPolicyGraphResolver()
 
 	results := CheckVariables(cfg, health, resolver, false)
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
+	// Expect 2 results: a resolve warning + the summary.
+	if len(results) < 2 {
+		t.Fatalf("expected at least 2 results, got %d: %+v", len(results), results)
 	}
-	if results[0].Status != StatusFail {
-		t.Errorf("expected fail, got %s: %s", results[0].Status, results[0].Message)
+
+	// First result: resolve failure warning.
+	foundResolveWarn := false
+	for _, r := range results {
+		if r.Status == StatusWarn && strings.Contains(r.Name, "variables/resolve/") {
+			foundResolveWarn = true
+		}
 	}
-	if !strings.Contains(results[0].Message, "target vars not validated") {
-		t.Errorf("expected 'target vars not validated' in message, got %q", results[0].Message)
+	if !foundResolveWarn {
+		t.Error("expected a resolve failure warning result")
 	}
-	if !strings.Contains(results[0].Message, "policy graph unresolved") {
-		t.Errorf("expected 'policy graph unresolved' in message, got %q", results[0].Message)
+
+	// Last result: summary with target vars not validated.
+	last := results[len(results)-1]
+	if last.Status != StatusFail {
+		t.Errorf("expected fail, got %s: %s", last.Status, last.Message)
+	}
+	if !strings.Contains(last.Message, "target vars not validated") {
+		t.Errorf("expected 'target vars not validated' in message, got %q", last.Message)
+	}
+	if !strings.Contains(last.Message, "policy graph unresolved") {
+		t.Errorf("expected 'policy graph unresolved' in message, got %q", last.Message)
 	}
 }
 
@@ -909,6 +924,125 @@ func TestCheckVariables_WorkspaceAutoInjected_Verbose(t *testing.T) {
 	}
 	if !foundOutputDirFailed {
 		t.Error("expected verbose detail showing output_dir as failed")
+	}
+}
+
+// --- CheckVariables Resolution Failure Tests ---
+
+func TestCheckVariables_ResolveFailure_PolicyNotFound(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Variables: map[string]string{},
+		Policies:  []complytime.PolicyEntry{{URL: "reg.io/policies/nist@v1.0.0"}},
+		Targets: []complytime.TargetConfig{{
+			ID:       "host1",
+			Policies: []string{"nonexistent-policy"},
+		}},
+	}
+	health := []ProviderHealth{{
+		EvaluatorID:             "openscap",
+		RequiredGlobalVariables: []string{},
+	}}
+
+	resolver := newMockPolicyGraphResolver()
+	results := CheckVariables(cfg, health, resolver, false)
+
+	foundResolveWarn := false
+	for _, r := range results {
+		if r.Status == StatusWarn && strings.Contains(r.Message, "nonexistent-policy") &&
+			strings.Contains(r.Message, "not found in config") {
+			foundResolveWarn = true
+		}
+	}
+	if !foundResolveWarn {
+		t.Errorf("expected StatusWarn result for missing policy, results: %+v", results)
+	}
+}
+
+func TestCheckVariables_ResolveFailure_InvalidRef(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Variables: map[string]string{},
+		Policies:  []complytime.PolicyEntry{{URL: "", ID: "bad"}},
+		Targets: []complytime.TargetConfig{{
+			ID:       "host1",
+			Policies: []string{"bad"},
+		}},
+	}
+	health := []ProviderHealth{{
+		EvaluatorID:             "openscap",
+		RequiredGlobalVariables: []string{},
+	}}
+
+	resolver := newMockPolicyGraphResolver()
+	results := CheckVariables(cfg, health, resolver, false)
+
+	foundResolveWarn := false
+	for _, r := range results {
+		if r.Status == StatusWarn && strings.Contains(r.Message, "invalid policy reference") {
+			foundResolveWarn = true
+		}
+	}
+	if !foundResolveWarn {
+		t.Errorf("expected StatusWarn result for invalid policy reference, results: %+v", results)
+	}
+}
+
+func TestCheckVariables_ResolveFailure_VersionNotFound(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Variables: map[string]string{},
+		Policies:  []complytime.PolicyEntry{{URL: "reg.io/policies/nist@v1.0.0"}},
+		Targets: []complytime.TargetConfig{{
+			ID:       "host1",
+			Policies: []string{"nist"},
+		}},
+	}
+	health := []ProviderHealth{{
+		EvaluatorID:             "openscap",
+		RequiredGlobalVariables: []string{},
+	}}
+
+	// Resolver with no versions configured — ResolveVersion will fail.
+	resolver := newMockPolicyGraphResolver()
+	results := CheckVariables(cfg, health, resolver, false)
+
+	foundResolveWarn := false
+	for _, r := range results {
+		if r.Status == StatusWarn && strings.Contains(r.Message, "cannot resolve version") {
+			foundResolveWarn = true
+		}
+	}
+	if !foundResolveWarn {
+		t.Errorf("expected StatusWarn result for version resolution failure, results: %+v", results)
+	}
+}
+
+func TestCheckVariables_ResolveFailure_GraphNotFound(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Variables: map[string]string{},
+		Policies:  []complytime.PolicyEntry{{URL: "reg.io/policies/nist@v1.0.0"}},
+		Targets: []complytime.TargetConfig{{
+			ID:       "host1",
+			Policies: []string{"nist"},
+		}},
+	}
+	health := []ProviderHealth{{
+		EvaluatorID:             "openscap",
+		RequiredGlobalVariables: []string{},
+	}}
+
+	// Resolver with version but no graph — ResolvePolicyGraph will fail.
+	resolver := newMockPolicyGraphResolver()
+	resolver.versions["policies/nist@v1.0.0"] = "v1.0.0"
+
+	results := CheckVariables(cfg, health, resolver, false)
+
+	foundResolveWarn := false
+	for _, r := range results {
+		if r.Status == StatusWarn && strings.Contains(r.Message, "cannot resolve policy graph") {
+			foundResolveWarn = true
+		}
+	}
+	if !foundResolveWarn {
+		t.Errorf("expected StatusWarn result for graph resolution failure, results: %+v", results)
 	}
 }
 
@@ -1134,6 +1268,27 @@ func TestCheckPolicyActivePeriod_UnparseableDate(t *testing.T) {
 	}
 	if !strings.Contains(results[0].Message, "unparseable") {
 		t.Errorf("expected 'unparseable' in message, got %q", results[0].Message)
+	}
+}
+
+func TestCheckPolicyActivePeriod_InvalidPolicyRef(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{{URL: ""}},
+	}
+	resolver := newMockPolicyGraphResolver()
+
+	results := CheckPolicyActivePeriod(cfg, resolver, false)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].Status != StatusFail {
+		t.Errorf("expected fail for invalid ref, got %s: %s", results[0].Status, results[0].Message)
+	}
+	if !results[0].Blocking {
+		t.Error("expected blocking for invalid policy reference")
+	}
+	if !strings.Contains(results[0].Message, "invalid policy reference") {
+		t.Errorf("expected 'invalid policy reference' in message, got %q", results[0].Message)
 	}
 }
 
@@ -1496,5 +1651,40 @@ func TestCheckComplypacks_NoComplypacks(t *testing.T) {
 	results := CheckComplypacks(cfg, "/tmp", newMockPolicyGraphResolver())
 	if results != nil {
 		t.Errorf("expected nil results for empty complypacks, got %d", len(results))
+	}
+}
+
+func TestCheckComplypacks_InvalidPolicyRef(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{
+			{URL: ""},
+		},
+		Complypacks: []complytime.PolicyEntry{
+			{URL: "reg.io/complypacks/openscap@v1.0.0"},
+		},
+	}
+
+	resolver := newMockPolicyGraphResolver()
+
+	results := CheckComplypacks(cfg, tmpDir, resolver)
+	// Expect fail result for invalid ref; may also include a pass result
+	// for the evaluator cache summary when no evaluators were resolved.
+	if len(results) < 1 {
+		t.Fatalf("expected at least 1 result, got %d: %+v", len(results), results)
+	}
+
+	foundFail := false
+	for _, r := range results {
+		if r.Status == StatusFail && strings.Contains(r.Message, "invalid policy reference") {
+			foundFail = true
+			if !r.Blocking {
+				t.Error("expected blocking for invalid policy reference")
+			}
+		}
+	}
+	if !foundFail {
+		t.Errorf("expected a StatusFail result for invalid policy reference, results: %+v", results)
 	}
 }

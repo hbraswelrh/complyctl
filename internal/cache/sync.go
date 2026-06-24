@@ -6,23 +6,37 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/opencontainers/go-digest"
 
 	"github.com/complytime/complyctl/internal/registry"
 )
 
-// BuildLookupRef constructs an OCI lookup reference from a repository and
-// version string. For digest versions (sha256:, sha512:) it uses "@" as
-// the separator; for tag versions it uses ":". If the version is empty or
-// "latest", the bare repository is returned so oras resolves the default tag.
-func BuildLookupRef(repository, version string) string {
-	if version == "" || version == "latest" {
+// BuildLookupRef constructs an OCI lookup reference from a repository with
+// separate tag and digest fields. When digest is non-empty it uses "@" as
+// the separator; when tag is non-empty (and not "latest") it uses ":".
+// If both are empty or tag is "latest", the bare repository is returned so
+// oras resolves the default tag.
+func BuildLookupRef(repository, tag, digest string) string {
+	if digest != "" {
+		return repository + "@" + digest
+	}
+	if tag == "" || tag == "latest" {
 		return repository
 	}
-	if strings.HasPrefix(version, "sha256:") || strings.HasPrefix(version, "sha512:") {
-		return repository + "@" + version
+	return repository + ":" + tag
+}
+
+// classifyVersion splits a version string into tag and digest components.
+// It delegates to go-digest's Parse to determine whether the string is a
+// valid OCI digest (sha256, sha384, sha512). This is a convenience for
+// callers that receive an untyped version string and need to call
+// BuildLookupRef.
+func classifyVersion(version string) (tag string, dgst string) {
+	if _, err := digest.Parse(version); err == nil {
+		return "", version
 	}
-	return repository + ":" + version
+	return version, ""
 }
 
 // Sync provides incremental sync using oras.Copy() for remote-to-local transfer.
@@ -48,7 +62,8 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) error {
 		return fmt.Errorf("policy ID cannot be empty")
 	}
 
-	lookupRef := BuildLookupRef(policyID, version)
+	tag, digest := classifyVersion(version)
+	lookupRef := BuildLookupRef(policyID, tag, digest)
 
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {

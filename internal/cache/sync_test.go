@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -246,21 +247,64 @@ func TestBuildLookupRef(t *testing.T) {
 	tests := []struct {
 		name       string
 		repository string
-		version    string
+		tag        string
+		digest     string
 		want       string
 	}{
-		{"tag version", "org/policy", "v1.0", "org/policy:v1.0"},
-		{"sha256 digest", "org/policy", "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "org/policy@sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"},
-		{"sha512 digest", "org/policy", "sha512:def456", "org/policy@sha512:def456"},
-		{"empty version", "org/policy", "", "org/policy"},
-		{"latest version", "org/policy", "latest", "org/policy"},
+		{"tag version", "org/policy", "v1.0", "", "org/policy:v1.0"},
+		{"sha256 digest", "org/policy", "", "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "org/policy@sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"},
+		{"sha512 digest", "org/policy", "", "sha512:def456", "org/policy@sha512:def456"},
+		{"empty version", "org/policy", "", "", "org/policy"},
+		{"latest version", "org/policy", "latest", "", "org/policy"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := cache.BuildLookupRef(tt.repository, tt.version)
+			got := cache.BuildLookupRef(tt.repository, tt.tag, tt.digest)
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// TestBuildLookupRef_DigestPrecedence verifies that when both tag and
+// digest are provided, digest takes precedence (OCI convention).
+func TestBuildLookupRef_DigestPrecedence(t *testing.T) {
+	got := cache.BuildLookupRef("org/policy", "v1.0", "sha256:abc123")
+	assert.Equal(t, "org/policy@sha256:abc123", got)
+}
+
+// TestBuildLookupRef_SHA384Digest verifies sha384 digests are handled
+// correctly through the typed fields.
+func TestBuildLookupRef_SHA384Digest(t *testing.T) {
+	sha384Digest := "sha384:" + "a" + strings.Repeat("b", 95)
+	got := cache.BuildLookupRef("org/policy", "", sha384Digest)
+	assert.Equal(t, "org/policy@"+sha384Digest, got)
+}
+
+// TestSync_SHA384Digest verifies that a sha384 digest version string is
+// correctly classified and used as a digest (not a tag) in the sync path.
+func TestSync_SHA384Digest(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	sha384Digest := "sha384:" + "a" + strings.Repeat("b", 95)
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	sync := cache.NewSync(cacheMgr, state, mock)
+
+	// Pass a sha384 digest as the version string. classifyVersion must
+	// detect it as a digest and BuildLookupRef must use "@" separator.
+	_ = sync.SyncPolicy(context.Background(), "test-policy", sha384Digest)
+
+	assert.Contains(t, mock.LastLookupRef, "@"+sha384Digest,
+		"sha384 digest must use @ separator, not : separator")
+	assert.NotContains(t, mock.LastLookupRef, ":"+sha384Digest,
+		"sha384 digest must not be treated as a tag")
 }
 
 // TestBuildLookupRef_Regression_NoDoubleTag verifies that the original
@@ -268,9 +312,9 @@ func TestBuildLookupRef(t *testing.T) {
 // produce a double-tagged reference like "repo:v0.4.0:v0.4.0".
 func TestBuildLookupRef_Regression_NoDoubleTag(t *testing.T) {
 	// When ParsePolicyRef correctly extracts the tag, Repository
-	// will be "complytime/complypack-ampel-bp" and Version "v0.4.0".
+	// will be "complytime/complypack-ampel-bp" and Tag "v0.4.0".
 	// BuildLookupRef should produce a single-tagged reference.
-	lookupRef := cache.BuildLookupRef("complytime/complypack-ampel-bp", "v0.4.0")
+	lookupRef := cache.BuildLookupRef("complytime/complypack-ampel-bp", "v0.4.0", "")
 	assert.Equal(t, "complytime/complypack-ampel-bp:v0.4.0", lookupRef)
 	assert.NotContains(t, lookupRef, ":v0.4.0:v0.4.0")
 }

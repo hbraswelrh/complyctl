@@ -3,6 +3,7 @@
 package complytime_test
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +19,8 @@ func TestParsePolicyRef_FullReference(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "registry.com", ref.Registry)
 	assert.Equal(t, "policies/nist-800-53-r5", ref.Repository)
-	assert.Equal(t, "v1.2.3", ref.Version)
+	assert.Equal(t, "v1.2.3", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_NoVersion(t *testing.T) {
@@ -26,7 +28,8 @@ func TestParsePolicyRef_NoVersion(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "registry.com", ref.Registry)
 	assert.Equal(t, "policies/nist-800-53-r5", ref.Repository)
-	assert.Empty(t, ref.Version)
+	assert.Empty(t, ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_WithHTTPScheme(t *testing.T) {
@@ -34,7 +37,8 @@ func TestParsePolicyRef_WithHTTPScheme(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "http://localhost:5000", ref.Registry)
 	assert.Equal(t, "policies/test", ref.Repository)
-	assert.Equal(t, "v1.0", ref.Version)
+	assert.Equal(t, "v1.0", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_WithHTTPSScheme(t *testing.T) {
@@ -42,7 +46,8 @@ func TestParsePolicyRef_WithHTTPSScheme(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "https://ghcr.io", ref.Registry)
 	assert.Equal(t, "org/policy", ref.Repository)
-	assert.Equal(t, "latest", ref.Version)
+	assert.Equal(t, "latest", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_NoRegistry(t *testing.T) {
@@ -50,7 +55,8 @@ func TestParsePolicyRef_NoRegistry(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, ref.Registry)
 	assert.Equal(t, "nist-800-53-r5", ref.Repository)
-	assert.Equal(t, "v1.0", ref.Version)
+	assert.Equal(t, "v1.0", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_BareID(t *testing.T) {
@@ -58,7 +64,18 @@ func TestParsePolicyRef_BareID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, ref.Registry)
 	assert.Equal(t, "nist-800-53-r5", ref.Repository)
-	assert.Empty(t, ref.Version)
+	assert.Empty(t, ref.Tag)
+	assert.Empty(t, ref.Digest)
+}
+
+func TestParsePolicyRef_BareIDWithDigest(t *testing.T) {
+	dgst := "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+	ref, err := complytime.ParsePolicyRef("my-policy@" + dgst)
+	require.NoError(t, err)
+	assert.Empty(t, ref.Registry)
+	assert.Equal(t, "my-policy", ref.Repository)
+	assert.Empty(t, ref.Tag)
+	assert.Equal(t, dgst, ref.Digest)
 }
 
 func TestParsePolicyRef_PortInRegistry(t *testing.T) {
@@ -66,7 +83,8 @@ func TestParsePolicyRef_PortInRegistry(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "localhost:5000", ref.Registry)
 	assert.Equal(t, "policy", ref.Repository)
-	assert.Equal(t, "v2", ref.Version)
+	assert.Equal(t, "v2", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_ColonTag(t *testing.T) {
@@ -74,7 +92,8 @@ func TestParsePolicyRef_ColonTag(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "quay.io", ref.Registry)
 	assert.Equal(t, "complytime/complypack-ampel-bp", ref.Repository)
-	assert.Equal(t, "v0.4.0", ref.Version)
+	assert.Equal(t, "v0.4.0", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_ColonLatest(t *testing.T) {
@@ -82,16 +101,18 @@ func TestParsePolicyRef_ColonLatest(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "quay.io", ref.Registry)
 	assert.Equal(t, "complytime/complypack-ampel-bp", ref.Repository)
-	assert.Equal(t, "latest", ref.Version)
+	assert.Equal(t, "latest", ref.Tag)
+	assert.Empty(t, ref.Digest)
 }
 
 func TestParsePolicyRef_Digest(t *testing.T) {
-	digest := "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
-	ref, err := complytime.ParsePolicyRef("quay.io/complytime/complypack-ampel-bp@" + digest)
+	dgst := "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+	ref, err := complytime.ParsePolicyRef("quay.io/complytime/complypack-ampel-bp@" + dgst)
 	require.NoError(t, err)
 	assert.Equal(t, "quay.io", ref.Registry)
 	assert.Equal(t, "complytime/complypack-ampel-bp", ref.Repository)
-	assert.Equal(t, digest, ref.Version)
+	assert.Empty(t, ref.Tag)
+	assert.Equal(t, dgst, ref.Digest)
 }
 
 func TestParsePolicyRef_HTTPSchemeWithColonTag(t *testing.T) {
@@ -99,7 +120,23 @@ func TestParsePolicyRef_HTTPSchemeWithColonTag(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "http://localhost:5000", ref.Registry)
 	assert.Equal(t, "policies/test", ref.Repository)
-	assert.Equal(t, "v1.0", ref.Version)
+	assert.Equal(t, "v1.0", ref.Tag)
+	assert.Empty(t, ref.Digest)
+}
+
+func TestPolicyRef_VersionString_Tag(t *testing.T) {
+	ref := complytime.PolicyRef{Tag: "v1.0"}
+	assert.Equal(t, "v1.0", ref.VersionString())
+}
+
+func TestPolicyRef_VersionString_Digest(t *testing.T) {
+	ref := complytime.PolicyRef{Digest: "sha256:abc123"}
+	assert.Equal(t, "sha256:abc123", ref.VersionString())
+}
+
+func TestPolicyRef_VersionString_Empty(t *testing.T) {
+	ref := complytime.PolicyRef{}
+	assert.Empty(t, ref.VersionString())
 }
 
 func TestParsePolicyRef_ErrorOnEmpty(t *testing.T) {
@@ -112,6 +149,73 @@ func TestParsePolicyRef_ErrorOnWhitespace(t *testing.T) {
 	_, err := complytime.ParsePolicyRef("   ")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot be empty")
+}
+
+func TestParsePolicyRef_DeprecationWarning_AtVersion(t *testing.T) {
+	// Reset deduplication state so the warning fires for this test URL.
+	complytime.ResetDeprecationWarnings()
+
+	// Capture stderr to verify the deprecation warning.
+	origStderr := os.Stderr
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = w
+	defer func() { os.Stderr = origStderr }()
+
+	ref, parseErr := complytime.ParsePolicyRef("registry.example.com/policies/nist@v1.0")
+
+	w.Close()
+	output, readErr := io.ReadAll(r)
+	r.Close()
+	require.NoError(t, readErr)
+
+	require.NoError(t, parseErr)
+	assert.Equal(t, "v1.0", ref.Tag)
+	assert.Empty(t, ref.Digest)
+	assert.Contains(t, string(output), "DEPRECATED")
+	assert.Contains(t, string(output), "registry.example.com/policies/nist@v1.0")
+	assert.Contains(t, string(output), ":tag")
+}
+
+func TestParsePolicyRef_NoDeprecationWarning_Digest(t *testing.T) {
+	dgst := "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+	origStderr := os.Stderr
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = w
+	defer func() { os.Stderr = origStderr }()
+
+	ref, parseErr := complytime.ParsePolicyRef("registry.example.com/policies/nist@" + dgst)
+
+	w.Close()
+	output, readErr := io.ReadAll(r)
+	r.Close()
+	require.NoError(t, readErr)
+
+	require.NoError(t, parseErr)
+	assert.Equal(t, dgst, ref.Digest)
+	assert.Empty(t, ref.Tag)
+	assert.Empty(t, string(output), "no deprecation warning expected for digest reference")
+}
+
+func TestParsePolicyRef_NoDeprecationWarning_BareID(t *testing.T) {
+	origStderr := os.Stderr
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = w
+	defer func() { os.Stderr = origStderr }()
+
+	ref, parseErr := complytime.ParsePolicyRef("my-policy@v2.0")
+
+	w.Close()
+	output, readErr := io.ReadAll(r)
+	r.Close()
+	require.NoError(t, readErr)
+
+	require.NoError(t, parseErr)
+	assert.Equal(t, "v2.0", ref.Tag)
+	assert.Empty(t, ref.Digest)
+	assert.Empty(t, string(output), "no deprecation warning expected for bare policy ID")
 }
 
 func TestPolicyEntry_EffectiveID_ExplicitID(t *testing.T) {
