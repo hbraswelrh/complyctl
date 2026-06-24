@@ -105,6 +105,12 @@ func (e *Evaluator) GemaraLog() *gemara.EvaluationLog {
 		result = gemara.UpdateAggregateResult(result, ce.Result)
 	}
 
+	// A scan that completed with zero evaluations means all controls
+	// were not applicable — distinguish from "scan never ran."
+	if len(evals) == 0 {
+		result = gemara.NotApplicable
+	}
+
 	return &gemara.EvaluationLog{
 		Evaluations: evals,
 		Result:      result,

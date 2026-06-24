@@ -57,7 +57,7 @@ func matchingStepMessage(steps []provider.Step, target gemara.Result) string {
 // Intro text, plain aligned text table of non-passing results, compact totals.
 // See spec.md Session 2026-02-26e.
 func FormatScanSummary(assessments []provider.AssessmentLog, assessmentTargets []string, reqToControl map[string]string, policyID string, targetIDs []string) string {
-	var passCount, failCount, skipCount, errCount int
+	var passCount, failCount, notApplicableCount, skipCount, errCount int
 	var entries []nonPassingEntry
 
 	for i := range assessments {
@@ -87,7 +87,17 @@ func FormatScanSummary(assessments []provider.AssessmentLog, assessmentTargets [
 				emoji:         complytime.StatusFailed,
 				message:       matchingStepMessage(a.Steps, result),
 			})
-		case gemara.NotApplicable, gemara.NotRun:
+		case gemara.NotApplicable:
+			notApplicableCount++
+			entries = append(entries, nonPassingEntry{
+				targetID:      targetID,
+				requirementID: a.RequirementID,
+				controlID:     ctrlID,
+				result:        result,
+				emoji:         complytime.StatusSkipped,
+				message:       matchingStepMessage(a.Steps, result),
+			})
+		case gemara.NotRun:
 			skipCount++
 			entries = append(entries, nonPassingEntry{
 				targetID:      targetID,
@@ -124,8 +134,8 @@ func FormatScanSummary(assessments []provider.AssessmentLog, assessmentTargets [
 		rows = append(rows, []string{e.targetID, e.requirementID, e.controlID, e.emoji, e.message})
 	}
 
-	conclusion := fmt.Sprintf("%d requirements: %d passed, %d failed, %d skipped, %d errors",
-		total, passCount, failCount, skipCount, errCount)
+	conclusion := fmt.Sprintf("%d requirements: %d passed, %d failed, %d not applicable, %d skipped, %d errors",
+		total, passCount, failCount, notApplicableCount, skipCount, errCount)
 
 	var b strings.Builder
 	fmt.Fprintln(&b, intro)
@@ -136,6 +146,18 @@ func FormatScanSummary(assessments []provider.AssessmentLog, assessmentTargets [
 	}
 	fmt.Fprintln(&b, conclusion)
 	return b.String()
+}
+
+// NothingAssessed returns true when no requirements received a definitive
+// pass or fail result, indicating the scan produced no actionable compliance signal.
+func NothingAssessed(assessments []provider.AssessmentLog) bool {
+	for i := range assessments {
+		result := aggregateResultFromSteps(assessments[i].Steps)
+		if result == gemara.Passed || result == gemara.Failed {
+			return false
+		}
+	}
+	return true
 }
 
 // FormatOperationalWarnings formats provider-reported operational errors

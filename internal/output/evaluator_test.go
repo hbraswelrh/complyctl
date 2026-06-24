@@ -87,6 +87,14 @@ func TestGemaraLog_AggregatesResult(t *testing.T) {
 	}
 }
 
+func TestGemaraLog_NoAssessmentsYieldsNotApplicable(t *testing.T) {
+	eval := output.NewEvaluator("pol", "tgt", nil, nil, nil)
+	eval.AddTarget(nil)
+	log := eval.GemaraLog()
+	assert.Equal(t, gemara.NotApplicable, log.Result)
+	assert.Empty(t, log.Evaluations)
+}
+
 func TestGemaraLog_PopulatesTarget(t *testing.T) {
 	eval := output.NewEvaluator("policy-id", "my-target", nil, nil, nil)
 	eval.AddTarget([]provider.AssessmentLog{

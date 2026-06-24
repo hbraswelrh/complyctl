@@ -103,7 +103,7 @@ func TestFormatScanSummary_AllPassed(t *testing.T) {
 
 	output := FormatScanSummary(assessments, assessmentTargets, reqToControl, policyID, targetIDs)
 
-	assert.Contains(t, output, "2 requirements: 2 passed, 0 failed, 0 skipped, 0 errors")
+	assert.Contains(t, output, "2 requirements: 2 passed, 0 failed, 0 not applicable, 0 skipped, 0 errors")
 	assert.NotContains(t, output, "TARGET ID")
 }
 
@@ -150,6 +150,70 @@ func TestFormatOperationalWarnings_MultipleErrors(t *testing.T) {
 	assert.Contains(t, result, "WARNING: 2 operational errors during scan")
 	assert.Contains(t, result, "  - target 'staging': clone failed: auth denied")
 	assert.Contains(t, result, "  - target 'dev': missing required tool: conftest")
+}
+
+func TestFormatScanSummary_NotRunCountedAsSkipped(t *testing.T) {
+	assessments := []provider.AssessmentLog{
+		{
+			RequirementID: "REQ-1",
+			Steps:         nil, // no steps → NotRun → counted as skipped
+		},
+		{
+			RequirementID: "REQ-2",
+			Steps:         []provider.Step{{Result: provider.ResultPassed, Message: "OK"}},
+		},
+	}
+	assessmentTargets := []string{"target1", "target1"}
+	reqToControl := map[string]string{}
+	policyID := "test"
+	targetIDs := []string{"target1"}
+
+	result := FormatScanSummary(assessments, assessmentTargets, reqToControl, policyID, targetIDs)
+
+	assert.Contains(t, result, "1 skipped")
+	assert.Contains(t, result, "1 passed")
+	assert.Contains(t, result, "0 not applicable")
+}
+
+func TestFormatScanSummary_ZeroAssessments(t *testing.T) {
+	result := FormatScanSummary(nil, nil, map[string]string{}, "test", []string{"target1"})
+
+	assert.Contains(t, result, "0 requirements: 0 passed, 0 failed, 0 not applicable, 0 skipped, 0 errors")
+}
+
+func TestNothingAssessed_EmptyAssessments(t *testing.T) {
+	assert.True(t, NothingAssessed(nil))
+	assert.True(t, NothingAssessed([]provider.AssessmentLog{}))
+}
+
+func TestNothingAssessed_AllNotRun(t *testing.T) {
+	assessments := []provider.AssessmentLog{
+		{
+			RequirementID: "REQ-1",
+			Steps:         nil, // no steps → NotRun → nothing assessed
+		},
+	}
+	assert.True(t, NothingAssessed(assessments))
+}
+
+func TestNothingAssessed_WithPassedResult(t *testing.T) {
+	assessments := []provider.AssessmentLog{
+		{
+			RequirementID: "REQ-1",
+			Steps:         []provider.Step{{Result: provider.ResultPassed, Message: "OK"}},
+		},
+	}
+	assert.False(t, NothingAssessed(assessments))
+}
+
+func TestNothingAssessed_WithFailedResult(t *testing.T) {
+	assessments := []provider.AssessmentLog{
+		{
+			RequirementID: "REQ-1",
+			Steps:         []provider.Step{{Result: provider.ResultFailed, Message: "Fail"}},
+		},
+	}
+	assert.False(t, NothingAssessed(assessments))
 }
 
 func TestFormatScanSummary_ControlIDMissing(t *testing.T) {

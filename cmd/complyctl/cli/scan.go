@@ -413,7 +413,11 @@ func processScanOutput(format string, scanOut *scanOutput, repository string, ma
 	}
 
 	fmt.Println(output.FormatScanSummary(scanOut.assessments, scanOut.assessmentTargets, mappings.reqToControl, eid, targetIDs))
-	return checkOperationalErrors(scanOut.errors)
+
+	if err := checkOperationalErrors(scanOut.errors); err != nil {
+		return err
+	}
+	return checkNothingAssessed(scanOut.assessments)
 }
 
 // reportOperationalWarnings prints provider-reported operational errors as
@@ -434,6 +438,17 @@ func checkOperationalErrors(errors []string) error {
 			noun = "error"
 		}
 		return fmt.Errorf("scan completed with %d operational %s — some targets could not be evaluated", len(errors), noun)
+	}
+	return nil
+}
+
+// checkNothingAssessed returns an error when zero requirements received a
+// definitive pass or fail result. A scan that produces no assessed results
+// is a false-confidence hazard and must be surfaced.
+func checkNothingAssessed(assessments []provider.AssessmentLog) error {
+	if output.NothingAssessed(assessments) {
+		fmt.Fprintf(os.Stderr, "\nWARNING: scan completed but no requirements were assessed — all may be not applicable for this target\n")
+		return fmt.Errorf("scan completed with zero assessed requirements — verify policy and target compatibility")
 	}
 	return nil
 }
