@@ -26,6 +26,10 @@
   `DetectManifestShape()`.
 - `complyctl scan` exits non-zero on operational errors from providers.
   `ScanResponse.errors` proto field surfaces provider-side errors.
+- Exit code contract documented in `complyctl scan --help`, the man
+  page (`docs/man/complyctl.md`), and the quick start guide
+  (`docs/QUICK_START.md`). Exit 0 means scan completed; exit 1 means
+  operational error or zero assessed requirements (#608).
 - Devcontainer configuration for interactive CLI testing during PR
   reviews (`.devcontainer/`, `docs/TESTING_ENVIRONMENT.md`,
   `make test-devcontainer`). Supports GitHub Codespaces, DevPod, and

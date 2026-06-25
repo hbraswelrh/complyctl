@@ -122,6 +122,16 @@ $ complyctl providers
 # List discovered providers, their health status, and cached complypack versions
 ```
 
+# EXIT CODES
+
+**0**
+: Scan completed successfully. Findings (passed, failed, not applicable) are reported in the output but do not affect the exit code. Policy findings are data, not errors.
+
+**1**
+: An operational error occurred. This includes provider failures, invalid configuration, or zero requirements assessed. Reports and summaries are written before the non-zero exit so partial results remain available.
+
+To gate a pipeline on compliance results, parse the scan output (SARIF, OSCAL) with your policy engine rather than relying on the exit code.
+
 # SEE ALSO
 
 See the upstream project at https://github.com/complytime/complyctl for more detailed documentation.

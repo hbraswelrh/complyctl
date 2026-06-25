@@ -151,6 +151,12 @@ complyctl scan my-repo
 
 Output written to `./.complytime/scan/`.
 
+> **Exit codes:** `scan` exits 0 on completion regardless of whether controls
+> passed or failed — policy findings are data, not errors. The command exits
+> non-zero only for operational errors (provider failures, bad configuration,
+> or zero requirements assessed). To gate a pipeline on compliance results,
+> parse the `--format` output (SARIF, OSCAL) with your policy engine.
+
 ## Authentication
 
 **OCI registry:** complyctl uses Docker credential helpers via `oras-credentials-go`. No custom configuration needed — if `docker login` works, `complyctl get` works.

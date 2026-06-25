@@ -57,7 +57,14 @@ When no target is given, --policy-id is required and all matching targets are sc
 Set COMPLYTIME_EXPORT_ENABLED=true to export evidence to a Beacon collector
 after the scan completes. Requires a collector section in complytime.yaml.
 Export works alongside any --format flag. The variable must be set in the
-same shell session or CI job step that invokes complyctl scan.`,
+same shell session or CI job step that invokes complyctl scan.
+
+Exit codes:
+  0  Scan completed (findings are reported, not errors)
+  1  Operational error (provider failure, bad config, zero assessed)
+
+Policy findings are data, not errors. To gate a pipeline on compliance
+results, parse the --format output (SARIF, OSCAL) with your policy engine.`,
 		Example: `  # Scan a specific target (policy inferred if target has exactly one)
   complyctl scan prod
 
