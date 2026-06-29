@@ -76,6 +76,11 @@
 - `complyctl list` displays DIGEST and VERIFIED columns showing the
   abbreviated OCI manifest digest and signature verification status for
   each cached policy. Uncached policies show `-`. (#607)
+- `Verifier` interface replaced by `VerifyFunc` function type with
+  `SyncOption`/`WithVerifier()` functional options. Both `NewSync` and
+  `NewComplypackSync` accept variadic `...SyncOption`. `SyncPolicy` and
+  `SyncComplypack` return `SyncResult{Fetched, Verified}`. Verification
+  warning logic centralized via `UnverifiedWarning()` helper. (#641)
 
 ### Deprecated
 

@@ -39,6 +39,46 @@ func TestPolicyState_VerifiedFieldPersistence(t *testing.T) {
 	assert.False(t, ps.Verified, "verified must be false when set to false")
 }
 
+func TestComplypackState_VerifiedFieldPersistence(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	state := &cache.State{
+		Complypacks: make(map[string]cache.PolicyState),
+	}
+	state.UpdateComplypackState("example.com/complypacks/opa", "1.0.0", "sha256:cp123", "opa", true)
+
+	err := cache.SaveState(state, tmpDir)
+	require.NoError(t, err)
+
+	// Round-trip: load and verify the verified field
+	loaded, err := cache.LoadState(tmpDir)
+	require.NoError(t, err)
+	ps, ok := loaded.GetComplypackState("example.com/complypacks/opa")
+	require.True(t, ok)
+	assert.True(t, ps.Verified, "verified must be true when set to true")
+	assert.Equal(t, "opa", ps.EvaluatorID)
+	assert.Equal(t, "1.0.0", ps.Version)
+	assert.Equal(t, "sha256:cp123", ps.Digest)
+}
+
+func TestComplypackState_VerifiedFalseRoundTrip(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	state := &cache.State{
+		Complypacks: make(map[string]cache.PolicyState),
+	}
+	state.UpdateComplypackState("example.com/complypacks/kyverno", "2.0.0", "sha256:cp456", "kyverno", false)
+
+	err := cache.SaveState(state, tmpDir)
+	require.NoError(t, err)
+
+	loaded, err := cache.LoadState(tmpDir)
+	require.NoError(t, err)
+	ps, ok := loaded.GetComplypackState("example.com/complypacks/kyverno")
+	require.True(t, ok)
+	assert.False(t, ps.Verified, "verified must be false when set to false")
+}
+
 func TestPolicyState_BackwardCompatibility_NoVerifiedField(t *testing.T) {
 	tmpDir := t.TempDir()
 

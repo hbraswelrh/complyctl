@@ -113,16 +113,17 @@ func (s *State) GetPolicyState(policyID string) (PolicyState, bool) {
 	return state, exists
 }
 
-// UpdateComplypackState records the version, digest, evaluator-id, and current
-// timestamp for a cached complypack, keyed by repository
-// (e.g., "example.com/complypacks/opa-bundle").
-func (s *State) UpdateComplypackState(repository, version, digest, evaluatorID string) {
+// UpdateComplypackState records the version, digest, evaluator-id,
+// verification status, and current timestamp for a cached complypack,
+// keyed by repository (e.g., "example.com/complypacks/opa-bundle").
+func (s *State) UpdateComplypackState(repository, version, digest, evaluatorID string, verified bool) {
 	if s.Complypacks == nil {
 		s.Complypacks = make(map[string]PolicyState)
 	}
 	s.Complypacks[repository] = PolicyState{
 		Version:     version,
 		Digest:      digest,
+		Verified:    verified,
 		EvaluatorID: evaluatorID,
 		LastUpdated: time.Now(),
 	}

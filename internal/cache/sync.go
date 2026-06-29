@@ -6,10 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"github.com/opencontainers/go-digest"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/complytime/complyctl/internal/registry"
 )
@@ -46,23 +44,19 @@ type Sync struct {
 	cache    *Cache
 	state    *State
 	source   PolicySource
-	verifier Verifier
+	verifyFn VerifyFunc
 }
 
-// NewSync creates a Sync instance with the given cache, state, source,
-// and verifier. The verifier is called after each successful CopyPolicy
-// to determine whether the fetched artifact is cryptographically
-// verified. Pass NoOpVerifier() when no verification is configured.
-// A nil verifier defaults to NoOpVerifier.
-func NewSync(cache *Cache, state *State, source PolicySource, verifier Verifier) *Sync {
-	if verifier == nil {
-		verifier = NoOpVerifier()
-	}
+// NewSync creates a Sync instance with the given cache, state, and source.
+// Pass WithVerifier to configure cryptographic verification of fetched
+// artifacts. When no verifier is set, artifacts are treated as unverified.
+func NewSync(cache *Cache, state *State, source PolicySource, opts ...SyncOption) *Sync {
+	o := applySyncOptions(opts)
 	return &Sync{
 		cache:    cache,
 		state:    state,
 		source:   source,
-		verifier: verifier,
+		verifyFn: o.verifyFn,
 	}
 }
 
@@ -70,11 +64,11 @@ func NewSync(cache *Cache, state *State, source PolicySource, verifier Verifier)
 // digest against remote manifest digest; if they match, sync is skipped. On
 // failure, the OCI Layout store retains its previous state.
 //
-// Returns (true, nil) when a fetch occurred, (false, nil) when the local cache
-// was already up-to-date (incremental skip), or (false, err) on failure.
-func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, error) {
+// Returns a SyncResult indicating whether a fetch occurred and whether the
+// artifact was verified. Returns an error on sync failure.
+func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (SyncResult, error) {
 	if policyID == "" {
-		return false, fmt.Errorf("policy ID cannot be empty")
+		return SyncResult{}, fmt.Errorf("policy ID cannot be empty")
 	}
 
 	tag, digest := classifyVersion(version)
@@ -83,9 +77,9 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, 
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {
 		if errors.Is(err, registry.ErrVersionNotFound) {
-			return false, fmt.Errorf("policy %s: %w", policyID, err)
+			return SyncResult{}, fmt.Errorf("policy %s: %w", policyID, err)
 		}
-		return false, fmt.Errorf("policy %s: registry unreachable: %w", policyID, err)
+		return SyncResult{}, fmt.Errorf("policy %s: registry unreachable: %w", policyID, err)
 	}
 
 	if version == "" || version == "latest" {
@@ -94,39 +88,25 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, 
 
 	localState, exists := s.state.GetPolicyState(policyID)
 	if exists && localState.Digest == remoteDigest && s.cache.PolicyStoreExists(policyID) {
-		return false, nil
+		return SyncResult{}, nil
 	}
 
 	localStore, err := s.cache.NewPolicyStore(policyID)
 	if err != nil {
-		return false, fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
+		return SyncResult{}, fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
 	}
 
 	desc, err := s.source.CopyPolicy(ctx, policyID, version, localStore)
 	if err != nil {
-		return false, fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
+		return SyncResult{}, fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
 	}
 
-	verified := verifyAfterCopy(ctx, s.verifier, desc)
+	verified := runVerify(ctx, s.verifyFn, desc)
 
 	s.state.UpdatePolicyState(policyID, version, remoteDigest, verified)
 	if err := SaveState(s.state, s.cache.Dir()); err != nil {
-		return false, fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
+		return SyncResult{}, fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
 	}
 
-	return true, nil
-}
-
-// verifyAfterCopy runs the verifier against the copied descriptor.
-// Returns true when the artifact is verified, false otherwise.
-// Verifier errors are treated as unverified (graceful degradation)
-// and logged as warnings for operational visibility.
-func verifyAfterCopy(ctx context.Context, v Verifier, desc ocispec.Descriptor) bool {
-	result, err := v.Verify(ctx, desc)
-	if err != nil {
-		slog.Warn("Policy verification failed, treating as unverified",
-			"digest", desc.Digest.String(), "error", err)
-		return false
-	}
-	return result.Status == Verified
+	return SyncResult{Fetched: true, Verified: verified}, nil
 }

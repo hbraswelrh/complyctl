@@ -160,7 +160,7 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 
 	client := registry.NewClient(ref.Registry, credFunc)
 	source := cache.NewRegistrySource(client)
-	sync := cache.NewSync(cacheMgr, state, source, cache.NoOpVerifier())
+	sync := cache.NewSync(cacheMgr, state, source)
 
 	if version == "" {
 		version = resolveLatestVersion(ctx, client, ref.Repository, entry.EffectiveID())
@@ -168,7 +168,7 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 
 	fmt.Fprintf(os.Stderr, "Syncing policy %d/%d: %s... ", index, total, entry.EffectiveID())
 	logger.Info("Syncing policy", "policy", ref.Repository, "version", version)
-	fetched, err := sync.SyncPolicy(ctx, ref.Repository, version)
+	result, err := sync.SyncPolicy(ctx, ref.Repository, version)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed")
 		logger.Error("Policy sync failed", "policy", ref.Repository, "error", err)
@@ -176,11 +176,11 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 	}
 	fmt.Fprintln(os.Stderr, "done")
 
-	if fetched {
+	if result.Fetched {
 		ps, _ := state.GetPolicyState(ref.Repository)
 		logger.Info("Policy synced", "policy", entry.EffectiveID(), "digest", ps.Digest)
-		if !ps.Verified {
-			fmt.Fprintf(os.Stderr, "WARNING: policy %s has not been cryptographically verified\n", entry.EffectiveID())
+		if !result.Verified {
+			fmt.Fprintln(os.Stderr, cache.UnverifiedWarning("policy", entry.EffectiveID()))
 			logger.Warn("Policy not cryptographically verified", "policy", entry.EffectiveID(), "digest", ps.Digest)
 		}
 	} else {
@@ -235,7 +235,7 @@ func syncSingleComplypack(ctx context.Context, state *cache.State, credFunc auth
 
 	fmt.Fprintf(os.Stderr, "Syncing complypack %d/%d: %s... ", index, total, entry.EffectiveID())
 	logger.Info("Syncing complypack", "complypack", ref.Repository, "version", version)
-	fetched, err := cpSync.SyncComplypack(ctx, ref.Repository, version)
+	result, err := cpSync.SyncComplypack(ctx, ref.Repository, version)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed")
 		logger.Error("Complypack sync failed", "complypack", ref.Repository, "error", err)
@@ -244,8 +244,8 @@ func syncSingleComplypack(ctx context.Context, state *cache.State, credFunc auth
 	fmt.Fprintln(os.Stderr, "done")
 	logger.Info("Complypack synced", "complypack", entry.EffectiveID())
 
-	if fetched {
-		fmt.Fprintf(os.Stderr, "WARNING: complypack %s has not been cryptographically verified\n", entry.EffectiveID())
+	if result.Fetched && !result.Verified {
+		fmt.Fprintln(os.Stderr, cache.UnverifiedWarning("complypack", entry.EffectiveID()))
 		logger.Warn("Complypack not cryptographically verified", "complypack", entry.EffectiveID())
 		invalidateGenerationForComplypack(state, ref.Repository, baseDir)
 	}
