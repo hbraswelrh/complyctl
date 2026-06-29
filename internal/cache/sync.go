@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/opencontainers/go-digest"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/complytime/complyctl/internal/registry"
 )
@@ -41,25 +42,34 @@ func classifyVersion(version string) (tag string, dgst string) {
 
 // Sync provides incremental sync using oras.Copy() for remote-to-local transfer.
 type Sync struct {
-	cache  *Cache
-	state  *State
-	source PolicySource
+	cache    *Cache
+	state    *State
+	source   PolicySource
+	verifier Verifier
 }
 
-func NewSync(cache *Cache, state *State, source PolicySource) *Sync {
+// NewSync creates a Sync instance with the given cache, state, source,
+// and verifier. The verifier is called after each successful CopyPolicy
+// to determine whether the fetched artifact is cryptographically
+// verified. Pass NoOpVerifier() when no verification is configured.
+func NewSync(cache *Cache, state *State, source PolicySource, verifier Verifier) *Sync {
 	return &Sync{
-		cache:  cache,
-		state:  state,
-		source: source,
+		cache:    cache,
+		state:    state,
+		source:   source,
+		verifier: verifier,
 	}
 }
 
 // SyncPolicy performs incremental synchronization of a policy. Compares local
 // digest against remote manifest digest; if they match, sync is skipped. On
 // failure, the OCI Layout store retains its previous state.
-func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) error {
+//
+// Returns (true, nil) when a fetch occurred, (false, nil) when the local cache
+// was already up-to-date (incremental skip), or (false, err) on failure.
+func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, error) {
 	if policyID == "" {
-		return fmt.Errorf("policy ID cannot be empty")
+		return false, fmt.Errorf("policy ID cannot be empty")
 	}
 
 	tag, digest := classifyVersion(version)
@@ -68,9 +78,9 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) error {
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {
 		if errors.Is(err, registry.ErrVersionNotFound) {
-			return fmt.Errorf("policy %s: %w", policyID, err)
+			return false, fmt.Errorf("policy %s: %w", policyID, err)
 		}
-		return fmt.Errorf("policy %s: registry unreachable: %w", policyID, err)
+		return false, fmt.Errorf("policy %s: registry unreachable: %w", policyID, err)
 	}
 
 	if version == "" || version == "latest" {
@@ -79,23 +89,36 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) error {
 
 	localState, exists := s.state.GetPolicyState(policyID)
 	if exists && localState.Digest == remoteDigest && s.cache.PolicyStoreExists(policyID) {
-		return nil
+		return false, nil
 	}
 
 	localStore, err := s.cache.NewPolicyStore(policyID)
 	if err != nil {
-		return fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
+		return false, fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
 	}
 
-	_, err = s.source.CopyPolicy(ctx, policyID, version, localStore)
+	desc, err := s.source.CopyPolicy(ctx, policyID, version, localStore)
 	if err != nil {
-		return fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
+		return false, fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
 	}
 
-	s.state.UpdatePolicyState(policyID, version, remoteDigest)
+	verified := verifyAfterCopy(ctx, s.verifier, desc)
+
+	s.state.UpdatePolicyState(policyID, version, remoteDigest, verified)
 	if err := SaveState(s.state, s.cache.Dir()); err != nil {
-		return fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
+		return false, fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
 	}
 
-	return nil
+	return true, nil
+}
+
+// verifyAfterCopy runs the verifier against the copied descriptor.
+// Returns true when the artifact is verified, false otherwise.
+// Verifier errors are treated as unverified (graceful degradation).
+func verifyAfterCopy(ctx context.Context, v Verifier, desc ocispec.Descriptor) bool {
+	result, err := v.Verify(ctx, desc)
+	if err != nil {
+		return false
+	}
+	return result.Status == Verified
 }

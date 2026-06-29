@@ -20,10 +20,12 @@ type State struct {
 	Complypacks map[string]PolicyState `json:"complypacks,omitempty"`
 }
 
-// PolicyState holds version, digest, and timestamp for a single cached policy.
+// PolicyState holds version, digest, verification status, and timestamp for a
+// single cached policy.
 type PolicyState struct {
 	Version     string    `json:"version"`
 	Digest      string    `json:"digest"`
+	Verified    bool      `json:"verified"`
 	EvaluatorID string    `json:"evaluator_id,omitempty"`
 	LastUpdated time.Time `json:"last_updated"`
 }
@@ -87,14 +89,16 @@ func SaveState(state *State, cacheDir string) error {
 	return nil
 }
 
-// UpdatePolicyState records the version, digest, and current timestamp for a cached policy.
-func (s *State) UpdatePolicyState(policyID, version, digest string) {
+// UpdatePolicyState records the version, digest, verification status, and
+// current timestamp for a cached policy.
+func (s *State) UpdatePolicyState(policyID, version, digest string, verified bool) {
 	if s.Policies == nil {
 		s.Policies = make(map[string]PolicyState)
 	}
 	s.Policies[policyID] = PolicyState{
 		Version:     version,
 		Digest:      digest,
+		Verified:    verified,
 		LastUpdated: time.Now(),
 	}
 	s.LastSync = time.Now()

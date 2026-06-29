@@ -10,12 +10,28 @@ import (
 	"strings"
 	"testing"
 
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/complytime/complyctl/internal/cache"
 	"github.com/complytime/complyctl/internal/cache/cachetest"
 )
+
+// mockVerifier is a test double for the Verifier interface that records
+// calls and returns configurable results.
+type mockVerifier struct {
+	result cache.VerificationResult
+	err    error
+	called bool
+	desc   ocispec.Descriptor
+}
+
+func (v *mockVerifier) Verify(_ context.Context, desc ocispec.Descriptor) (cache.VerificationResult, error) {
+	v.called = true
+	v.desc = desc
+	return v.result, v.err
+}
 
 func TestSync_CopyOnSuccess(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -29,10 +45,11 @@ func TestSync_CopyOnSuccess(t *testing.T) {
 	state, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
-	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
+	assert.True(t, fetched, "first sync should report a fetch")
 
 	// Verify state was updated
 	state2, err := cache.LoadState(cacheDir)
@@ -61,10 +78,11 @@ func TestSync_CopyOnSuccess_PinnedVersion(t *testing.T) {
 	state, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
-	err = sync.SyncPolicy(context.Background(), "test-policy", "v1.0.0")
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "v1.0.0")
 	require.NoError(t, err)
+	assert.True(t, fetched, "first sync should report a fetch")
 
 	assert.Equal(t, "test-policy:v1.0.0", mock.LastLookupRef,
 		"source should receive the versioned ref when a pinned version is provided")
@@ -88,10 +106,11 @@ func TestSync_FailureOnMissingPolicy(t *testing.T) {
 	state, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
-	err = sync.SyncPolicy(context.Background(), "nonexistent-policy", "latest")
+	fetched, err := sync.SyncPolicy(context.Background(), "nonexistent-policy", "latest")
 	require.Error(t, err)
+	assert.False(t, fetched, "failed sync should not report a fetch")
 	assert.Contains(t, err.Error(), "not found")
 }
 
@@ -107,11 +126,12 @@ func TestSync_IncrementalSkip(t *testing.T) {
 	state, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
 	// First sync
-	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
+	assert.True(t, fetched, "first sync should report a fetch")
 
 	state2, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
@@ -120,9 +140,10 @@ func TestSync_IncrementalSkip(t *testing.T) {
 	originalDigest := ps.Digest
 
 	// Second sync with same digest — should be no-op (FR-004)
-	sync2 := cache.NewSync(cacheMgr, state2, mock)
-	err = sync2.SyncPolicy(context.Background(), "test-policy", "latest")
+	sync2 := cache.NewSync(cacheMgr, state2, mock, cache.NoOpVerifier())
+	fetched2, err := sync2.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
+	assert.False(t, fetched2, "incremental skip should not report a fetch")
 
 	state3, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
@@ -139,9 +160,10 @@ func TestSync_EmptyPolicyID(t *testing.T) {
 	cacheMgr := cache.NewCache(cacheDir)
 	state, _ := cache.LoadState(cacheDir)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
-	err := sync.SyncPolicy(context.Background(), "", "latest")
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
+	fetched, err := sync.SyncPolicy(context.Background(), "", "latest")
 	require.Error(t, err)
+	assert.False(t, fetched, "empty policy ID should not report a fetch")
 	assert.Contains(t, err.Error(), "policy ID cannot be empty")
 }
 
@@ -157,10 +179,11 @@ func TestSync_RedownloadAfterDeletion(t *testing.T) {
 	state, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
-	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
+	assert.True(t, fetched, "first sync should report a fetch")
 
 	storePath := cacheMgr.PolicyStorePath("test-policy")
 	assert.FileExists(t, filepath.Join(storePath, "oci-layout"))
@@ -170,10 +193,11 @@ func TestSync_RedownloadAfterDeletion(t *testing.T) {
 
 	state2, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
-	sync2 := cache.NewSync(cacheMgr, state2, mock)
+	sync2 := cache.NewSync(cacheMgr, state2, mock, cache.NoOpVerifier())
 
-	err = sync2.SyncPolicy(context.Background(), "test-policy", "latest")
+	fetched2, err := sync2.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
+	assert.True(t, fetched2, "re-download after deletion should report a fetch")
 
 	assert.FileExists(t, filepath.Join(storePath, "oci-layout"))
 	assert.DirExists(t, filepath.Join(storePath, "blobs", "sha256"))
@@ -201,24 +225,24 @@ func TestSync_StressConcurrentFailures(t *testing.T) {
 		state, loadErr := cache.LoadState(cacheDir)
 		require.NoError(t, loadErr, "state load must not fail on iteration %d", i)
 
-		syncMgr := cache.NewSync(cacheMgr, state, mock)
+		syncMgr := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
 		if i%3 == 0 {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			syncErr := syncMgr.SyncPolicy(ctx, policyID, "latest")
+			_, syncErr := syncMgr.SyncPolicy(ctx, policyID, "latest")
 			if syncErr != nil {
 				failCount++
 			} else {
 				successCount++
 			}
 		} else if i%7 == 0 {
-			syncErr := syncMgr.SyncPolicy(context.Background(),
+			_, syncErr := syncMgr.SyncPolicy(context.Background(),
 				fmt.Sprintf("nonexistent-%d", i), "latest")
 			require.Error(t, syncErr, "nonexistent policy must fail on iteration %d", i)
 			failCount++
 		} else {
-			syncErr := syncMgr.SyncPolicy(context.Background(), policyID, "latest")
+			_, syncErr := syncMgr.SyncPolicy(context.Background(), policyID, "latest")
 			require.NoError(t, syncErr, "normal sync must not fail on iteration %d", i)
 			successCount++
 		}
@@ -295,11 +319,11 @@ func TestSync_SHA384Digest(t *testing.T) {
 	state, err := cache.LoadState(cacheDir)
 	require.NoError(t, err)
 
-	sync := cache.NewSync(cacheMgr, state, mock)
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
 
 	// Pass a sha384 digest as the version string. classifyVersion must
 	// detect it as a digest and BuildLookupRef must use "@" separator.
-	_ = sync.SyncPolicy(context.Background(), "test-policy", sha384Digest)
+	_, _ = sync.SyncPolicy(context.Background(), "test-policy", sha384Digest)
 
 	assert.Contains(t, mock.LastLookupRef, "@"+sha384Digest,
 		"sha384 digest must use @ separator, not : separator")
@@ -317,4 +341,123 @@ func TestBuildLookupRef_Regression_NoDoubleTag(t *testing.T) {
 	lookupRef := cache.BuildLookupRef("complytime/complypack-ampel-bp", "v0.4.0", "")
 	assert.Equal(t, "complytime/complypack-ampel-bp:v0.4.0", lookupRef)
 	assert.NotContains(t, lookupRef, ":v0.4.0:v0.4.0")
+}
+
+// --- Verifier integration tests ---
+
+func TestSync_VerifierCalledOnFreshFetch(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	verifier := &mockVerifier{
+		result: cache.VerificationResult{Status: cache.Unverified},
+	}
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	sync := cache.NewSync(cacheMgr, state, mock, verifier)
+
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err)
+	assert.True(t, fetched, "first sync should report a fetch")
+	assert.True(t, verifier.called, "verifier should be called on fresh fetch")
+	assert.NotEmpty(t, verifier.desc.Digest, "verifier should receive a descriptor with a digest")
+}
+
+func TestSync_VerifierNotCalledOnIncrementalSkip(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	// First sync with NoOp to populate cache
+	sync := cache.NewSync(cacheMgr, state, mock, cache.NoOpVerifier())
+	_, err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err)
+
+	// Second sync with a tracking verifier
+	state2, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+	verifier := &mockVerifier{
+		result: cache.VerificationResult{Status: cache.Unverified},
+	}
+	sync2 := cache.NewSync(cacheMgr, state2, mock, verifier)
+
+	fetched, err := sync2.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err)
+	assert.False(t, fetched, "incremental skip should not report a fetch")
+	assert.False(t, verifier.called, "verifier should not be called on incremental skip")
+}
+
+func TestSync_VerifierErrorHandledGracefully(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	verifier := &mockVerifier{
+		result: cache.VerificationResult{},
+		err:    fmt.Errorf("transparency log unreachable"),
+	}
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	sync := cache.NewSync(cacheMgr, state, mock, verifier)
+
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err, "verifier error should not fail the sync")
+	assert.True(t, fetched, "sync should still report a fetch")
+
+	// Policy should be marked unverified
+	state2, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+	ps, ok := state2.GetPolicyState("test-policy")
+	require.True(t, ok)
+	assert.False(t, ps.Verified, "policy should be unverified when verifier errors")
+}
+
+func TestSync_VerifiedResultSetsVerifiedTrue(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	verifier := &mockVerifier{
+		result: cache.VerificationResult{Status: cache.Verified},
+	}
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	sync := cache.NewSync(cacheMgr, state, mock, verifier)
+
+	fetched, err := sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err)
+	assert.True(t, fetched)
+
+	// Policy should be marked verified
+	state2, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+	ps, ok := state2.GetPolicyState("test-policy")
+	require.True(t, ok)
+	assert.True(t, ps.Verified, "policy should be verified when verifier returns Verified")
 }

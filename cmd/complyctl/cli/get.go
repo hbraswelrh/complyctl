@@ -160,7 +160,7 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 
 	client := registry.NewClient(ref.Registry, credFunc)
 	source := cache.NewRegistrySource(client)
-	sync := cache.NewSync(cacheMgr, state, source)
+	sync := cache.NewSync(cacheMgr, state, source, cache.NoOpVerifier())
 
 	if version == "" {
 		version = resolveLatestVersion(ctx, client, ref.Repository, entry.EffectiveID())
@@ -168,13 +168,23 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 
 	fmt.Fprintf(os.Stderr, "Syncing policy %d/%d: %s... ", index, total, entry.EffectiveID())
 	logger.Info("Syncing policy", "policy", ref.Repository, "version", version)
-	if err := sync.SyncPolicy(ctx, ref.Repository, version); err != nil {
+	fetched, err := sync.SyncPolicy(ctx, ref.Repository, version)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed")
 		logger.Error("Policy sync failed", "policy", ref.Repository, "error", err)
 		return err
 	}
 	fmt.Fprintln(os.Stderr, "done")
-	logger.Info("Policy synced", "policy", entry.EffectiveID())
+
+	if fetched {
+		ps, _ := state.GetPolicyState(ref.Repository)
+		logger.Info("Policy synced", "policy", entry.EffectiveID(), "digest", ps.Digest)
+		fmt.Fprintf(os.Stderr, "WARNING: policy %s has not been cryptographically verified\n", entry.EffectiveID())
+		logger.Warn("Policy not cryptographically verified", "policy", entry.EffectiveID(), "digest", ps.Digest)
+	} else {
+		logger.Info("Policy synced", "policy", entry.EffectiveID())
+	}
+
 	return nil
 }
 

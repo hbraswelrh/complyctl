@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -81,6 +82,11 @@ func (o *listOptions) run(_ context.Context) error {
 	cacheMgr := cache.NewCache(o.cacheDir)
 	loader := policy.NewLoader(cacheMgr)
 
+	state, err := cache.LoadState(o.cacheDir)
+	if err != nil {
+		return fmt.Errorf("failed to load cache state: %w", err)
+	}
+
 	var rows [][]string
 	for _, p := range cfg.Policies {
 		eid := p.EffectiveID()
@@ -102,16 +108,47 @@ func (o *listOptions) run(_ context.Context) error {
 			versionStr = "-"
 		}
 
-		rows = append(rows, []string{eid, versionStr})
+		digestStr, verifiedStr := policyIntegrityFields(state, ref.Repository)
+
+		rows = append(rows, []string{eid, versionStr, digestStr, verifiedStr})
 	}
 
 	return printGemaraPolicyTable(o.Out, rows)
 }
 
+// policyIntegrityFields returns the abbreviated digest and verified
+// status for a policy from the cache state. Returns "-" for both
+// when the policy has no cached state.
+func policyIntegrityFields(state *cache.State, repository string) (digest string, verified string) {
+	ps, ok := state.GetPolicyState(repository)
+	if !ok {
+		return "-", "-"
+	}
+	return abbreviateDigest(ps.Digest), strconv.FormatBool(ps.Verified)
+}
+
+// abbreviateDigest shortens an OCI digest to the algorithm prefix
+// plus the first 12 hex characters (e.g., "sha256:a1b2c3d4e5f6").
+// Returns "-" for empty digests.
+func abbreviateDigest(dgst string) string {
+	if dgst == "" {
+		return "-"
+	}
+	parts := strings.SplitN(dgst, ":", 2)
+	if len(parts) != 2 {
+		return dgst
+	}
+	hex := parts[1]
+	if len(hex) > 12 {
+		hex = hex[:12]
+	}
+	return parts[0] + ":" + hex
+}
+
 func printGemaraPolicyTable(w io.Writer, rows [][]string) error {
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i][0] < rows[j][0] })
 
-	headers := []string{"POLICY ID", "VERSION"}
+	headers := []string{"POLICY ID", "VERSION", "DIGEST", "VERIFIED"}
 	terminal.ShowPlainTable(w, headers, rows)
 	return nil
 }

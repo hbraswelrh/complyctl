@@ -520,6 +520,87 @@ func TestListOptions_Run_ValidWorkspace(t *testing.T) {
 	assert.Contains(t, buf.String(), "POLICY ID")
 }
 
+func TestListOptions_Run_ShowsDigestAndVerifiedColumns(t *testing.T) {
+	chdirTemp(t)
+	writeWorkspaceConfig(t, minimalConfig)
+
+	cacheDir := t.TempDir()
+	// Seed cache state with a policy entry matching the config's repository.
+	// ParsePolicyRef extracts "policies/test-policy" as the repository from
+	// "registry.example.com/policies/test-policy:v1.0".
+	state := &cache.State{
+		Policies: map[string]cache.PolicyState{
+			"policies/test-policy": {
+				Version:  "v1.0",
+				Digest:   "sha256:9f86d081884c7d65",
+				Verified: false,
+			},
+		},
+	}
+	require.NoError(t, cache.SaveState(state, cacheDir))
+
+	var buf bytes.Buffer
+	o := &listOptions{
+		Common:   &Common{Output: Output{Out: &buf}},
+		cacheDir: cacheDir,
+	}
+	err := o.run(context.Background())
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.Contains(t, output, "DIGEST")
+	assert.Contains(t, output, "VERIFIED")
+	assert.Contains(t, output, "sha256:9f86d0818")
+	assert.Contains(t, output, "false")
+}
+
+func TestListOptions_Run_UncachedPolicyShowsDash(t *testing.T) {
+	chdirTemp(t)
+	writeWorkspaceConfig(t, minimalConfig)
+
+	cacheDir := t.TempDir()
+	// No state seeded — policy is not cached.
+
+	var buf bytes.Buffer
+	o := &listOptions{
+		Common:   &Common{Output: Output{Out: &buf}},
+		cacheDir: cacheDir,
+	}
+	err := o.run(context.Background())
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.Contains(t, output, "DIGEST")
+	assert.Contains(t, output, "VERIFIED")
+	// Should show "-" for both digest and verified when uncached.
+	// The version column also shows "-" for uncached.
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	require.GreaterOrEqual(t, len(lines), 2, "should have header + at least one data row")
+	dataRow := lines[1]
+	// Count occurrences of "-" in the data row (version, digest, verified = 3)
+	dashCount := strings.Count(dataRow, "-")
+	assert.GreaterOrEqual(t, dashCount, 3, "uncached policy should show '-' for version, digest, and verified")
+}
+
+func TestAbbreviateDigest(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		expect string
+	}{
+		{"full sha256", "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b", "sha256:9f86d081884c"},
+		{"short hex", "sha256:abc", "sha256:abc"},
+		{"empty", "", "-"},
+		{"no colon", "invaliddigest", "invaliddigest"},
+		{"sha512", "sha512:abcdef123456789012", "sha512:abcdef123456"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expect, abbreviateDigest(tt.input))
+		})
+	}
+}
+
 // --- initOptions tests ---
 
 func TestInitOptions_Run_AlreadyExists(t *testing.T) {
