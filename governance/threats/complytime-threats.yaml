@@ -73,7 +73,7 @@ threats:
             description: >
                 A pluggable Verifier interface is wired into the sync pipeline and
                 called after each CopyPolicy. A NoOpVerifier serves as the default
-                until sigstore-go integration (complypack#63) provides a real
+                until sigstore-go integration (complytime/complypack#63) provides a real
                 implementation.
           - id: CT.COMPLYCTL.THR02.MIT03
             status: implemented

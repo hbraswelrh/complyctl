@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -52,7 +53,11 @@ type Sync struct {
 // and verifier. The verifier is called after each successful CopyPolicy
 // to determine whether the fetched artifact is cryptographically
 // verified. Pass NoOpVerifier() when no verification is configured.
+// A nil verifier defaults to NoOpVerifier.
 func NewSync(cache *Cache, state *State, source PolicySource, verifier Verifier) *Sync {
+	if verifier == nil {
+		verifier = NoOpVerifier()
+	}
 	return &Sync{
 		cache:    cache,
 		state:    state,
@@ -114,10 +119,13 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, 
 
 // verifyAfterCopy runs the verifier against the copied descriptor.
 // Returns true when the artifact is verified, false otherwise.
-// Verifier errors are treated as unverified (graceful degradation).
+// Verifier errors are treated as unverified (graceful degradation)
+// and logged as warnings for operational visibility.
 func verifyAfterCopy(ctx context.Context, v Verifier, desc ocispec.Descriptor) bool {
 	result, err := v.Verify(ctx, desc)
 	if err != nil {
+		slog.Warn("Policy verification failed, treating as unverified",
+			"digest", desc.Digest.String(), "error", err)
 		return false
 	}
 	return result.Status == Verified

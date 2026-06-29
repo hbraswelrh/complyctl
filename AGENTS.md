@@ -301,3 +301,5 @@ packages organized by domain responsibility.
 - 004-providers-repository-split: Providers (openscap, ampel) migrated to `complytime-providers`; `pkg/plugin/` renamed to `pkg/provider/`; all "plugin" terminology updated to "provider"
 
 - remove-exporter-infrastructure: **BREAKING** — Removed collector export infrastructure (`COMPLYTIME_EXPORT_ENABLED`, `collector:` config block, Export RPC). This was speculative infrastructure added before backend design was finalized. Export functionality will be redesigned and reintroduced when the backend shape is known. (#606)
+
+- policy-verification-pipeline: `complyctl get` emits WARNING for unverified policies and complypacks on fresh fetches; `complyctl list` gains DIGEST column; `SyncPolicy` returns `(bool, error)` for fresh-fetch gating; THR02 mitigations MIT01 (warning) and MIT03 (digest visibility) added to threat model

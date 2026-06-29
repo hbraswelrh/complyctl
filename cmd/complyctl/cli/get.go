@@ -179,8 +179,10 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 	if fetched {
 		ps, _ := state.GetPolicyState(ref.Repository)
 		logger.Info("Policy synced", "policy", entry.EffectiveID(), "digest", ps.Digest)
-		fmt.Fprintf(os.Stderr, "WARNING: policy %s has not been cryptographically verified\n", entry.EffectiveID())
-		logger.Warn("Policy not cryptographically verified", "policy", entry.EffectiveID(), "digest", ps.Digest)
+		if !ps.Verified {
+			fmt.Fprintf(os.Stderr, "WARNING: policy %s has not been cryptographically verified\n", entry.EffectiveID())
+			logger.Warn("Policy not cryptographically verified", "policy", entry.EffectiveID(), "digest", ps.Digest)
+		}
 	} else {
 		logger.Info("Policy synced", "policy", entry.EffectiveID())
 	}

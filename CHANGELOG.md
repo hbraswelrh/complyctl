@@ -72,7 +72,7 @@
 - Pluggable `Verifier` interface in `internal/cache/` for OCI policy
   artifact signature verification. The sync pipeline calls the verifier
   after each successful `CopyPolicy`. A `NoOpVerifier` serves as the
-  default until sigstore-go integration lands (complypack#63). (#607)
+  default until sigstore-go integration lands (complytime/complypack#63). (#607)
 - `complyctl list` displays DIGEST and VERIFIED columns showing the
   abbreviated OCI manifest digest and signature verification status for
   each cached policy. Uncached policies show `-`. (#607)
