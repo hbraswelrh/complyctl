@@ -179,7 +179,9 @@ func syncSinglePolicy(ctx context.Context, cacheMgr *cache.Cache, state *cache.S
 	if fetched {
 		ps, _ := state.GetPolicyState(ref.Repository)
 		logger.Info("Policy synced", "policy", entry.EffectiveID(), "digest", ps.Digest)
-		fmt.Fprintf(os.Stderr, "WARNING: policy %s has not been cryptographically verified\n", entry.EffectiveID())
+		fmt.Fprintf(os.Stderr, "NOTE: policy %s was fetched without signature verification. "+
+			"Signature verification support is planned (see https://github.com/complytime/complyctl/issues/643). "+
+			"Until then, ensure your policy sources are trusted.\n", entry.EffectiveID())
 		logger.Warn("Policy not cryptographically verified", "policy", entry.EffectiveID(), "digest", ps.Digest)
 	} else {
 		logger.Info("Policy synced", "policy", entry.EffectiveID())
@@ -243,7 +245,9 @@ func syncSingleComplypack(ctx context.Context, state *cache.State, credFunc auth
 	logger.Info("Complypack synced", "complypack", entry.EffectiveID())
 
 	if fetched {
-		fmt.Fprintf(os.Stderr, "WARNING: complypack %s has not been cryptographically verified\n", entry.EffectiveID())
+		fmt.Fprintf(os.Stderr, "NOTE: complypack %s was fetched without signature verification. "+
+			"Signature verification support is planned (see https://github.com/complytime/complyctl/issues/643). "+
+			"Until then, ensure your policy sources are trusted.\n", entry.EffectiveID())
 		logger.Warn("Complypack not cryptographically verified", "complypack", entry.EffectiveID())
 		invalidateGenerationForComplypack(state, ref.Repository, baseDir)
 	}

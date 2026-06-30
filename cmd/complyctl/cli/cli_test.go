@@ -584,10 +584,10 @@ func TestAbbreviateDigest(t *testing.T) {
 		expect string
 	}{
 		{"full sha256", "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b", "sha256:9f86d081884c"},
-		{"short hex", "sha256:abc", "sha256:abc"},
+		{"exact 12 hex chars", "sha256:9f86d081884c", "sha256:9f86d081884c"},
 		{"empty", "", "-"},
 		{"no colon", "invaliddigest", "invaliddigest"},
-		{"sha512", "sha512:abcdef123456789012", "sha512:abcdef123456"},
+		{"sha512 full", "sha512:cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e", "sha512:cf83e1357eef"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

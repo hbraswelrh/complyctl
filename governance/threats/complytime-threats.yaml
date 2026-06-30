@@ -66,9 +66,10 @@ threats:
           - id: CT.COMPLYCTL.THR02.MIT01
             status: implemented
             description: >
-                complyctl get emits a WARNING to stderr when a freshly fetched policy
-                or complypack has not been cryptographically verified, alerting users
-                to the gap.
+                complyctl get emits a NOTE to stderr when a freshly fetched policy
+                or complypack was fetched without signature verification, directing
+                users to the planned sigstore-go integration (#643) and advising
+                them to ensure policy sources are trusted.
           - id: CT.COMPLYCTL.THR02.MIT03
             status: implemented
             description: >
