@@ -41,22 +41,17 @@ func classifyVersion(version string) (tag string, dgst string) {
 
 // Sync provides incremental sync using oras.Copy() for remote-to-local transfer.
 type Sync struct {
-	cache    *Cache
-	state    *State
-	source   PolicySource
-	verifyFn VerifyFunc
+	cache  *Cache
+	state  *State
+	source PolicySource
 }
 
 // NewSync creates a Sync instance with the given cache, state, and source.
-// Pass WithVerifier to configure cryptographic verification of fetched
-// artifacts. When no verifier is set, artifacts are treated as unverified.
-func NewSync(cache *Cache, state *State, source PolicySource, opts ...SyncOption) *Sync {
-	o := applySyncOptions(opts)
+func NewSync(cache *Cache, state *State, source PolicySource) *Sync {
 	return &Sync{
-		cache:    cache,
-		state:    state,
-		source:   source,
-		verifyFn: o.verifyFn,
+		cache:  cache,
+		state:  state,
+		source: source,
 	}
 }
 
@@ -64,11 +59,11 @@ func NewSync(cache *Cache, state *State, source PolicySource, opts ...SyncOption
 // digest against remote manifest digest; if they match, sync is skipped. On
 // failure, the OCI Layout store retains its previous state.
 //
-// Returns a SyncResult indicating whether a fetch occurred and whether the
-// artifact was verified. Returns an error on sync failure.
-func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (SyncResult, error) {
+// Returns (true, nil) when a fetch occurred, (false, nil) when the local cache
+// was already up-to-date (incremental skip), or (false, err) on failure.
+func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, error) {
 	if policyID == "" {
-		return SyncResult{}, fmt.Errorf("policy ID cannot be empty")
+		return false, fmt.Errorf("policy ID cannot be empty")
 	}
 
 	tag, digest := classifyVersion(version)
@@ -77,9 +72,9 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (SyncRe
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {
 		if errors.Is(err, registry.ErrVersionNotFound) {
-			return SyncResult{}, fmt.Errorf("policy %s: %w", policyID, err)
+			return false, fmt.Errorf("policy %s: %w", policyID, err)
 		}
-		return SyncResult{}, fmt.Errorf("policy %s: registry unreachable: %w", policyID, err)
+		return false, fmt.Errorf("policy %s: registry unreachable: %w", policyID, err)
 	}
 
 	if version == "" || version == "latest" {
@@ -88,25 +83,23 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (SyncRe
 
 	localState, exists := s.state.GetPolicyState(policyID)
 	if exists && localState.Digest == remoteDigest && s.cache.PolicyStoreExists(policyID) {
-		return SyncResult{}, nil
+		return false, nil
 	}
 
 	localStore, err := s.cache.NewPolicyStore(policyID)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
+		return false, fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
 	}
 
-	desc, err := s.source.CopyPolicy(ctx, policyID, version, localStore)
+	_, err = s.source.CopyPolicy(ctx, policyID, version, localStore)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
+		return false, fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
 	}
 
-	verified := runVerify(ctx, s.verifyFn, desc)
-
-	s.state.UpdatePolicyState(policyID, version, remoteDigest, verified)
+	s.state.UpdatePolicyState(policyID, version, remoteDigest)
 	if err := SaveState(s.state, s.cache.Dir()); err != nil {
-		return SyncResult{}, fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
+		return false, fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
 	}
 
-	return SyncResult{Fetched: true, Verified: verified}, nil
+	return true, nil
 }

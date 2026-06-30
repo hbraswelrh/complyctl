@@ -67,27 +67,14 @@ threats:
             status: implemented
             description: >
                 complyctl get emits a WARNING to stderr when a freshly fetched policy
-                has not been cryptographically verified, alerting users to the gap.
-          - id: CT.COMPLYCTL.THR02.MIT02
-            status: implemented
-            description: >
-                A pluggable Verifier interface is wired into the sync pipeline and
-                called after each CopyPolicy. A NoOpVerifier serves as the default
-                until sigstore-go integration (complytime/complypack#63) provides a real
-                implementation.
+                or complypack has not been cryptographically verified, alerting users
+                to the gap.
           - id: CT.COMPLYCTL.THR02.MIT03
             status: implemented
             description: >
-                complyctl list surfaces DIGEST and VERIFIED columns from cache state,
-                giving operators CLI-level visibility into what was fetched and
-                whether it was verified.
-          - id: CT.COMPLYCTL.THR02.MIT04
-            status: pending
-            description: >
-                Full sigstore-go signature verification, blocked on
-                complytime/complypack#63. When implemented, the NoOpVerifier will be
-                replaced with a real Verifier and PolicyState.Verified will be set
-                to true for verified artifacts.
+                complyctl list surfaces a DIGEST column from cache state, giving
+                operators CLI-level visibility into the OCI manifest digest of each
+                cached policy.
       capabilities:
           - reference-id: CCC
             entries:

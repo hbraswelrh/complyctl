@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -108,23 +107,22 @@ func (o *listOptions) run(_ context.Context) error {
 			versionStr = "-"
 		}
 
-		digestStr, verifiedStr := policyIntegrityFields(state, ref.Repository)
+		digestStr := policyDigestField(state, ref.Repository)
 
-		rows = append(rows, []string{eid, versionStr, digestStr, verifiedStr})
+		rows = append(rows, []string{eid, versionStr, digestStr})
 	}
 
 	return printGemaraPolicyTable(o.Out, rows)
 }
 
-// policyIntegrityFields returns the abbreviated digest and verified
-// status for a policy from the cache state. Returns "-" for both
-// when the policy has no cached state.
-func policyIntegrityFields(state *cache.State, repository string) (digest string, verified string) {
+// policyDigestField returns the abbreviated digest for a policy from the
+// cache state. Returns "-" when the policy has no cached state.
+func policyDigestField(state *cache.State, repository string) string {
 	ps, ok := state.GetPolicyState(repository)
 	if !ok {
-		return "-", "-"
+		return "-"
 	}
-	return abbreviateDigest(ps.Digest), strconv.FormatBool(ps.Verified)
+	return abbreviateDigest(ps.Digest)
 }
 
 // abbreviateDigest shortens an OCI digest to the algorithm prefix
@@ -148,7 +146,7 @@ func abbreviateDigest(dgst string) string {
 func printGemaraPolicyTable(w io.Writer, rows [][]string) error {
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i][0] < rows[j][0] })
 
-	headers := []string{"POLICY ID", "VERSION", "DIGEST", "VERIFIED"}
+	headers := []string{"POLICY ID", "VERSION", "DIGEST"}
 	terminal.ShowPlainTable(w, headers, rows)
 	return nil
 }

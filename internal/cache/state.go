@@ -20,12 +20,10 @@ type State struct {
 	Complypacks map[string]PolicyState `json:"complypacks,omitempty"`
 }
 
-// PolicyState holds version, digest, verification status, and timestamp for a
-// single cached policy.
+// PolicyState holds version, digest, and timestamp for a single cached policy.
 type PolicyState struct {
 	Version     string    `json:"version"`
 	Digest      string    `json:"digest"`
-	Verified    bool      `json:"verified"`
 	EvaluatorID string    `json:"evaluator_id,omitempty"`
 	LastUpdated time.Time `json:"last_updated"`
 }
@@ -89,16 +87,14 @@ func SaveState(state *State, cacheDir string) error {
 	return nil
 }
 
-// UpdatePolicyState records the version, digest, verification status, and
-// current timestamp for a cached policy.
-func (s *State) UpdatePolicyState(policyID, version, digest string, verified bool) {
+// UpdatePolicyState records the version, digest, and current timestamp for a cached policy.
+func (s *State) UpdatePolicyState(policyID, version, digest string) {
 	if s.Policies == nil {
 		s.Policies = make(map[string]PolicyState)
 	}
 	s.Policies[policyID] = PolicyState{
 		Version:     version,
 		Digest:      digest,
-		Verified:    verified,
 		LastUpdated: time.Now(),
 	}
 	s.LastSync = time.Now()
@@ -113,17 +109,16 @@ func (s *State) GetPolicyState(policyID string) (PolicyState, bool) {
 	return state, exists
 }
 
-// UpdateComplypackState records the version, digest, evaluator-id,
-// verification status, and current timestamp for a cached complypack,
-// keyed by repository (e.g., "example.com/complypacks/opa-bundle").
-func (s *State) UpdateComplypackState(repository, version, digest, evaluatorID string, verified bool) {
+// UpdateComplypackState records the version, digest, evaluator-id, and current
+// timestamp for a cached complypack, keyed by repository
+// (e.g., "example.com/complypacks/opa-bundle").
+func (s *State) UpdateComplypackState(repository, version, digest, evaluatorID string) {
 	if s.Complypacks == nil {
 		s.Complypacks = make(map[string]PolicyState)
 	}
 	s.Complypacks[repository] = PolicyState{
 		Version:     version,
 		Digest:      digest,
-		Verified:    verified,
 		EvaluatorID: evaluatorID,
 		LastUpdated: time.Now(),
 	}

@@ -520,7 +520,7 @@ func TestListOptions_Run_ValidWorkspace(t *testing.T) {
 	assert.Contains(t, buf.String(), "POLICY ID")
 }
 
-func TestListOptions_Run_ShowsDigestAndVerifiedColumns(t *testing.T) {
+func TestListOptions_Run_ShowsDigestColumn(t *testing.T) {
 	chdirTemp(t)
 	writeWorkspaceConfig(t, minimalConfig)
 
@@ -531,9 +531,8 @@ func TestListOptions_Run_ShowsDigestAndVerifiedColumns(t *testing.T) {
 	state := &cache.State{
 		Policies: map[string]cache.PolicyState{
 			"policies/test-policy": {
-				Version:  "v1.0",
-				Digest:   "sha256:9f86d081884c7d65",
-				Verified: false,
+				Version: "v1.0",
+				Digest:  "sha256:9f86d081884c7d65",
 			},
 		},
 	}
@@ -549,38 +548,7 @@ func TestListOptions_Run_ShowsDigestAndVerifiedColumns(t *testing.T) {
 
 	output := buf.String()
 	assert.Contains(t, output, "DIGEST")
-	assert.Contains(t, output, "VERIFIED")
 	assert.Contains(t, output, "sha256:9f86d081884c")
-	assert.Contains(t, output, "false")
-}
-
-func TestListOptions_Run_ShowsVerifiedTrue(t *testing.T) {
-	chdirTemp(t)
-	writeWorkspaceConfig(t, minimalConfig)
-
-	cacheDir := t.TempDir()
-	state := &cache.State{
-		Policies: map[string]cache.PolicyState{
-			"policies/test-policy": {
-				Version:  "v1.0",
-				Digest:   "sha256:abc123def456",
-				Verified: true,
-			},
-		},
-	}
-	require.NoError(t, cache.SaveState(state, cacheDir))
-
-	var buf bytes.Buffer
-	o := &listOptions{
-		Common:   &Common{Output: Output{Out: &buf}},
-		cacheDir: cacheDir,
-	}
-	err := o.run(context.Background())
-	require.NoError(t, err)
-
-	output := buf.String()
-	assert.Contains(t, output, "true")
-	assert.Contains(t, output, "sha256:abc123def45")
 }
 
 func TestListOptions_Run_UncachedPolicyShowsDash(t *testing.T) {
@@ -600,15 +568,13 @@ func TestListOptions_Run_UncachedPolicyShowsDash(t *testing.T) {
 
 	output := buf.String()
 	assert.Contains(t, output, "DIGEST")
-	assert.Contains(t, output, "VERIFIED")
-	// Should show "-" for both digest and verified when uncached.
-	// The version column also shows "-" for uncached.
+	// Should show "-" for digest when uncached. Version column also shows "-".
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	require.GreaterOrEqual(t, len(lines), 2, "should have header + at least one data row")
 	dataRow := lines[1]
-	// Count occurrences of "-" in the data row (version, digest, verified = 3)
+	// Count occurrences of "-" in the data row (version, digest = 2)
 	dashCount := strings.Count(dataRow, "-")
-	assert.GreaterOrEqual(t, dashCount, 3, "uncached policy should show '-' for version, digest, and verified")
+	assert.GreaterOrEqual(t, dashCount, 2, "uncached policy should show '-' for version and digest")
 }
 
 func TestAbbreviateDigest(t *testing.T) {

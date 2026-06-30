@@ -138,9 +138,9 @@ func TestComplypackSync_FetchAndStore(t *testing.T) {
 
 	syncMgr := cache.NewComplypackSync(complypackCache, state, mock)
 
-	result, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
+	fetched, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
 	require.NoError(t, err)
-	assert.True(t, result.Fetched, "first sync should report a fetch occurred")
+	assert.True(t, fetched, "first sync should report a fetch occurred")
 
 	// Verify state was updated and persisted.
 	state2, err := cache.LoadState(cacheDir)
@@ -190,9 +190,9 @@ func TestComplypackSync_IncrementalSkip(t *testing.T) {
 	syncMgr := cache.NewComplypackSync(complypackCache, state, mock)
 
 	// First sync — should fetch and store.
-	result, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
+	fetched, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
 	require.NoError(t, err)
-	assert.True(t, result.Fetched, "first sync should report a fetch occurred")
+	assert.True(t, fetched, "first sync should report a fetch occurred")
 	assert.Equal(t, 1, mock.getCopyCount(), "first sync should call CopyComplypack once")
 
 	// Reload state from disk (as production code does between syncs).
@@ -202,9 +202,9 @@ func TestComplypackSync_IncrementalSkip(t *testing.T) {
 	syncMgr2 := cache.NewComplypackSync(complypackCache, state2, mock)
 
 	// Second sync with same digest — should be a no-op.
-	result2, err := syncMgr2.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
+	fetched2, err := syncMgr2.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
 	require.NoError(t, err)
-	assert.False(t, result2.Fetched, "second sync with same digest should report no fetch")
+	assert.False(t, fetched2, "second sync with same digest should report no fetch")
 	assert.Equal(t, 1, mock.getCopyCount(),
 		"second sync with same digest should not call CopyComplypack again")
 
@@ -239,9 +239,9 @@ func TestComplypackSync_DigestChanged(t *testing.T) {
 	syncMgr := cache.NewComplypackSync(complypackCache, state, mock)
 
 	// First sync.
-	result, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
+	fetched, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
 	require.NoError(t, err)
-	assert.True(t, result.Fetched, "first sync should report a fetch occurred")
+	assert.True(t, fetched, "first sync should report a fetch occurred")
 	assert.Equal(t, 1, mock.getCopyCount())
 
 	// Simulate a remote update: same repository, new digest and content.
@@ -260,9 +260,9 @@ func TestComplypackSync_DigestChanged(t *testing.T) {
 	syncMgr2 := cache.NewComplypackSync(complypackCache, state2, mock)
 
 	// Second sync — digest changed, should re-fetch.
-	result2, err := syncMgr2.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
+	fetched2, err := syncMgr2.SyncComplypack(context.Background(), "example.com/complypacks/opa-bundle", "1.0.0")
 	require.NoError(t, err)
-	assert.True(t, result2.Fetched, "digest change should report a fetch occurred")
+	assert.True(t, fetched2, "digest change should report a fetch occurred")
 	assert.Equal(t, 2, mock.getCopyCount(),
 		"digest change should trigger a second CopyComplypack call")
 
@@ -380,9 +380,9 @@ func TestComplypackSync_UnsignedWarning(t *testing.T) {
 	syncMgr := cache.NewComplypackSync(complypackCache, state, mock)
 
 	// Sync should succeed — no signature verification in the sync layer.
-	result, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/unsigned-pack", "2.0.0")
+	fetched, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/unsigned-pack", "2.0.0")
 	require.NoError(t, err, "unsigned complypack should sync successfully")
-	assert.True(t, result.Fetched, "first sync should report a fetch occurred")
+	assert.True(t, fetched, "first sync should report a fetch occurred")
 
 	// Verify the artifact was cached correctly.
 	state2, err := cache.LoadState(cacheDir)
@@ -424,9 +424,9 @@ func TestComplypackSync_EmptyVersion_ResolvesToRemote(t *testing.T) {
 	syncMgr := cache.NewComplypackSync(complypackCache, state, mock)
 
 	// Pass empty version — should resolve to "3.2.1" from the remote.
-	result, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/resolve-empty", "")
+	fetched, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/resolve-empty", "")
 	require.NoError(t, err)
-	assert.True(t, result.Fetched, "sync with empty version should fetch")
+	assert.True(t, fetched, "sync with empty version should fetch")
 
 	// Verify state records the resolved remote version, not empty string.
 	state2, err := cache.LoadState(cacheDir)
@@ -470,9 +470,9 @@ func TestComplypackSync_LatestVersion_ResolvesToRemote(t *testing.T) {
 	syncMgr := cache.NewComplypackSync(complypackCache, state, mock)
 
 	// Pass "latest" — should resolve to "5.0.0" from the remote.
-	result, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/resolve-latest", "latest")
+	fetched, err := syncMgr.SyncComplypack(context.Background(), "example.com/complypacks/resolve-latest", "latest")
 	require.NoError(t, err)
-	assert.True(t, result.Fetched, "sync with 'latest' version should fetch")
+	assert.True(t, fetched, "sync with 'latest' version should fetch")
 
 	// Verify state records the resolved remote version, not "latest".
 	state2, err := cache.LoadState(cacheDir)

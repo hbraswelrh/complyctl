@@ -14,71 +14,6 @@ import (
 	"github.com/complytime/complyctl/internal/cache"
 )
 
-func TestPolicyState_VerifiedFieldPersistence(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	state := &cache.State{
-		Policies: make(map[string]cache.PolicyState),
-	}
-	state.UpdatePolicyState("test-policy", "v1.0.0", "sha256:abc123", false)
-
-	err := cache.SaveState(state, tmpDir)
-	require.NoError(t, err)
-
-	// Read raw JSON to verify "verified" field is explicitly present
-	data, err := os.ReadFile(filepath.Join(tmpDir, "state.json"))
-	require.NoError(t, err)
-	assert.Contains(t, string(data), `"verified": false`,
-		"verified field must be explicitly present in serialized state")
-
-	// Round-trip: load and verify the field
-	loaded, err := cache.LoadState(tmpDir)
-	require.NoError(t, err)
-	ps, ok := loaded.GetPolicyState("test-policy")
-	require.True(t, ok)
-	assert.False(t, ps.Verified, "verified must be false when set to false")
-}
-
-func TestComplypackState_VerifiedFieldPersistence(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	state := &cache.State{
-		Complypacks: make(map[string]cache.PolicyState),
-	}
-	state.UpdateComplypackState("example.com/complypacks/opa", "1.0.0", "sha256:cp123", "opa", true)
-
-	err := cache.SaveState(state, tmpDir)
-	require.NoError(t, err)
-
-	// Round-trip: load and verify the verified field
-	loaded, err := cache.LoadState(tmpDir)
-	require.NoError(t, err)
-	ps, ok := loaded.GetComplypackState("example.com/complypacks/opa")
-	require.True(t, ok)
-	assert.True(t, ps.Verified, "verified must be true when set to true")
-	assert.Equal(t, "opa", ps.EvaluatorID)
-	assert.Equal(t, "1.0.0", ps.Version)
-	assert.Equal(t, "sha256:cp123", ps.Digest)
-}
-
-func TestComplypackState_VerifiedFalseRoundTrip(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	state := &cache.State{
-		Complypacks: make(map[string]cache.PolicyState),
-	}
-	state.UpdateComplypackState("example.com/complypacks/kyverno", "2.0.0", "sha256:cp456", "kyverno", false)
-
-	err := cache.SaveState(state, tmpDir)
-	require.NoError(t, err)
-
-	loaded, err := cache.LoadState(tmpDir)
-	require.NoError(t, err)
-	ps, ok := loaded.GetComplypackState("example.com/complypacks/kyverno")
-	require.True(t, ok)
-	assert.False(t, ps.Verified, "verified must be false when set to false")
-}
-
 func TestPolicyState_BackwardCompatibility_NoVerifiedField(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -103,8 +38,6 @@ func TestPolicyState_BackwardCompatibility_NoVerifiedField(t *testing.T) {
 	require.NoError(t, err)
 	ps, ok := loaded.GetPolicyState("legacy-policy")
 	require.True(t, ok)
-	assert.False(t, ps.Verified,
-		"missing verified field must default to false for backward compatibility")
 	assert.Equal(t, "v1.0.0", ps.Version)
 	assert.Equal(t, "sha256:legacy", ps.Digest)
 }

@@ -334,7 +334,7 @@ func TestCheckPolicyVersions_RegistryUnreachable(t *testing.T) {
 	vr := newMockVersionResolver()
 	vr.unreachable["unreachable.io"] = true
 
-	state.UpdatePolicyState("policies/cis", "v2.0.0", "sha256:abc", false)
+	state.UpdatePolicyState("policies/cis", "v2.0.0", "sha256:abc")
 	if err := cache.SaveState(state, tmpDir); err != nil {
 		t.Fatal(err)
 	}

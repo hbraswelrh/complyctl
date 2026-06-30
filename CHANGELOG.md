@@ -69,18 +69,13 @@
   + `complytime-mapping.json`), `test-opa-bp` policy-id and
   `test-k8s-deployment` target in workspace configuration. OPA command
   reference added to `docs/TESTING_ENVIRONMENT.md`.
-- Pluggable `Verifier` interface in `internal/cache/` for OCI policy
-  artifact signature verification. The sync pipeline calls the verifier
-  after each successful `CopyPolicy`. A `NoOpVerifier` serves as the
-  default until sigstore-go integration lands (complytime/complypack#63). (#607)
-- `complyctl list` displays DIGEST and VERIFIED columns showing the
-  abbreviated OCI manifest digest and signature verification status for
-  each cached policy. Uncached policies show `-`. (#607)
-- `Verifier` interface replaced by `VerifyFunc` function type with
-  `SyncOption`/`WithVerifier()` functional options. Both `NewSync` and
-  `NewComplypackSync` accept variadic `...SyncOption`. `SyncPolicy` and
-  `SyncComplypack` return `SyncResult{Fetched, Verified}`. Verification
-  warning logic centralized via `UnverifiedWarning()` helper. (#641)
+- `complyctl get` emits a WARNING to stderr when a freshly fetched policy
+  or complypack has not been cryptographically verified (#607)
+- `complyctl list` displays a DIGEST column showing the abbreviated OCI
+  manifest digest for each cached policy. Uncached policies show `-`. (#607)
+- `SyncPolicy` returns `(bool, error)` to gate warnings on fresh fetches.
+  THR02 mitigations MIT01 (warning) and MIT03 (digest visibility)
+  documented in the threat catalog. (#607)
 
 ### Deprecated
 

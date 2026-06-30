@@ -19,21 +19,15 @@ type ComplypackSync struct {
 	complypackCache *ComplypackCache
 	state           *State
 	source          ComplypackSource
-	verifyFn        VerifyFunc
 }
 
 // NewComplypackSync creates a ComplypackSync that orchestrates the
-// fetch-unpack-store pipeline for complypack artifacts. Pass
-// WithVerifier to configure cryptographic verification of fetched
-// artifacts. When no verifier is set, artifacts are treated as
-// unverified.
-func NewComplypackSync(complypackCache *ComplypackCache, state *State, source ComplypackSource, opts ...SyncOption) *ComplypackSync {
-	o := applySyncOptions(opts)
+// fetch-unpack-store pipeline for complypack artifacts.
+func NewComplypackSync(complypackCache *ComplypackCache, state *State, source ComplypackSource) *ComplypackSync {
 	return &ComplypackSync{
 		complypackCache: complypackCache,
 		state:           state,
 		source:          source,
-		verifyFn:        o.verifyFn,
 	}
 }
 
@@ -43,11 +37,11 @@ func NewComplypackSync(complypackCache *ComplypackCache, state *State, source Co
 // OCI Layout store, unpacked via complypack.Unpack(), and stored via
 // ComplypackCache.Store(). State is updated and persisted on success.
 //
-// Returns a SyncResult indicating whether a fetch occurred and whether the
-// artifact was verified. Returns an error on sync failure.
-func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version string) (SyncResult, error) {
+// Returns (true, nil) when a fetch occurred, (false, nil) when the local cache
+// was already up-to-date (incremental skip), or (false, err) on failure.
+func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version string) (bool, error) {
 	if repository == "" {
-		return SyncResult{}, fmt.Errorf("complypack repository cannot be empty")
+		return false, fmt.Errorf("complypack repository cannot be empty")
 	}
 
 	tag, digest := classifyVersion(version)
@@ -55,7 +49,7 @@ func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version
 
 	remoteDigest, remoteVersion, err := s.source.DefinitionVersion(ctx, lookupRef)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf(
+		return false, fmt.Errorf(
 			"complypack %s: registry unreachable: %w (cached data may still be available)",
 			repository, err,
 		)
@@ -77,7 +71,7 @@ func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version
 	// source of truth for incremental checks.
 	localState, exists := s.state.GetComplypackState(repository)
 	if exists && localState.Digest == remoteDigest {
-		return SyncResult{}, nil
+		return false, nil
 	}
 
 	// Create a temporary OCI Layout store for the oras.Copy() transfer.
@@ -85,42 +79,40 @@ func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version
 	// ComplypackCache directory structure, not an OCI Layout.
 	tmpDir, err := os.MkdirTemp("", "complypack-oci-*")
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("failed to create temporary OCI store directory: %w", err)
+		return false, fmt.Errorf("failed to create temporary OCI store directory: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	tmpStore, err := ocistore.New(tmpDir)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("failed to open temporary OCI store: %w", err)
+		return false, fmt.Errorf("failed to open temporary OCI store: %w", err)
 	}
 
 	desc, err := s.source.CopyComplypack(ctx, repository, version, tmpStore)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf(
+		return false, fmt.Errorf(
 			"complypack %s@%s: registry unreachable: %w (local cache unchanged)",
 			repository, version, err,
 		)
 	}
 
-	verified := runVerify(ctx, s.verifyFn, desc)
-
 	// Unpack the complypack artifact from the temporary OCI store.
-	unpackResult, err := complypack.Unpack(ctx, tmpStore, desc)
+	result, err := complypack.Unpack(ctx, tmpStore, desc)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("failed to unpack complypack %s@%s: %w", repository, version, err)
+		return false, fmt.Errorf("failed to unpack complypack %s@%s: %w", repository, version, err)
 	}
-	defer unpackResult.Content.Close()
+	defer result.Content.Close()
 
 	// Store the unpacked config and content into the ComplypackCache.
-	_, err = s.complypackCache.Store(unpackResult.Config, unpackResult.Content)
+	_, err = s.complypackCache.Store(result.Config, result.Content)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("failed to store complypack %s@%s: %w", repository, version, err)
+		return false, fmt.Errorf("failed to store complypack %s@%s: %w", repository, version, err)
 	}
 
-	s.state.UpdateComplypackState(repository, version, remoteDigest, unpackResult.Config.EvaluatorID, verified)
+	s.state.UpdateComplypackState(repository, version, remoteDigest, result.Config.EvaluatorID)
 	if err := SaveState(s.state, s.complypackCache.Dir()); err != nil {
-		return SyncResult{}, fmt.Errorf("failed to save state after complypack sync: %w (complypack blobs are valid)", err)
+		return false, fmt.Errorf("failed to save state after complypack sync: %w (complypack blobs are valid)", err)
 	}
 
-	return SyncResult{Fetched: true, Verified: verified}, nil
+	return true, nil
 }
