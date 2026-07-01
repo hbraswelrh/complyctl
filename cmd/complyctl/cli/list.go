@@ -108,8 +108,8 @@ func (o *listOptions) run(_ context.Context) error {
 		}
 
 		digestStr := policyDigestField(state, ref.Repository)
-
-		rows = append(rows, []string{eid, versionStr, digestStr})
+		verifiedStr := verificationStatus(state, ref.Repository)
+		rows = append(rows, []string{eid, versionStr, digestStr, verifiedStr})
 	}
 
 	return printGemaraPolicyTable(o.Out, rows)
@@ -146,7 +146,20 @@ func abbreviateDigest(dgst string) string {
 func printGemaraPolicyTable(w io.Writer, rows [][]string) error {
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i][0] < rows[j][0] })
 
-	headers := []string{"POLICY ID", "VERSION", "DIGEST"}
+	headers := []string{"POLICY ID", "VERSION", "DIGEST", "VERIFIED"}
 	terminal.ShowPlainTable(w, headers, rows)
 	return nil
+}
+
+// verificationStatus returns "Yes", "No", or "-" based on the PolicyState
+// verification status for a given policy repository.
+func verificationStatus(state *cache.State, repository string) string {
+	ps, exists := state.GetPolicyState(repository)
+	if !exists {
+		return "-"
+	}
+	if ps.Verified {
+		return "Yes"
+	}
+	return "No"
 }

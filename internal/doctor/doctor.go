@@ -87,7 +87,58 @@ func Run(cfg *complytime.WorkspaceConfig, configPath, providerDir, cacheDir stri
 	results = append(results, CheckPolicyActivePeriod(cfg, resolver, verbose)...)
 	results = append(results, CheckVariables(cfg, healthData, resolver, verbose)...)
 	results = append(results, CheckComplypacks(cfg, cacheDir, resolver)...)
+	results = append(results, CheckVerification(cacheDir))
 	return results
+}
+
+// CheckVerification reports the signature verification status of cached
+// artifacts. Warns when unverified artifacts are present.
+func CheckVerification(cacheDir string) CheckResult {
+	state, err := cache.LoadState(cacheDir)
+	if err != nil {
+		return CheckResult{
+			Name:    "verification",
+			Status:  StatusWarn,
+			Message: fmt.Sprintf("cannot load cache state: %v", err),
+		}
+	}
+
+	var verified, unverified int
+	for _, ps := range state.Policies {
+		if ps.Verified {
+			verified++
+		} else {
+			unverified++
+		}
+	}
+	for _, ps := range state.Complypacks {
+		if ps.Verified {
+			verified++
+		} else {
+			unverified++
+		}
+	}
+
+	total := verified + unverified
+	if total == 0 {
+		return CheckResult{
+			Name:    "verification",
+			Status:  StatusPass,
+			Message: "no cached artifacts to verify",
+		}
+	}
+	if unverified == 0 {
+		return CheckResult{
+			Name:    "verification",
+			Status:  StatusPass,
+			Message: fmt.Sprintf("all %d cached artifacts verified", verified),
+		}
+	}
+	return CheckResult{
+		Name:    "verification",
+		Status:  StatusWarn,
+		Message: fmt.Sprintf("%d/%d cached artifacts unverified (configure verification: in complytime.yaml)", unverified, total),
+	}
 }
 
 // CheckConfig validates that the workspace config file exists, is parseable,

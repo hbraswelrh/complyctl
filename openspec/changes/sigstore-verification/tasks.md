@@ -30,12 +30,12 @@
 
 ## 5. CLI Integration
 
-- [ ] 5.1 Add `--skip-verify` flag to `complyctl get` command in `get.go`
-- [ ] 5.2 Read `VerificationConfig` from `WorkspaceConfig` and construct appropriate `VerifyFunc` (keyless or keyed); pass as `WithVerifier()` option to `Sync`/`ComplypackSync`
-- [ ] 5.3 When `--skip-verify` is set or no verification config exists, do not pass a verifier; emit unverified warning for fetched artifacts
-- [ ] 5.4 Add VERIFIED column to `complyctl list` output table, reading from `PolicyState.Verified`
-- [ ] 5.5 Add verification status check to `complyctl doctor`: count verified vs unverified artifacts, warn on unverified
-- [ ] 5.6 Write unit tests for CLI flag parsing and list output formatting
+- [x] 5.1 Add `--skip-verify` flag to `complyctl get` command in `get.go`
+- [x] 5.2 Read `VerificationConfig` from `WorkspaceConfig` and construct appropriate `VerifyFunc` (keyless or keyed); pass as `WithVerifier()` option to `Sync`/`ComplypackSync`
+- [x] 5.3 When `--skip-verify` is set or no verification config exists, do not pass a verifier; emit unverified warning for fetched artifacts
+- [x] 5.4 Add VERIFIED column to `complyctl list` output table, reading from `PolicyState.Verified`
+- [x] 5.5 Add verification status check to `complyctl doctor`: count verified vs unverified artifacts, warn on unverified
+- [x] 5.6 Write unit tests for CLI flag parsing and list output formatting
 
 ## 6. Governance Updates
 
