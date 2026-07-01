@@ -879,3 +879,165 @@ targets:
 	// Complypacks is nil/empty when not present in YAML
 	assert.Empty(t, cfg.Complypacks)
 }
+
+func TestValidateVerificationConfig_Nil(t *testing.T) {
+	err := complytime.ValidateVerificationConfig(nil)
+	assert.NoError(t, err)
+}
+
+func TestValidateVerificationConfig_ValidKeyless(t *testing.T) {
+	v := &complytime.VerificationConfig{
+		Issuer:   "https://token.actions.githubusercontent.com",
+		Identity: "https://github.com/complytime/complyctl/.github/workflows/release.yml@refs/tags/*",
+	}
+	err := complytime.ValidateVerificationConfig(v)
+	assert.NoError(t, err)
+}
+
+func TestValidateVerificationConfig_ValidKeyed(t *testing.T) {
+	v := &complytime.VerificationConfig{
+		Key: "/path/to/cosign.pub",
+	}
+	err := complytime.ValidateVerificationConfig(v)
+	assert.NoError(t, err)
+}
+
+func TestValidateVerificationConfig_MutuallyExclusive(t *testing.T) {
+	v := &complytime.VerificationConfig{
+		Issuer:   "https://token.actions.githubusercontent.com",
+		Identity: "https://github.com/complytime/complyctl/.github/workflows/release.yml@refs/tags/*",
+		Key:      "/path/to/cosign.pub",
+	}
+	err := complytime.ValidateVerificationConfig(v)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mutually exclusive")
+}
+
+func TestValidateVerificationConfig_IssuerWithoutIdentity(t *testing.T) {
+	v := &complytime.VerificationConfig{
+		Issuer: "https://token.actions.githubusercontent.com",
+	}
+	err := complytime.ValidateVerificationConfig(v)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "issuer requires identity")
+}
+
+func TestValidateVerificationConfig_IdentityWithoutIssuer(t *testing.T) {
+	v := &complytime.VerificationConfig{
+		Identity: "https://github.com/complytime/complyctl/.github/workflows/release.yml@refs/tags/*",
+	}
+	err := complytime.ValidateVerificationConfig(v)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "identity requires issuer")
+}
+
+func TestVerificationConfig_IsConfigured(t *testing.T) {
+	tests := []struct {
+		name   string
+		config *complytime.VerificationConfig
+		want   bool
+	}{
+		{"nil config", nil, false},
+		{"empty config", &complytime.VerificationConfig{}, false},
+		{"keyless configured", &complytime.VerificationConfig{
+			Issuer:   "https://token.actions.githubusercontent.com",
+			Identity: "user@example.com",
+		}, true},
+		{"keyed configured", &complytime.VerificationConfig{
+			Key: "/path/to/key.pub",
+		}, true},
+		{"issuer only (incomplete)", &complytime.VerificationConfig{
+			Issuer: "https://token.actions.githubusercontent.com",
+		}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.config.IsConfigured())
+		})
+	}
+}
+
+func TestLoadFrom_WithVerificationKeyless(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: registry.com/policies/nist:v1.0
+    id: nist
+targets:
+  - id: local
+    policies:
+      - nist
+verification:
+  issuer: "https://token.actions.githubusercontent.com"
+  identity: "https://github.com/complytime/complyctl/.github/workflows/release.yml@refs/tags/*"
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	cfg, err := complytime.LoadFrom(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	require.NotNil(t, cfg.Verification)
+	assert.Equal(t, "https://token.actions.githubusercontent.com", cfg.Verification.Issuer)
+	assert.Equal(t, "https://github.com/complytime/complyctl/.github/workflows/release.yml@refs/tags/*", cfg.Verification.Identity)
+	assert.Empty(t, cfg.Verification.Key)
+}
+
+func TestLoadFrom_WithVerificationKeyed(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: registry.com/policies/nist:v1.0
+    id: nist
+targets:
+  - id: local
+    policies:
+      - nist
+verification:
+  key: "/path/to/cosign.pub"
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	cfg, err := complytime.LoadFrom(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	require.NotNil(t, cfg.Verification)
+	assert.Equal(t, "/path/to/cosign.pub", cfg.Verification.Key)
+	assert.Empty(t, cfg.Verification.Issuer)
+}
+
+func TestLoadFrom_WithoutVerification(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "complytime.yml")
+
+	yamlContent := `policies:
+  - url: registry.com/policies/nist:v1.0
+    id: nist
+targets:
+  - id: local
+    policies:
+      - nist
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(yamlContent), 0600))
+
+	cfg, err := complytime.LoadFrom(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Nil(t, cfg.Verification)
+}
+
+func TestValidate_VerificationMutuallyExclusive(t *testing.T) {
+	cfg := &complytime.WorkspaceConfig{
+		Policies: []complytime.PolicyEntry{{URL: "registry.com/policies/nist:v1.0", ID: "nist"}},
+		Targets:  []complytime.TargetConfig{{ID: "local", Policies: []string{"nist"}}},
+		Verification: &complytime.VerificationConfig{
+			Issuer:   "https://token.actions.githubusercontent.com",
+			Identity: "user@example.com",
+			Key:      "/path/to/key.pub",
+		},
+	}
+	err := complytime.Validate(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mutually exclusive")
+}

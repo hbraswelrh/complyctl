@@ -61,11 +61,60 @@ func ValidateOCIRef(raw string) error {
 // per-target credentials). Place environment-dependent values in
 // targets[].variables instead.
 type WorkspaceConfig struct {
-	Version     int               `yaml:"version,omitempty"`
-	Policies    []PolicyEntry     `yaml:"policies"`
-	Complypacks []PolicyEntry     `yaml:"complypacks,omitempty"`
-	Targets     []TargetConfig    `yaml:"targets"`
-	Variables   map[string]string `yaml:"variables,omitempty"`
+	Version      int                 `yaml:"version,omitempty"`
+	Policies     []PolicyEntry       `yaml:"policies"`
+	Complypacks  []PolicyEntry       `yaml:"complypacks,omitempty"`
+	Targets      []TargetConfig      `yaml:"targets"`
+	Variables    map[string]string   `yaml:"variables,omitempty"`
+	Verification *VerificationConfig `yaml:"verification,omitempty"`
+}
+
+// VerificationConfig holds signature verification parameters for OCI artifacts.
+// Supports two mutually exclusive modes:
+//   - Keyless: OIDC issuer + SAN identity (Sigstore public good instance)
+//   - Keyed: path to a PEM-encoded public key (cosign key-pair signing)
+//
+// When nil or zero-valued, verification is silently skipped.
+type VerificationConfig struct {
+	// Issuer is the OIDC token issuer for keyless verification
+	// (e.g., "https://token.actions.githubusercontent.com").
+	Issuer string `yaml:"issuer,omitempty"`
+	// Identity is the expected SAN identity in the signing certificate
+	// (e.g., "https://github.com/complytime/complyctl/.github/workflows/release.yml@refs/tags/*").
+	Identity string `yaml:"identity,omitempty"`
+	// Key is the path to a PEM-encoded public key for keyed verification.
+	Key string `yaml:"key,omitempty"`
+}
+
+// ValidateVerificationConfig checks that the verification configuration is
+// internally consistent. Keyed (Key) and keyless (Issuer/Identity) modes
+// are mutually exclusive.
+func ValidateVerificationConfig(v *VerificationConfig) error {
+	if v == nil {
+		return nil
+	}
+	hasKeyless := v.Issuer != "" || v.Identity != ""
+	hasKeyed := v.Key != ""
+
+	if hasKeyed && hasKeyless {
+		return fmt.Errorf("verification: key and issuer/identity are mutually exclusive")
+	}
+	if v.Issuer != "" && v.Identity == "" {
+		return fmt.Errorf("verification: issuer requires identity")
+	}
+	if v.Identity != "" && v.Issuer == "" {
+		return fmt.Errorf("verification: identity requires issuer")
+	}
+	return nil
+}
+
+// IsConfigured reports whether verification has sufficient configuration
+// to attempt signature verification.
+func (v *VerificationConfig) IsConfigured() bool {
+	if v == nil {
+		return false
+	}
+	return v.Key != "" || (v.Issuer != "" && v.Identity != "")
 }
 
 // PolicyEntry pairs a full OCI reference with an optional user-chosen shortname.
@@ -360,6 +409,10 @@ func Validate(config *WorkspaceConfig) error {
 		return err
 	}
 	if err := validateEntries("complypacks", config.Complypacks); err != nil {
+		return err
+	}
+
+	if err := ValidateVerificationConfig(config.Verification); err != nil {
 		return err
 	}
 
