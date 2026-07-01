@@ -322,6 +322,10 @@ func LoadFrom(configPath string) (*WorkspaceConfig, error) {
 		return nil, fmt.Errorf("invalid config %s: %w", configPath, err)
 	}
 
+	if err := ValidateVerificationConfig(config.Verification); err != nil {
+		return nil, fmt.Errorf("invalid config %s: %w", configPath, err)
+	}
+
 	return &config, nil
 }
 

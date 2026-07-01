@@ -50,38 +50,6 @@ func TestVerifyFunc_MockFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "identity mismatch")
 }
 
-func TestHexToBytes(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []byte
-		wantErr bool
-	}{
-		{"valid hex", "48656c6c6f", []byte("Hello"), false},
-		{"empty string", "", []byte{}, false},
-		{"sha256 hex", "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", nil, false},
-		{"odd length", "abc", nil, true},
-		{"invalid char", "zz", nil, true},
-		{"uppercase", "4f4b", []byte("OK"), false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := hexToBytes(tt.input)
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			if tt.want != nil {
-				assert.Equal(t, tt.want, result)
-			} else {
-				assert.NotEmpty(t, result)
-			}
-		})
-	}
-}
-
 func TestParseCertificateChain_InvalidPEM(t *testing.T) {
 	_, err := parseCertificateChain("not a PEM")
 	assert.Error(t, err)

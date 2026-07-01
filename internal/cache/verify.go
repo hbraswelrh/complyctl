@@ -7,10 +7,12 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -109,6 +111,7 @@ func NewKeylessVerifier(issuer, identity string) (VerifyFunc, error) {
 // NewKeyedVerifier creates a VerifyFunc that verifies cosign signatures using
 // a PEM-encoded public key.
 func NewKeyedVerifier(keyPath string) (VerifyFunc, error) {
+	keyPath = filepath.Clean(keyPath)
 	keyBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read public key %s: %w", keyPath, err)
@@ -233,7 +236,7 @@ func bundleFromCosignOCI(ctx context.Context, registryRef string) (*bundle.Bundl
 		return nil, nil, fmt.Errorf("failed to create sigstore bundle: %w", err)
 	}
 
-	artifactDigest, err := hexToBytes(digestHex)
+	artifactDigest, err := hex.DecodeString(digestHex)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode artifact digest: %w", err)
 	}
@@ -270,7 +273,7 @@ func buildProtobufBundle(layer *v1.Descriptor) (*protobundle.Bundle, error) {
 		return nil, fmt.Errorf("failed to decode cosign signature: %w", err)
 	}
 
-	digestBytes, err := hexToBytes(layer.Digest.Hex)
+	digestBytes, err := hex.DecodeString(layer.Digest.Hex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode layer digest: %w", err)
 	}
@@ -411,45 +414,4 @@ func extractVerificationResult(result *verify.VerificationResult) *VerificationR
 	}
 
 	return vr
-}
-
-// hexToBytes converts a hex string to bytes.
-func hexToBytes(hexStr string) ([]byte, error) {
-	if len(hexStr)%2 != 0 {
-		return nil, fmt.Errorf("hex string has odd length")
-	}
-	result := make([]byte, len(hexStr)/2)
-	for i := 0; i < len(hexStr); i += 2 {
-		b, err := hexByte(hexStr[i], hexStr[i+1])
-		if err != nil {
-			return nil, err
-		}
-		result[i/2] = b
-	}
-	return result, nil
-}
-
-func hexByte(hi, lo byte) (byte, error) {
-	h, err := hexNibble(hi)
-	if err != nil {
-		return 0, err
-	}
-	l, err := hexNibble(lo)
-	if err != nil {
-		return 0, err
-	}
-	return h<<4 | l, nil
-}
-
-func hexNibble(b byte) (byte, error) {
-	switch {
-	case b >= '0' && b <= '9':
-		return b - '0', nil
-	case b >= 'a' && b <= 'f':
-		return b - 'a' + 10, nil
-	case b >= 'A' && b <= 'F':
-		return b - 'A' + 10, nil
-	default:
-		return 0, fmt.Errorf("invalid hex character: %c", b)
-	}
 }

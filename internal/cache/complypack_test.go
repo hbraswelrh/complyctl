@@ -314,8 +314,8 @@ func TestState_ComplypackRoundTrip(t *testing.T) {
 	state, err := cache.LoadState(stateDir)
 	require.NoError(t, err)
 
-	state.UpdateComplypackState("io.complytime.opa", "1.0.0", "sha256:abc123", "opa")
-	state.UpdateComplypackState("io.complytime.kyverno", "2.0.0", "sha256:def456", "kyverno")
+	state.UpdateComplypackStateWithVerification("io.complytime.opa", "1.0.0", "sha256:abc123", "opa", nil)
+	state.UpdateComplypackStateWithVerification("io.complytime.kyverno", "2.0.0", "sha256:def456", "kyverno", nil)
 
 	err = cache.SaveState(state, stateDir)
 	require.NoError(t, err)

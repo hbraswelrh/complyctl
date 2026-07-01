@@ -92,19 +92,6 @@ func SaveState(state *State, cacheDir string) error {
 	return nil
 }
 
-// UpdatePolicyState records the version, digest, and current timestamp for a cached policy.
-func (s *State) UpdatePolicyState(policyID, version, digest string) {
-	if s.Policies == nil {
-		s.Policies = make(map[string]PolicyState)
-	}
-	s.Policies[policyID] = PolicyState{
-		Version:     version,
-		Digest:      digest,
-		LastUpdated: time.Now(),
-	}
-	s.LastSync = time.Now()
-}
-
 // UpdatePolicyStateWithVerification records version, digest, verification
 // metadata, and current timestamp for a cached policy. When vr is nil,
 // Verified is set to false (no verification was performed).
@@ -156,22 +143,6 @@ func (s *State) GetPolicyState(policyID string) (PolicyState, bool) {
 	}
 	state, exists := s.Policies[policyID]
 	return state, exists
-}
-
-// UpdateComplypackState records the version, digest, evaluator-id, and current
-// timestamp for a cached complypack, keyed by repository
-// (e.g., "example.com/complypacks/opa-bundle").
-func (s *State) UpdateComplypackState(repository, version, digest, evaluatorID string) {
-	if s.Complypacks == nil {
-		s.Complypacks = make(map[string]PolicyState)
-	}
-	s.Complypacks[repository] = PolicyState{
-		Version:     version,
-		Digest:      digest,
-		EvaluatorID: evaluatorID,
-		LastUpdated: time.Now(),
-	}
-	s.LastSync = time.Now()
 }
 
 // GetComplypackState returns the cached state for a complypack, keyed by
