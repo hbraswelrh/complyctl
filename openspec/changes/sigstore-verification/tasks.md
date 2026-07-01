@@ -7,10 +7,10 @@
 
 ## 2. Verification Module
 
-- [ ] 2.1 Create `internal/cache/verify.go` with `VerifyFunc` type and `VerificationResult` struct (Verified, SignerIdentity, Issuer, VerifiedAt)
-- [ ] 2.2 Implement `NewKeylessVerifier(issuer, identity string) VerifyFunc` using sigstore-go's `verify.NewVerifier` with `root.NewLiveTrustedRoot()`, `NewShortCertificateIdentity`, and `WithoutArtifactUnsafe()`
-- [ ] 2.3 Implement `NewKeyedVerifier(keyPath string) VerifyFunc` using sigstore-go's keyed verification with a PEM-encoded public key
-- [ ] 2.4 Write unit tests for `VerifyFunc` with mock sigstore entities (test both success and failure paths)
+- [x] 2.1 Create `internal/cache/verify.go` with `VerifyFunc` type and `VerificationResult` struct (Verified, SignerIdentity, Issuer, VerifiedAt)
+- [x] 2.2 Implement `NewKeylessVerifier(issuer, identity string) VerifyFunc` using sigstore-go's `verify.NewVerifier` with `root.NewLiveTrustedRoot()`, `NewShortCertificateIdentity`, and `WithoutArtifactUnsafe()`
+- [x] 2.3 Implement `NewKeyedVerifier(keyPath string) VerifyFunc` using sigstore-go's keyed verification with a PEM-encoded public key
+- [x] 2.4 Write unit tests for `VerifyFunc` with mock sigstore entities (test both success and failure paths)
 
 ## 3. State Schema Extension
 
