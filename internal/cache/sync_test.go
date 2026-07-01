@@ -346,7 +346,7 @@ func TestSync_VerificationFailure_AbortsCopy(t *testing.T) {
 
 	sync := cache.NewSync(cacheMgr, state, mock, cache.WithVerifier(failVerifier))
 
-	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	_, err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "verification failed")
 
@@ -382,7 +382,7 @@ func TestSync_VerificationSuccess_RecordsMetadata(t *testing.T) {
 
 	sync := cache.NewSync(cacheMgr, state, mock, cache.WithVerifier(successVerifier))
 
-	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	_, err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
 
 	// Verify state records verification metadata
@@ -409,7 +409,7 @@ func TestSync_NilVerifier_SkipsVerification(t *testing.T) {
 	// No WithVerifier option — verification disabled
 	sync := cache.NewSync(cacheMgr, state, mock)
 
-	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	_, err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
 	require.NoError(t, err)
 
 	// Sync succeeds but Verified is false (no verification performed)

@@ -30,8 +30,9 @@ be written to the local cache. Verification SHALL support both keyless
 #### Scenario: No signature found with verification configured
 - **WHEN** `complyctl get` fetches a policy that has no cosign signature
   attached and `verification:` is configured in `complytime.yaml`
-- **THEN** a warning is emitted to stderr, the policy is still synced
-  (warn-only mode), and `PolicyState.Verified` is set to `false`
+- **THEN** the sync is aborted with an error describing the missing
+  signature, and the local cache is unchanged. Use `--skip-verify` to
+  bypass verification for unsigned artifacts
 
 ### Requirement: Verification bypass flag
 The system SHALL provide a `--skip-verify` flag on `complyctl get` that

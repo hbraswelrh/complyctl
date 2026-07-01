@@ -24,6 +24,7 @@ import (
 	protorekor "github.com/sigstore/protobuf-specs/gen/pb-go/rekor/v1"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore-go/pkg/root"
+	"github.com/sigstore/sigstore-go/pkg/tuf"
 	"github.com/sigstore/sigstore-go/pkg/verify"
 	sigstorecrypto "github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
@@ -65,11 +66,21 @@ type rekorBundlePayload struct {
 	} `json:"Payload"`
 }
 
+// tufFetchTimeout is the maximum time allowed for fetching the Sigstore
+// trusted root via TUF. This prevents complyctl get from hanging in
+// restricted network environments.
+const tufFetchTimeout = 30 * time.Second
+
 // NewKeylessVerifier creates a VerifyFunc that verifies cosign signatures using
 // Sigstore keyless verification (Fulcio + Rekor). The issuer and identity
 // parameters match the OIDC issuer and SAN identity in the signing certificate.
 func NewKeylessVerifier(issuer, identity string) (VerifyFunc, error) {
-	trustedRoot, err := root.FetchTrustedRoot()
+	ctx, cancel := context.WithTimeout(context.Background(), tufFetchTimeout)
+	defer cancel()
+
+	fmt.Fprintln(os.Stderr, "Fetching Sigstore trusted root...")
+	opts := tuf.DefaultOptions().WithContext(ctx)
+	trustedRoot, err := root.FetchTrustedRootWithOptions(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch Sigstore trusted root: %w", err)
 	}
