@@ -631,3 +631,44 @@ targets:
 	assert.NotContains(t, out, "nist-800-53-r5",
 		"filter must exclude non-matching policies")
 }
+
+// TestE2E_GetSkipVerify verifies that the --skip-verify flag is accepted
+// and policies are synced without verification errors.
+func TestE2E_GetSkipVerify(t *testing.T) {
+	binary := locateBinary(t)
+	srv := startMockRegistry(t)
+	defer srv.Close()
+
+	homeDir := t.TempDir()
+	workDir := t.TempDir()
+	installTestPlugin(t, homeDir)
+	writeWorkspaceConfig(t, workDir, srv.URL, testPolicyID)
+	env := buildEnv(homeDir)
+
+	out := runComplytime(t, binary, workDir, env, "get", "--skip-verify")
+	t.Log(out)
+	assert.Contains(t, out, "Synchronization completed.",
+		"get --skip-verify must succeed without verification configured")
+}
+
+// TestE2E_ListVerifiedColumn verifies that complyctl list includes a VERIFIED
+// column header in its output.
+func TestE2E_ListVerifiedColumn(t *testing.T) {
+	binary := locateBinary(t)
+	srv := startMockRegistry(t)
+	defer srv.Close()
+
+	homeDir := t.TempDir()
+	workDir := t.TempDir()
+	installTestPlugin(t, homeDir)
+	writeWorkspaceConfig(t, workDir, srv.URL, testPolicyID)
+	env := buildEnv(homeDir)
+
+	// Sync first so list has data
+	runComplytime(t, binary, workDir, env, "get")
+
+	out := runComplytime(t, binary, workDir, env, "list")
+	t.Log(out)
+	assert.Contains(t, out, "VERIFIED", "list output must include VERIFIED column header")
+	assert.Contains(t, out, testPolicyID)
+}

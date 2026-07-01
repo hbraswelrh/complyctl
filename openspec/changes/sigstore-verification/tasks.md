@@ -39,11 +39,11 @@
 
 ## 6. Governance Updates
 
-- [ ] 6.1 Update THR02 mitigations in governance artifacts to reflect CTRL01.AR01 implementation status
-- [ ] 6.2 Verify behavioral test `SignatureVerified()` expectations align with implementation
+- [x] 6.1 Update THR02 mitigations in governance artifacts to reflect CTRL01.AR01 implementation status
+- [x] 6.2 Verify behavioral test `SignatureVerified()` expectations align with implementation
 
 ## 7. Integration Testing
 
-- [ ] 7.1 Add E2E test for `complyctl get` with `--skip-verify` flag (verifies flag is accepted and warning is emitted)
-- [ ] 7.2 Add E2E test for `complyctl list` VERIFIED column output
-- [ ] 7.3 Run `make test-unit` and `make lint` to verify all tests pass and no lint violations
+- [x] 7.1 Add E2E test for `complyctl get` with `--skip-verify` flag (verifies flag is accepted and warning is emitted)
+- [x] 7.2 Add E2E test for `complyctl list` VERIFIED column output
+- [x] 7.3 Run `make test-unit` and `make lint` to verify all tests pass and no lint violations

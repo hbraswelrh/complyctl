@@ -55,7 +55,7 @@ const cosignSimpleSigningMediaType = "application/vnd.dev.cosign.simplesigning.v
 // rekorBundlePayload represents the JSON structure in the cosign bundle annotation.
 type rekorBundlePayload struct {
 	SignedEntryTimestamp string `json:"SignedEntryTimestamp"`
-	Payload             struct {
+	Payload              struct {
 		Body           string `json:"body"`
 		IntegratedTime int64  `json:"integratedTime"`
 		LogIndex       int64  `json:"logIndex"`
@@ -119,7 +119,7 @@ func NewKeyedVerifier(keyPath string) (VerifyFunc, error) {
 		return nil, fmt.Errorf("failed to parse public key %s: %w", keyPath, err)
 	}
 
-	sigVerifier, err := sigsig.LoadVerifier(pubKey.(crypto.PublicKey), crypto.SHA256)
+	sigVerifier, err := sigsig.LoadVerifier(pubKey, crypto.SHA256)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signature verifier from %s: %w", keyPath, err)
 	}
@@ -403,7 +403,7 @@ func extractVerificationResult(result *verify.VerificationResult) *VerificationR
 	if result.Signature != nil && result.Signature.Certificate != nil {
 		cert := result.Signature.Certificate
 		if vr.Issuer == "" {
-			vr.Issuer = cert.Extensions.Issuer
+			vr.Issuer = cert.Issuer
 		}
 		if vr.SignerIdentity == "" {
 			vr.SignerIdentity = cert.SubjectAlternativeName
