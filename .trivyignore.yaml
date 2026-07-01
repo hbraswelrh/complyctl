@@ -83,3 +83,11 @@ misconfigurations:
       - "tests/cross-repo/testdata/test-deployment-bad.yaml"
       - "tests/cross-repo/testdata/test-deployment-good.yaml"
     statement: Intentional test fixture for OPA provider validation
+  - id: DS-0002
+    paths:
+      - "vendor/go.opentelemetry.io/otel/dependencies.Dockerfile"
+    statement: Vendored OTel file used only as renovate-friendly image reference, not a production Dockerfile
+  - id: DS-0026
+    paths:
+      - "vendor/go.opentelemetry.io/otel/dependencies.Dockerfile"
+    statement: Vendored OTel file used only as renovate-friendly image reference, not a production Dockerfile
