@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -325,4 +326,95 @@ func TestBuildLookupRef_Regression_NoDoubleTag(t *testing.T) {
 	lookupRef := cache.BuildLookupRef("complytime/complypack-ampel-bp", "v0.4.0", "")
 	assert.Equal(t, "complytime/complypack-ampel-bp:v0.4.0", lookupRef)
 	assert.NotContains(t, lookupRef, ":v0.4.0:v0.4.0")
+}
+
+func TestSync_VerificationFailure_AbortsCopy(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	failVerifier := func(_ context.Context, _ string) (*cache.VerificationResult, error) {
+		return nil, fmt.Errorf("signature verification failed: identity mismatch")
+	}
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	sync := cache.NewSync(cacheMgr, state, mock, cache.WithVerifier(failVerifier))
+
+	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "verification failed")
+
+	// Verify cache is unchanged — policy store should not exist
+	assert.False(t, cacheMgr.PolicyStoreExists("test-policy"),
+		"policy store must not exist after verification failure")
+
+	// Verify state was not updated
+	_, exists := state.GetPolicyState("test-policy")
+	assert.False(t, exists, "state must not record policy after verification failure")
+}
+
+func TestSync_VerificationSuccess_RecordsMetadata(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	successVerifier := func(_ context.Context, _ string) (*cache.VerificationResult, error) {
+		return &cache.VerificationResult{
+			Verified:       true,
+			SignerIdentity: "workflow@github.com",
+			Issuer:         "https://token.actions.githubusercontent.com",
+			VerifiedAt:     time.Now(),
+		}, nil
+	}
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	sync := cache.NewSync(cacheMgr, state, mock, cache.WithVerifier(successVerifier))
+
+	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err)
+
+	// Verify state records verification metadata
+	ps, exists := state.GetPolicyState("test-policy")
+	require.True(t, exists)
+	assert.True(t, ps.Verified)
+	assert.Equal(t, "workflow@github.com", ps.SignerIdentity)
+	assert.Equal(t, "https://token.actions.githubusercontent.com", ps.Issuer)
+	assert.False(t, ps.VerifiedAt.IsZero())
+}
+
+func TestSync_NilVerifier_SkipsVerification(t *testing.T) {
+	tmpDir := t.TempDir()
+	cacheDir := filepath.Join(tmpDir, "cache")
+	require.NoError(t, os.MkdirAll(cacheDir, 0755))
+
+	mock := cachetest.NewMockPolicySource()
+	mock.SeedPolicy("test-policy", "v1.0.0", "sha256:abc123")
+
+	cacheMgr := cache.NewCache(cacheDir)
+	state, err := cache.LoadState(cacheDir)
+	require.NoError(t, err)
+
+	// No WithVerifier option — verification disabled
+	sync := cache.NewSync(cacheMgr, state, mock)
+
+	err = sync.SyncPolicy(context.Background(), "test-policy", "latest")
+	require.NoError(t, err)
+
+	// Sync succeeds but Verified is false (no verification performed)
+	ps, exists := state.GetPolicyState("test-policy")
+	require.True(t, exists)
+	assert.False(t, ps.Verified, "Verified must be false when no verifier is configured")
+	assert.Empty(t, ps.SignerIdentity)
 }

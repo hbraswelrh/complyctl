@@ -27,6 +27,14 @@
 
 ### Added
 
+- Signature verification for OCI artifacts: `complyctl get` verifies
+  cosign/sigstore signatures via `sigstore-go` when `verification:`
+  is configured in `complytime.yaml`. Supports keyless (OIDC issuer +
+  identity) and keyed (public key path) verification. Pre-copy
+  verification ensures unverified content never reaches the local
+  cache. `--skip-verify` flag bypasses verification. `complyctl list`
+  displays a VERIFIED column. `complyctl doctor` reports verification
+  status of cached artifacts. (#643)
 - Redesigned markdown report (`--format pretty`) with summary metadata
   table, pass rate, grouped controls table with messages, findings
   section grouped by result type with recommendation and collapsible

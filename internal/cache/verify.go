@@ -171,61 +171,16 @@ func NewKeyedVerifier(keyPath string) (VerifyFunc, error) {
 // given image reference, constructs a sigstore-go bundle, and returns it along
 // with the artifact digest bytes.
 func bundleFromCosignOCI(ctx context.Context, registryRef string) (*bundle.Bundle, []byte, error) {
-	ref, err := name.ParseReference(registryRef)
+	ref, digestHex, err := resolveArtifactDigest(ctx, registryRef)
 	if err != nil {
-		return nil, nil, fmt.Errorf("invalid OCI reference %q: %w", registryRef, err)
+		return nil, nil, err
 	}
 
-	desc, err := remote.Get(ref,
-		remote.WithAuthFromKeychain(authn.DefaultKeychain),
-		remote.WithContext(ctx),
-	)
+	sigLayer, err := fetchCosignSignature(ctx, ref, digestHex, registryRef)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to resolve %s: %w", registryRef, err)
+		return nil, nil, err
 	}
 
-	imageDigest := desc.Digest
-	digestHex := imageDigest.Hex
-
-	// Cosign stores signatures using the tag convention: sha256-<hex>.sig
-	sigTagStr := fmt.Sprintf("%s:%s-%s.sig", ref.Context().Name(), imageDigest.Algorithm, digestHex)
-	sigTag, err := name.NewTag(sigTagStr)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to construct cosign signature tag: %w", err)
-	}
-
-	sigDesc, err := remote.Get(sigTag,
-		remote.WithAuthFromKeychain(authn.DefaultKeychain),
-		remote.WithContext(ctx),
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("no cosign signature found for %s: %w", registryRef, err)
-	}
-
-	sigImage, err := sigDesc.Image()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read cosign signature image: %w", err)
-	}
-
-	manifest, err := sigImage.Manifest()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read cosign signature manifest: %w", err)
-	}
-
-	// Find the simple signing layer with cosign annotations
-	var sigLayer *v1.Descriptor
-	for i := range manifest.Layers {
-		layer := &manifest.Layers[i]
-		if layer.MediaType == cosignSimpleSigningMediaType {
-			sigLayer = layer
-			break
-		}
-	}
-	if sigLayer == nil {
-		return nil, nil, fmt.Errorf("no cosign simple signing layer found in signature manifest")
-	}
-
-	// Build the protobuf bundle from cosign annotations
 	pb, err := buildProtobufBundle(sigLayer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build sigstore bundle from cosign annotations: %w", err)
@@ -242,6 +197,68 @@ func bundleFromCosignOCI(ctx context.Context, registryRef string) (*bundle.Bundl
 	}
 
 	return bun, artifactDigest, nil
+}
+
+// resolveArtifactDigest parses the OCI reference and resolves the image
+// manifest digest from the registry.
+func resolveArtifactDigest(ctx context.Context, registryRef string) (name.Reference, string, error) {
+	ref, err := name.ParseReference(registryRef)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid OCI reference %q: %w", registryRef, err)
+	}
+
+	desc, err := remote.Get(ref,
+		remote.WithAuthFromKeychain(authn.DefaultKeychain),
+		remote.WithContext(ctx),
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to resolve %s: %w", registryRef, err)
+	}
+
+	return ref, desc.Digest.Hex, nil
+}
+
+// fetchCosignSignature resolves the cosign signature manifest from the
+// registry using the tag convention (sha256-<hex>.sig) and returns the
+// simple signing layer descriptor containing verification annotations.
+func fetchCosignSignature(ctx context.Context, ref name.Reference, digestHex, registryRef string) (*v1.Descriptor, error) {
+	sigTagStr := fmt.Sprintf("%s:sha256-%s.sig", ref.Context().Name(), digestHex)
+	sigTag, err := name.NewTag(sigTagStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct cosign signature tag: %w", err)
+	}
+
+	sigDesc, err := remote.Get(sigTag,
+		remote.WithAuthFromKeychain(authn.DefaultKeychain),
+		remote.WithContext(ctx),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("no cosign signature found for %s: %w", registryRef, err)
+	}
+
+	sigImage, err := sigDesc.Image()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read cosign signature image: %w", err)
+	}
+
+	return findSigningLayer(sigImage)
+}
+
+// findSigningLayer locates the cosign simple signing layer in a signature
+// image manifest. Returns an error if no matching layer is found.
+func findSigningLayer(sigImage v1.Image) (*v1.Descriptor, error) {
+	manifest, err := sigImage.Manifest()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read cosign signature manifest: %w", err)
+	}
+
+	for i := range manifest.Layers {
+		layer := &manifest.Layers[i]
+		if layer.MediaType == cosignSimpleSigningMediaType {
+			return layer, nil
+		}
+	}
+	return nil, fmt.Errorf("no cosign simple signing layer found in signature manifest")
 }
 
 // buildProtobufBundle constructs a sigstore protobuf bundle from cosign

@@ -60,22 +60,30 @@ threats:
       description: >
           Policy artifacts fetched by mutable tags (e.g., "latest") without content
           digest pinning allow a compromised or man-in-the-middle registry to serve
-          malicious catalog, guidance, or policy layers. The cache sync stores whatever
-          the registry serves without verifying content against a known-good digest.
+          malicious catalog, guidance, or policy layers. When verification is not
+          configured, the cache sync accepts registry content without cryptographic
+          signature validation. When the verification: configuration is present in
+          complytime.yaml, sigstore-go pre-copy verification mitigates this threat
+          by verifying cosign signatures before oras.Copy() (see CTRL01).
       mitigations:
           - id: CT.COMPLYCTL.THR02.MIT01
             status: implemented
             description: >
                 complyctl get emits a NOTE to stderr when a freshly fetched policy
                 or complypack was fetched without signature verification, directing
-                users to the planned sigstore-go integration (#643) and advising
-                them to ensure policy sources are trusted.
+                users to configure verification: in complytime.yaml.
+          - id: CT.COMPLYCTL.THR02.MIT02
+            status: implemented
+            description: >
+                complyctl get verifies cosign signatures via sigstore-go before
+                oras.Copy() when verification: is configured in complytime.yaml,
+                preventing untrusted content from reaching the local cache (CTRL01).
           - id: CT.COMPLYCTL.THR02.MIT03
             status: implemented
             description: >
-                complyctl list surfaces a DIGEST column from cache state, giving
-                operators CLI-level visibility into the OCI manifest digest of each
-                cached policy.
+                complyctl list surfaces DIGEST and VERIFIED columns from cache
+                state, giving operators CLI-level visibility into the OCI manifest
+                digest and signature verification status of each cached policy.
       capabilities:
           - reference-id: CCC
             entries:

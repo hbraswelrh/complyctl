@@ -4,14 +4,23 @@ package cache
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/types"
+	"github.com/sigstore/sigstore-go/pkg/fulcio/certificate"
+	"github.com/sigstore/sigstore-go/pkg/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -216,4 +225,222 @@ func TestUpdateComplypackStateWithVerification_WithResult(t *testing.T) {
 	assert.True(t, ps.Verified)
 	assert.Equal(t, "build@ci.com", ps.SignerIdentity)
 	assert.Equal(t, "opa", ps.EvaluatorID)
+}
+
+// generateTestCertPEM creates a self-signed test certificate and returns
+// its PEM encoding. The certificate is valid for 1 hour.
+func generateTestCertPEM(t *testing.T) (string, []byte) {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{Organization: []string{"Test"}},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	pemBlock := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	return string(pemBlock), derBytes
+}
+
+func TestParseCertificateChain_ValidSingleCert(t *testing.T) {
+	certPEM, derBytes := generateTestCertPEM(t)
+
+	chain, err := parseCertificateChain(certPEM)
+	require.NoError(t, err)
+	require.Len(t, chain.Certificates, 1)
+	assert.Equal(t, derBytes, chain.Certificates[0].RawBytes)
+
+	// Verify the RawBytes round-trips through x509.ParseCertificate
+	parsed, err := x509.ParseCertificate(chain.Certificates[0].RawBytes)
+	require.NoError(t, err)
+	assert.Equal(t, "Test", parsed.Subject.Organization[0])
+}
+
+func TestParseCertificateChain_InvalidDER(t *testing.T) {
+	badPEM := "-----BEGIN CERTIFICATE-----\nZm9vYmFy\n-----END CERTIFICATE-----\n"
+	_, err := parseCertificateChain(badPEM)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid certificate in chain")
+}
+
+func TestBuildProtobufBundle_ValidAnnotations(t *testing.T) {
+	certPEM, _ := generateTestCertPEM(t)
+	sigBytes := []byte("test-signature-bytes")
+	sigB64 := base64.StdEncoding.EncodeToString(sigBytes)
+
+	bodyB64 := base64.StdEncoding.EncodeToString([]byte(`{"test":"body"}`))
+	setB64 := base64.StdEncoding.EncodeToString([]byte("signed-entry-timestamp"))
+	logIDB64 := base64.StdEncoding.EncodeToString([]byte("log-id"))
+
+	rekorBundle := rekorBundlePayload{SignedEntryTimestamp: setB64}
+	rekorBundle.Payload.Body = bodyB64
+	rekorBundle.Payload.IntegratedTime = 1701205628
+	rekorBundle.Payload.LogIndex = 42
+	rekorBundle.Payload.LogID = logIDB64
+	rekorJSON, err := json.Marshal(rekorBundle)
+	require.NoError(t, err)
+
+	layer := &v1.Descriptor{
+		MediaType: types.MediaType(cosignSimpleSigningMediaType),
+		Digest: v1.Hash{
+			Algorithm: "sha256",
+			Hex:       "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+		},
+		Annotations: map[string]string{
+			cosignAnnotationSignature: sigB64,
+			cosignAnnotationCert:      certPEM,
+			cosignAnnotationBundle:    string(rekorJSON),
+		},
+	}
+
+	pb, err := buildProtobufBundle(layer)
+	require.NoError(t, err)
+	assert.Equal(t, "application/vnd.dev.sigstore.bundle+json;version=0.1", pb.MediaType)
+	require.NotNil(t, pb.VerificationMaterial)
+	require.NotNil(t, pb.Content)
+
+	// Verify the signature was correctly decoded
+	msgSig := pb.GetMessageSignature()
+	require.NotNil(t, msgSig)
+	assert.Equal(t, sigBytes, msgSig.Signature)
+
+	// Verify certificate chain is present
+	certChain := pb.VerificationMaterial.GetX509CertificateChain()
+	require.NotNil(t, certChain)
+	require.Len(t, certChain.Certificates, 1)
+
+	// Verify tlog entries are present
+	require.Len(t, pb.VerificationMaterial.TlogEntries, 1)
+	assert.Equal(t, int64(42), pb.VerificationMaterial.TlogEntries[0].LogIndex)
+}
+
+func TestBuildVerificationMaterial_NoCertNoBundle(t *testing.T) {
+	annotations := map[string]string{
+		"unrelated": "value",
+	}
+	vm, err := buildVerificationMaterial(annotations)
+	require.NoError(t, err)
+	assert.Nil(t, vm.Content)
+	assert.Empty(t, vm.TlogEntries)
+}
+
+func TestBuildVerificationMaterial_CertOnly(t *testing.T) {
+	certPEM, _ := generateTestCertPEM(t)
+	annotations := map[string]string{
+		cosignAnnotationCert: certPEM,
+	}
+	vm, err := buildVerificationMaterial(annotations)
+	require.NoError(t, err)
+	require.NotNil(t, vm.GetX509CertificateChain())
+	assert.Empty(t, vm.TlogEntries)
+}
+
+func TestFindSigningLayer_Found(t *testing.T) {
+	img := &fakeImage{
+		manifest: &v1.Manifest{
+			Layers: []v1.Descriptor{
+				{MediaType: "application/octet-stream"},
+				{MediaType: types.MediaType(cosignSimpleSigningMediaType), Annotations: map[string]string{"key": "val"}},
+			},
+		},
+	}
+	layer, err := findSigningLayer(img)
+	require.NoError(t, err)
+	assert.Equal(t, types.MediaType(cosignSimpleSigningMediaType), layer.MediaType)
+	assert.Equal(t, "val", layer.Annotations["key"])
+}
+
+func TestFindSigningLayer_NotFound(t *testing.T) {
+	img := &fakeImage{
+		manifest: &v1.Manifest{
+			Layers: []v1.Descriptor{
+				{MediaType: "application/octet-stream"},
+			},
+		},
+	}
+	_, err := findSigningLayer(img)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no cosign simple signing layer")
+}
+
+func TestExtractVerificationResult_WithVerifiedIdentity(t *testing.T) {
+	result := &verify.VerificationResult{
+		VerifiedIdentity: &verify.CertificateIdentity{
+			SubjectAlternativeName: verify.SubjectAlternativeNameMatcher{
+				SubjectAlternativeName: "workflow@github.com",
+			},
+			Issuer: verify.IssuerMatcher{
+				Issuer: "https://token.actions.githubusercontent.com",
+			},
+		},
+	}
+	vr := extractVerificationResult(result)
+	assert.True(t, vr.Verified)
+	assert.Equal(t, "workflow@github.com", vr.SignerIdentity)
+	assert.Equal(t, "https://token.actions.githubusercontent.com", vr.Issuer)
+	assert.False(t, vr.VerifiedAt.IsZero())
+}
+
+func TestExtractVerificationResult_CertificateFallback(t *testing.T) {
+	result := &verify.VerificationResult{
+		Signature: &verify.SignatureVerificationResult{
+			Certificate: &certificate.Summary{
+				SubjectAlternativeName: "cert-san@example.com",
+				Extensions: certificate.Extensions{
+					Issuer: "https://cert-issuer.example.com",
+				},
+			},
+		},
+	}
+	vr := extractVerificationResult(result)
+	assert.True(t, vr.Verified)
+	assert.Equal(t, "cert-san@example.com", vr.SignerIdentity)
+	assert.Equal(t, "https://cert-issuer.example.com", vr.Issuer)
+}
+
+func TestExtractVerificationResult_IdentityTakesPrecedence(t *testing.T) {
+	result := &verify.VerificationResult{
+		VerifiedIdentity: &verify.CertificateIdentity{
+			SubjectAlternativeName: verify.SubjectAlternativeNameMatcher{
+				SubjectAlternativeName: "primary@github.com",
+			},
+			Issuer: verify.IssuerMatcher{
+				Issuer: "https://primary-issuer.com",
+			},
+		},
+		Signature: &verify.SignatureVerificationResult{
+			Certificate: &certificate.Summary{
+				SubjectAlternativeName: "fallback@example.com",
+				Extensions: certificate.Extensions{
+					Issuer: "https://fallback-issuer.com",
+				},
+			},
+		},
+	}
+	vr := extractVerificationResult(result)
+	assert.Equal(t, "primary@github.com", vr.SignerIdentity)
+	assert.Equal(t, "https://primary-issuer.com", vr.Issuer)
+}
+
+func TestExtractVerificationResult_Empty(t *testing.T) {
+	result := &verify.VerificationResult{}
+	vr := extractVerificationResult(result)
+	assert.True(t, vr.Verified)
+	assert.Empty(t, vr.SignerIdentity)
+	assert.Empty(t, vr.Issuer)
+}
+
+// fakeImage implements v1.Image minimally for findSigningLayer tests.
+type fakeImage struct {
+	v1.Image
+	manifest *v1.Manifest
+}
+
+func (f *fakeImage) Manifest() (*v1.Manifest, error) {
+	return f.manifest, nil
 }
