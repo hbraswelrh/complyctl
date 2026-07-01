@@ -39,19 +39,42 @@ func classifyVersion(version string) (tag string, dgst string) {
 	return version, ""
 }
 
-// Sync provides incremental sync using oras.Copy() for remote-to-local transfer.
-type Sync struct {
-	cache  *Cache
-	state  *State
-	source PolicySource
+// SyncOption configures optional behavior for sync operations.
+type SyncOption func(*syncConfig)
+
+type syncConfig struct {
+	verifier VerifyFunc
 }
 
-// NewSync creates a Sync instance with the given cache, state, and source.
-func NewSync(cache *Cache, state *State, source PolicySource) *Sync {
+// WithVerifier sets a signature verification function that is called before
+// copying content from the registry. If verification fails, the sync is
+// aborted and the local cache remains unchanged.
+func WithVerifier(vf VerifyFunc) SyncOption {
+	return func(c *syncConfig) {
+		c.verifier = vf
+	}
+}
+
+// Sync provides incremental sync using oras.Copy() for remote-to-local transfer.
+type Sync struct {
+	cache    *Cache
+	state    *State
+	source   PolicySource
+	verifier VerifyFunc
+}
+
+// NewSync creates a Sync that orchestrates remote-to-local policy transfer.
+// SyncOption args configure optional behavior such as signature verification.
+func NewSync(cache *Cache, state *State, source PolicySource, opts ...SyncOption) *Sync {
+	cfg := &syncConfig{}
+	for _, opt := range opts {
+		opt(cfg)
+	}
 	return &Sync{
-		cache:  cache,
-		state:  state,
-		source: source,
+		cache:    cache,
+		state:    state,
+		source:   source,
+		verifier: cfg.verifier,
 	}
 }
 
@@ -86,6 +109,18 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, 
 		return false, nil
 	}
 
+	// Pre-copy verification: verify signature via registry API before copying
+	// content to disk. If verification fails, the local cache is unchanged.
+	var verifyResult *VerificationResult
+	if s.verifier != nil {
+		registryRef := BuildLookupRef(policyID, tag, digest)
+		vr, verifyErr := s.verifier(ctx, registryRef)
+		if verifyErr != nil {
+			return false, fmt.Errorf("policy %s: verification failed: %w", policyID, verifyErr)
+		}
+		verifyResult = vr
+	}
+
 	localStore, err := s.cache.NewPolicyStore(policyID)
 	if err != nil {
 		return false, fmt.Errorf("failed to open local store for policy %s: %w", policyID, err)
@@ -96,7 +131,7 @@ func (s *Sync) SyncPolicy(ctx context.Context, policyID, version string) (bool, 
 		return false, fmt.Errorf("policy %s@%s: copy failed: %w", policyID, version, err)
 	}
 
-	s.state.UpdatePolicyState(policyID, version, remoteDigest)
+	s.state.UpdatePolicyStateWithVerification(policyID, version, remoteDigest, verifyResult)
 	if err := SaveState(s.state, s.cache.Dir()); err != nil {
 		return false, fmt.Errorf("failed to save state after sync: %w (policy blobs are valid)", err)
 	}

@@ -14,19 +14,19 @@
 
 ## 3. State Schema Extension
 
-- [ ] 3.1 Add `Verified bool`, `SignerIdentity string`, `Issuer string`, and `VerifiedAt time.Time` fields to `PolicyState` with `json:",omitempty"` tags
-- [ ] 3.2 Add `UpdatePolicyStateWithVerification` method (or extend existing `UpdatePolicyState`) to accept `VerificationResult`
-- [ ] 3.3 Write unit tests for state serialization backward compatibility (unmarshal old format, marshal new format with omitempty)
+- [x] 3.1 Add `Verified bool`, `SignerIdentity string`, `Issuer string`, and `VerifiedAt time.Time` fields to `PolicyState` with `json:",omitempty"` tags
+- [x] 3.2 Add `UpdatePolicyStateWithVerification` method (or extend existing `UpdatePolicyState`) to accept `VerificationResult`
+- [x] 3.3 Write unit tests for state serialization backward compatibility (unmarshal old format, marshal new format with omitempty)
 
 ## 4. Sync Pipeline Integration
 
-- [ ] 4.1 Add `SyncOption` type and `WithVerifier(VerifyFunc) SyncOption` functional option to `Sync`
-- [ ] 4.2 Modify `NewSync` to accept variadic `SyncOption` args and store the `VerifyFunc` on the `Sync` struct
-- [ ] 4.3 Insert pre-copy verification step in `SyncPolicy`: after `DefinitionVersion()` resolves the remote reference, call `VerifyFunc` with the registry reference; skip `CopyPolicy` on failure
-- [ ] 4.4 On successful verification, pass `VerificationResult` to state update; on skip (no verifier), set `Verified: false`
-- [ ] 4.5 Add `SyncOption` and `WithVerifier` to `ComplypackSync` following the same pattern
-- [ ] 4.6 Insert pre-copy verification in `SyncComplypack` pipeline: verify before `CopyComplypack`; suppress unverified warning when verification succeeds
-- [ ] 4.7 Write unit tests for sync with verification (mock verifier success, failure, nil verifier)
+- [x] 4.1 Add `SyncOption` type and `WithVerifier(VerifyFunc) SyncOption` functional option to `Sync`
+- [x] 4.2 Modify `NewSync` to accept variadic `SyncOption` args and store the `VerifyFunc` on the `Sync` struct
+- [x] 4.3 Insert pre-copy verification step in `SyncPolicy`: after `DefinitionVersion()` resolves the remote reference, call `VerifyFunc` with the registry reference; skip `CopyPolicy` on failure
+- [x] 4.4 On successful verification, pass `VerificationResult` to state update; on skip (no verifier), set `Verified: false`
+- [x] 4.5 Add `SyncOption` and `WithVerifier` to `ComplypackSync` following the same pattern
+- [x] 4.6 Insert pre-copy verification in `SyncComplypack` pipeline: verify before `CopyComplypack`; suppress unverified warning when verification succeeds
+- [x] 4.7 Write unit tests for sync with verification (mock verifier success, failure, nil verifier)
 
 ## 5. CLI Integration
 

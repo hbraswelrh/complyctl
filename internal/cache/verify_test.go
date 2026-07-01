@@ -154,3 +154,98 @@ func TestVerificationResult_ZeroValue(t *testing.T) {
 	assert.Empty(t, vr.Issuer)
 	assert.True(t, vr.VerifiedAt.IsZero())
 }
+
+func TestPolicyState_BackwardCompatibility(t *testing.T) {
+	// Old-format JSON without verification fields must deserialize correctly
+	oldJSON := `{"version":"v1.0","digest":"sha256:abc123","last_updated":"2024-01-01T00:00:00Z"}`
+	var ps PolicyState
+	err := json.Unmarshal([]byte(oldJSON), &ps)
+	require.NoError(t, err)
+	assert.Equal(t, "v1.0", ps.Version)
+	assert.Equal(t, "sha256:abc123", ps.Digest)
+	assert.False(t, ps.Verified)
+	assert.Empty(t, ps.SignerIdentity)
+	assert.Empty(t, ps.Issuer)
+	assert.True(t, ps.VerifiedAt.IsZero())
+}
+
+func TestPolicyState_OmitemptyMarshal(t *testing.T) {
+	// Unverified state should not emit boolean/string verification fields
+	// (omitempty works on bool and string). time.Time zero value is always
+	// emitted since omitempty does not apply to structs in encoding/json.
+	ps := PolicyState{
+		Version:     "v1.0",
+		Digest:      "sha256:abc123",
+		LastUpdated: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+	data, err := json.Marshal(ps)
+	require.NoError(t, err)
+	s := string(data)
+	assert.NotContains(t, s, `"verified":`)
+	assert.NotContains(t, s, "signer_identity")
+	assert.NotContains(t, s, "issuer")
+}
+
+func TestPolicyState_VerifiedMarshal(t *testing.T) {
+	verifiedAt := time.Date(2024, 6, 15, 10, 0, 0, 0, time.UTC)
+	ps := PolicyState{
+		Version:        "v1.0",
+		Digest:         "sha256:abc123",
+		LastUpdated:    time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		Verified:       true,
+		SignerIdentity: "workflow@github.com",
+		Issuer:         "https://token.actions.githubusercontent.com",
+		VerifiedAt:     verifiedAt,
+	}
+	data, err := json.Marshal(ps)
+	require.NoError(t, err)
+	s := string(data)
+	assert.Contains(t, s, `"verified":true`)
+	assert.Contains(t, s, `"signer_identity":"workflow@github.com"`)
+	assert.Contains(t, s, `"issuer":"https://token.actions.githubusercontent.com"`)
+	assert.Contains(t, s, `"verified_at"`)
+}
+
+func TestUpdatePolicyStateWithVerification_NilResult(t *testing.T) {
+	state := &State{Policies: make(map[string]PolicyState)}
+	state.UpdatePolicyStateWithVerification("test-policy", "v1.0", "sha256:abc", nil)
+	ps, ok := state.GetPolicyState("test-policy")
+	require.True(t, ok)
+	assert.Equal(t, "v1.0", ps.Version)
+	assert.Equal(t, "sha256:abc", ps.Digest)
+	assert.False(t, ps.Verified)
+	assert.Empty(t, ps.SignerIdentity)
+}
+
+func TestUpdatePolicyStateWithVerification_WithResult(t *testing.T) {
+	state := &State{Policies: make(map[string]PolicyState)}
+	vr := &VerificationResult{
+		Verified:       true,
+		SignerIdentity: "user@example.com",
+		Issuer:         "https://issuer.example.com",
+		VerifiedAt:     time.Now(),
+	}
+	state.UpdatePolicyStateWithVerification("test-policy", "v1.0", "sha256:abc", vr)
+	ps, ok := state.GetPolicyState("test-policy")
+	require.True(t, ok)
+	assert.True(t, ps.Verified)
+	assert.Equal(t, "user@example.com", ps.SignerIdentity)
+	assert.Equal(t, "https://issuer.example.com", ps.Issuer)
+	assert.False(t, ps.VerifiedAt.IsZero())
+}
+
+func TestUpdateComplypackStateWithVerification_WithResult(t *testing.T) {
+	state := &State{Complypacks: make(map[string]PolicyState)}
+	vr := &VerificationResult{
+		Verified:       true,
+		SignerIdentity: "build@ci.com",
+		Issuer:         "https://ci.issuer.com",
+		VerifiedAt:     time.Now(),
+	}
+	state.UpdateComplypackStateWithVerification("repo/pack", "v2.0", "sha256:def", "opa", vr)
+	ps, ok := state.GetComplypackState("repo/pack")
+	require.True(t, ok)
+	assert.True(t, ps.Verified)
+	assert.Equal(t, "build@ci.com", ps.SignerIdentity)
+	assert.Equal(t, "opa", ps.EvaluatorID)
+}

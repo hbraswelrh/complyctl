@@ -19,15 +19,22 @@ type ComplypackSync struct {
 	complypackCache *ComplypackCache
 	state           *State
 	source          ComplypackSource
+	verifier        VerifyFunc
 }
 
 // NewComplypackSync creates a ComplypackSync that orchestrates the
-// fetch-unpack-store pipeline for complypack artifacts.
-func NewComplypackSync(complypackCache *ComplypackCache, state *State, source ComplypackSource) *ComplypackSync {
+// fetch-unpack-store pipeline for complypack artifacts. SyncOption args
+// configure optional behavior such as signature verification.
+func NewComplypackSync(complypackCache *ComplypackCache, state *State, source ComplypackSource, opts ...SyncOption) *ComplypackSync {
+	cfg := &syncConfig{}
+	for _, opt := range opts {
+		opt(cfg)
+	}
 	return &ComplypackSync{
 		complypackCache: complypackCache,
 		state:           state,
 		source:          source,
+		verifier:        cfg.verifier,
 	}
 }
 
@@ -74,6 +81,18 @@ func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version
 		return false, nil
 	}
 
+	// Pre-copy verification: verify signature via registry API before copying
+	// content to disk. If verification fails, the local cache is unchanged.
+	var verifyResult *VerificationResult
+	if s.verifier != nil {
+		registryRef := BuildLookupRef(repository, tag, digest)
+		vr, verifyErr := s.verifier(ctx, registryRef)
+		if verifyErr != nil {
+			return false, fmt.Errorf("complypack %s: verification failed: %w", repository, verifyErr)
+		}
+		verifyResult = vr
+	}
+
 	// Create a temporary OCI Layout store for the oras.Copy() transfer.
 	// This is discarded after unpacking — the final cache uses the
 	// ComplypackCache directory structure, not an OCI Layout.
@@ -109,7 +128,7 @@ func (s *ComplypackSync) SyncComplypack(ctx context.Context, repository, version
 		return false, fmt.Errorf("failed to store complypack %s@%s: %w", repository, version, err)
 	}
 
-	s.state.UpdateComplypackState(repository, version, remoteDigest, result.Config.EvaluatorID)
+	s.state.UpdateComplypackStateWithVerification(repository, version, remoteDigest, result.Config.EvaluatorID, verifyResult)
 	if err := SaveState(s.state, s.complypackCache.Dir()); err != nil {
 		return false, fmt.Errorf("failed to save state after complypack sync: %w (complypack blobs are valid)", err)
 	}
